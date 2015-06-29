@@ -1,0 +1,42 @@
+<body>
+<p>
+PalDB is an embeddable persistent write-once key-value store.
+</p>
+<h2>Code samples</h2>
+
+How to write a store:
+<pre>
+StoreWriter writer = PalDB.createWriter(new File("store.paldb"));
+writer.put("foo", "bar");
+writer.put(1213, new int[] {1, 2, 3});
+writer.close();
+</pre>
+
+How to read a store:
+<pre>
+StoreReader reader = PalDB.createReader(new File("store.paldb"));
+String val1 = reader.get("foo");
+int[] val2 = reader.get(1213);
+reader.close();
+</pre>
+
+How to iterate on a store:
+<pre>
+StoreReader reader = PalDB.createReader(new File("store.paldb"));
+Iterable<Map.Entry<String, String>> iterable = reader.iterable();
+for (Map.Entry<String, String> entry : iterable) {
+  String key = entry.getKey();
+  String value = entry.getValue();
+}
+reader.close();
+</pre>
+
+<hr/>
+<h2>API Changes</h2>
+<p>
+<ul>
+  <li>(April 2015) Initial API</li>
+</ul>
+</p>
+</body>
+

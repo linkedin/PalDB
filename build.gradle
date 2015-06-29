@@ -1,0 +1,16 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+}
+
+allprojects {
+  repositories {
+    mavenCentral()
+  }
+}
+
+allprojects {
+  apply plugin: 'eclipse'
+  apply plugin: 'idea'
+}

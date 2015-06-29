@@ -1,0 +1,52 @@
+apply plugin: 'java'
+
+sourceCompatibility = 1.6
+group = GROUP
+version = VERSION_NAME
+
+test {
+  useTestNG()
+}
+
+sourceSets {
+
+  perfTest {
+    java.srcDir file('src/perfTest/java')
+    resources.srcDir file('src/perfTest/resources')
+    compileClasspath += sourceSets.main.output + test.output
+    runtimeClasspath += sourceSets.main.output + test.output
+  }
+
+}
+
+jar {
+  from sourceSets.main.allSource
+}
+
+task perfTest(type: Test) {
+  testClassesDir = sourceSets.perfTest.output.classesDir
+  classpath = sourceSets.perfTest.runtimeClasspath
+}
+
+perfTest {
+  useTestNG()
+
+  maxHeapSize = "2g"
+}
+
+dependencies {
+  compile 'org.xerial.snappy:snappy-java:1.0.5'
+  
+  testCompile 'org.testng:testng:6.8.8'
+  testCompile 'commons-lang:commons-lang:2.6'
+
+  perfTestCompile configurations.testCompile
+
+  // Only used for benchmark
+  perfTestCompile 'org.fusesource.leveldbjni:leveldbjni-all:1.8'
+  perfTestCompile 'org.rocksdb:rocksdbjni:3.9.0'
+}
+
+javadoc {
+  options.overview = "overview.html"
+}

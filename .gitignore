@@ -1,0 +1,17 @@
+.project
+.settings
+.metadata
+.classpath
+.gradle
+.idea
+*.iml
+*.ipr
+*.iws
+/build
+*/build
+out/
+*/bin/
+*/test-output/
+/ligradle
+.DS_Store
+/doc
