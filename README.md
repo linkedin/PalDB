@@ -13,9 +13,9 @@ PalDB's JAR is only 110K and has a single dependency (snappy, which isn't mandat
 Performance
 -----------
 
-Because PalDB is read-only it is significantly less complex than other embeddable key-value store and therefore benefits from optimization that wouldn't be possible if writes were permitted. PalDB is specifically optimized for read performance and store sizes. PalDB can be benchmarked compared to in-memory data structures such as Java collections (HashMap, HashSet) or other key-values stores (LevelDB, RocksDB). Best performance is achieved when memory mapping is enabled (default) and the entire store is loaded in off-heap memory.
+Because PalDB is read-only and only focuses on data which can be held in memory it is significantly less complex than other embeddable key-value stores and therefore allows a compact storage format and very high throughput. PalDB is specifically optimized for fast read performance and compact store sizes. Performances can be compared to in-memory data structures such as Java collections (e.g. HashMap, HashSet) or other key-values stores (e.g. LevelDB, RocksDB).
 
-Current benchmark on a 3Ghz Macbook Pro with 100M keys index shows an average performance of 2M reads/s for a memory usage 6X less than using a traditional HashSet.
+Current benchmark on a 3.1Ghz Macbook Pro with 10M integer keys index shows an average performance of ~2M reads/s for a memory usage 6X less than using a traditional HashSet. That is 8X faster throughput compared to LevelDB (1.8) or RocksDB (3.9.0).
 
 Results of a throughput benchmark between PalDB, LevelDB and RocksDB (higher is better):
 
@@ -28,9 +28,9 @@ Memory usage benchmark between PalDB and a Java HashSet (lower is better):
 What is it suitable for?
 ------------------------
 
-PalDB can be used in applications which rely on side data prepared in advance and which only needs to be read. For example, machine learning applications such as machine translation, content classification or spam detection rely on large model files that are usually built and packaged by a separate process. These resources are often hard to deal with due to their size and the difficulty to load their content into memory when you need it.
+Side data can be defined as the extra read-only data needed by a process to do its job. For instance, a list of stopwords used by a natural language processing algorithm is side data. Machine learning models used in machine translation, content classification or spam detection are also side data. When this side data becomes large it can rapidly be a bottleneck for applications depending on them. PalDB aims to fill this gap.
 
-PalDB can replace the usage of in-memory data structures to store static data with comparable read performance and by using an order of magnitude less memory. Because PalDB comes into a single file and requires no load time it's also very easy to distribute and use in applications.
+PalDB can replace the usage of in-memory data structures to store this side data with comparable query performances and by using an order of magnitude less memory. It also greatly simplifies the code needed to operate this side data as PalDB stores are single binary files, manipulated with a very simple API (see below for examples). 
 
 Code samples
 ------------
@@ -153,9 +153,9 @@ configuration.registerSerializer(new PointSerializer());
 Use cases
 ---------
 
-At LinkedIn, PalDB is used in data pipelines and machine-learning applications.
+At LinkedIn, PalDB is used in analytics workflows and machine-learning applications.
 
-It's usage is popular on Hadoop work-flows because of its limited memory footprint and ease to distribute. It often allows to use map-side operations (e.g. join) when that wouldn't be possible with classic Java data structures. For instance, a set of 350M member ids would only use ~290M of memory with PalDB versus ~1.8GB with a traditional HashSet. Moreover, PalDB's store files are single binary files making it easy to package and use with Hadoop's distributed cache mechanism.
+Its usage is especially popular in Hadoop workflows because memory is rare yet critical to speed things up. In this context, PalDB often enables map-side operations (e.g. join) which wouldn't be possible with classic in-memory data structures (e.g Java collections). For instance, a set of 35M member ids would only use ~290M of memory with PalDB versus ~1.8GB with a traditional Java HashSet. Moreover, as PalDB's store files are single binary files it is easy to package and use with Hadoop's distributed cache mechanism.
 
 Machine-learning applications often have complex binary model files created in the `training` phase and used in the `scoring` phase. These two phases always happen at different times and often in different environments. For instance, the training phase happens on Hadoop or Spark and the scoring phase in a real-time service. PalDB makes this process easier and more efficient by reducing the need of large CSV files loaded in memory.
 
