@@ -64,6 +64,8 @@ for (Map.Entry<String, String> entry : iterable) {
 reader.close();
 ```
 
+For Scala examples, see [here](https://gist.github.com/mbastian/9b9b49a4b96333da33ec) and [here](https://gist.github.com/mbastian/440a706f5e863bb65622).
+
 Build
 -----
 
