@@ -66,10 +66,25 @@ reader.close();
 
 For Scala examples, see [here](https://gist.github.com/mbastian/9b9b49a4b96333da33ec) and [here](https://gist.github.com/mbastian/440a706f5e863bb65622).
 
+Frequently asked questions
+--------------------------
+
+**Can you open a store for writing subsequent times?**
+
+No, the final binary file is created when `StoreWriter.close()` is called.
+
+**Are duplicate keys allowed?**
+
+No, duplicate keys aren't allowed and an exception will be thrown.
+
+**Do keys have an order when iterating?**
+
+No, like a hashtable PalDB stores have no order.
+
 Build
 -----
 
-PalDB requires Java 6 and gradle.
+PalDB requires Java 6+ and gradle. The target Java version is 6.
 
 ```bash
 gradle build
