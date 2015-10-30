@@ -1,4 +1,6 @@
 apply plugin: 'java'
+apply plugin: 'jacoco'
+apply plugin: 'com.github.kt3k.coveralls'
 
 sourceCompatibility = 1.6
 group = GROUP
@@ -36,7 +38,7 @@ perfTest {
 
 dependencies {
   compile 'org.xerial.snappy:snappy-java:1.0.5'
-  
+
   testCompile 'org.testng:testng:6.8.8'
   testCompile 'commons-lang:commons-lang:2.6'
 
@@ -49,4 +51,11 @@ dependencies {
 
 javadoc {
   options.overview = "overview.html"
+}
+
+jacocoTestReport {
+  reports {
+    html.enabled = true
+    xml.enabled = true
+  }
 }

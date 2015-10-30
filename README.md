@@ -30,7 +30,7 @@ What is it suitable for?
 
 Side data can be defined as the extra read-only data needed by a process to do its job. For instance, a list of stopwords used by a natural language processing algorithm is side data. Machine learning models used in machine translation, content classification or spam detection are also side data. When this side data becomes large it can rapidly be a bottleneck for applications depending on them. PalDB aims to fill this gap.
 
-PalDB can replace the usage of in-memory data structures to store this side data with comparable query performances and by using an order of magnitude less memory. It also greatly simplifies the code needed to operate this side data as PalDB stores are single binary files, manipulated with a very simple API (see below for examples). 
+PalDB can replace the usage of in-memory data structures to store this side data with comparable query performances and by using an order of magnitude less memory. It also greatly simplifies the code needed to operate this side data as PalDB stores are single binary files, manipulated with a very simple API (see below for examples).
 
 Code samples
 ------------
@@ -59,7 +59,7 @@ StoreReader reader = PalDB.createReader(new File("store.paldb"));
 Iterable<Map.Entry<String, String>> iterable = reader.iterable();
 for (Map.Entry<String, String> entry : iterable) {
   String key = entry.getKey();
-  String value = entry.getValue();      
+  String value = entry.getValue();
 }
 reader.close();
 ```
@@ -84,6 +84,11 @@ Test
 ----
 
 We use the TestNG framework for our unit tests. You can run them via the `gradle clean test` command.
+
+Coverage
+--------
+
+Coverage is run using JaCoCo. You can run a report via `gradle jacocoTestReport`. The report will be generated in `paldb/build/reports/jacoco/test/html/`.
 
 Advanced configuration
 ----------------------
