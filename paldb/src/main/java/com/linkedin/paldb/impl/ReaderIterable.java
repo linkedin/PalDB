@@ -93,7 +93,7 @@ public final class ReaderIterable<K, V> implements Iterable<Map.Entry<K, V>> {
 
     @Override
     public void remove() {
-      throw new UnsupportedOperationException("Not supported yet.");
+      throw new UnsupportedOperationException("Not supported.");
     }
 
     /**
