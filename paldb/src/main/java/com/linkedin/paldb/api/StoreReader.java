@@ -443,4 +443,12 @@ public interface StoreReader {
    * @return iterable over store
    */
   public <K, V> Iterable<Map.Entry<K, V>> iterable();
+
+  /**
+   * Gets the store keys iterable.
+   *
+   * @param <K> key type
+   * @return iterable over keys
+   */
+  public <K> Iterable<K> keys();
 }
