@@ -46,7 +46,7 @@ dependencies {
 
   // Only used for benchmark
   perfTestCompile 'org.fusesource.leveldbjni:leveldbjni-all:1.8'
-  perfTestCompile 'org.rocksdb:rocksdbjni:3.9.0'
+  perfTestCompile 'org.rocksdb:rocksdbjni:4.0'
 }
 
 javadoc {
