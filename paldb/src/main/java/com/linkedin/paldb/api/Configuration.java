@@ -195,7 +195,7 @@ public class Configuration implements Serializable {
    * @param defaultValue default value if key not found
    * @return value or <code>defaultValue</code> if not found
    */
-  public long getShort(String key, short defaultValue) {
+  public short getShort(String key, short defaultValue) {
     if (containsKey(key)) {
       return Short.parseShort(get(key));
     } else {
@@ -210,7 +210,7 @@ public class Configuration implements Serializable {
    * @throws java.lang.IllegalArgumentException if the key is not found
    * @return value
    */
-  public long getShort(String key) {
+  public short getShort(String key) {
     if (containsKey(key)) {
       return Short.parseShort(get(key));
     } else {
