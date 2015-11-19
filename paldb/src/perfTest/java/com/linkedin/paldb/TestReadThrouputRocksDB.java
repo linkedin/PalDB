@@ -28,6 +28,8 @@ import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.BlockBasedTableConfig;
+import org.rocksdb.BloomFilter;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -84,7 +86,12 @@ public class TestReadThrouputRocksDB {
     options.setAllowMmapWrites(false);
     options.setAllowMmapReads(true);
     options.setCompressionType(CompressionType.NO_COMPRESSION);
-    options.setCompactionStyle(CompactionStyle.UNIVERSAL);
+    options.setCompactionStyle(CompactionStyle.LEVEL);
+    options.setMaxOpenFiles(-1);
+
+    final BlockBasedTableConfig tableOptions = new BlockBasedTableConfig();
+    tableOptions.setFilter(new BloomFilter(10, false));
+    options.setTableFormatConfig(tableOptions);
 
     RocksDB db = null;
     try {
@@ -116,7 +123,9 @@ public class TestReadThrouputRocksDB {
       options.setAllowMmapWrites(false);
       options.setAllowMmapReads(true);
       options.setCompressionType(CompressionType.NO_COMPRESSION);
-      options.setCompactionStyle(CompactionStyle.UNIVERSAL);
+      options.setCompactionStyle(CompactionStyle.LEVEL);
+      options.setMaxOpenFiles(-1);
+      options.setTableFormatConfig(tableOptions);
 
       db = RocksDB.open(options, file.getAbsolutePath());
       final RocksDB reader = db;

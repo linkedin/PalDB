@@ -85,7 +85,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   private final boolean mMapData;
   // Buffers
   private final DataInputOutput sizeBuffer = new DataInputOutput(new byte[5]);
-  private final byte[][] slotBuffers;
+  private final byte[] slotBuffer;
 
   StorageReader(Configuration configuration, File file)
       throws IOException {
@@ -148,19 +148,21 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     keyCounts = new int[maxKeyLength + 1];
     slots = new int[maxKeyLength + 1];
     slotSizes = new int[maxKeyLength + 1];
-    slotBuffers = new byte[maxKeyLength + 1][];
+
+    int maxSlotSize = 0;
     for (int i = 0; i < keyLengthCount; i++) {
       int keyLength = dataInputStream.readInt();
 
       keyCounts[keyLength] = dataInputStream.readInt();
       slots[keyLength] = dataInputStream.readInt();
       slotSizes[keyLength] = dataInputStream.readInt();
-      slotBuffers[keyLength] = new byte[slotSizes[keyLength]];
-
       indexOffsets[keyLength] = dataInputStream.readInt();
-
       dataOffsets[keyLength] = dataInputStream.readLong();
+
+      maxSlotSize = Math.max(maxSlotSize, slotSizes[keyLength]);
     }
+
+    slotBuffer = new byte[maxSlotSize];
 
     //Read serializers
     try {
@@ -238,15 +240,14 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     }
     long hash = (long) HashUtils.hash(key);
     int numSlots = slots[keyLength];
-    byte[] slotBuffer = slotBuffers[keyLength];
-    int slotSize = slotBuffer.length;
+    int slotSize = slotSizes[keyLength];
     int indexOffset = indexOffsets[keyLength];
     long dataOffset = dataOffsets[keyLength];
 
     for (int probe = 0; probe < numSlots; probe++) {
       int slot = (int) ((hash + probe) % numSlots);
       indexBuffer.position(indexOffset + slot * slotSize);
-      indexBuffer.get(slotBuffer);
+      indexBuffer.get(slotBuffer, 0, slotSize);
 
       long offset = LongPacker.unpackLong(slotBuffer, keyLength);
       if (offset == 0) {
@@ -375,19 +376,25 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
   @Override
   public Iterator<Map.Entry<byte[], byte[]>> iterator() {
-    return new StorageIterator();
+    return new StorageIterator(true);
+  }
+
+  public Iterator<Map.Entry<byte[], byte[]>> keys() {
+    return new StorageIterator(false);
   }
 
   private class StorageIterator implements Iterator<Map.Entry<byte[], byte[]>> {
 
     private final FastEntry entry = new FastEntry();
+    private final boolean withValue;
     private int currentKeyLength = 0;
     private byte[] currentSlotBuffer;
     private long keyIndex;
     private long keyLimit;
     private long currentDataOffset;
 
-    public StorageIterator() {
+    public StorageIterator(boolean value) {
+      withValue = value;
       nextKeyLength();
     }
 
@@ -421,8 +428,12 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
         }
 
         byte[] key = Arrays.copyOf(currentSlotBuffer, currentKeyLength);
-        long valueOffset = currentDataOffset + offset;
-        byte[] value = mMapData ? getMMapBytes(valueOffset) : getDiskBytes(valueOffset);
+        byte[] value = null;
+
+        if (withValue) {
+          long valueOffset = currentDataOffset + offset;
+          value = mMapData ? getMMapBytes(valueOffset) : getDiskBytes(valueOffset);
+        }
 
         entry.set(key, value);
 

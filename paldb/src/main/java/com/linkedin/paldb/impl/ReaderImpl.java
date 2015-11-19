@@ -407,6 +407,12 @@ public final class ReaderImpl implements StoreReader {
     return new ReaderIterable(storage, serialization);
   }
 
+  @Override
+  public <K> Iterable<K> keys() {
+    checkOpen();
+    return new ReaderKeyIterable<K>(storage, serialization);
+  }
+
   // UTILITIES
 
   /**

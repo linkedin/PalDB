@@ -22,8 +22,11 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
+
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -374,6 +377,24 @@ public class TestStoreReader {
       Object val = testValues[v.getKey()];
       Assert.assertEquals(v.getValue(), val);
     }
+  }
+
+  @Test
+  public void testKeyIterator() {
+    Iterable<Integer> iter = reader.keys();
+    Assert.assertNotNull(iter);
+    Iterator<Integer> itr = iter.iterator();
+    Assert.assertNotNull(itr);
+
+    Set<Integer> actual = new HashSet<Integer>();
+    Set<Integer> expected = new HashSet<Integer>();
+    for (int i = 0; i < testValues.length; i++) {
+      Assert.assertTrue(itr.hasNext());
+      Integer k = itr.next();
+      actual.add(k);
+      expected.add(i);
+    }
+    Assert.assertEquals(actual, expected);
   }
 
   // UTILITY

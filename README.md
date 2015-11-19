@@ -15,7 +15,7 @@ Performance
 
 Because PalDB is read-only and only focuses on data which can be held in memory it is significantly less complex than other embeddable key-value stores and therefore allows a compact storage format and very high throughput. PalDB is specifically optimized for fast read performance and compact store sizes. Performances can be compared to in-memory data structures such as Java collections (e.g. HashMap, HashSet) or other key-values stores (e.g. LevelDB, RocksDB).
 
-Current benchmark on a 3.1Ghz Macbook Pro with 10M integer keys index shows an average performance of ~2M reads/s for a memory usage 6X less than using a traditional HashSet. That is 8X faster throughput compared to LevelDB (1.8) or RocksDB (3.9.0).
+Current benchmark on a 3.1Ghz Macbook Pro with 10M integer keys index shows an average performance of ~1.6M reads/s for a memory usage 6X less than using a traditional HashSet. That is 5X faster throughput compared to LevelDB (1.8) or RocksDB (4.0).
 
 Results of a throughput benchmark between PalDB, LevelDB and RocksDB (higher is better):
 

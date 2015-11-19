@@ -15,14 +15,15 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.utils.DataInputOutput;
+
 import java.util.Iterator;
 import java.util.Map;
 
 
 /**
- * Store iterable that return store iterator.
+ * Store iterable that return store key iterator.
  */
-public final class ReaderIterable<K, V> implements Iterable<Map.Entry<K, V>> {
+public final class ReaderKeyIterable<K> implements Iterable<K> {
 
   // Iterable
   private Iterable<Map.Entry<byte[], byte[]>> byteIterable;
@@ -33,28 +34,24 @@ public final class ReaderIterable<K, V> implements Iterable<Map.Entry<K, V>> {
   /**
    * Constructor.
    *
-   * @param byteIterable byte iterator
+   * @param byteIterable  byte iterator
    * @param serialization serialization
    */
-  ReaderIterable(Iterable<Map.Entry<byte[], byte[]>> byteIterable, StorageSerialization serialization) {
+  ReaderKeyIterable(Iterable<Map.Entry<byte[], byte[]>> byteIterable, StorageSerialization serialization) {
     this.byteIterable = byteIterable;
     this.serialization = serialization;
   }
 
   @Override
-  public Iterator<Map.Entry<K, V>> iterator() {
-    return new ReaderIterator<K, V>(byteIterable.iterator(), serialization);
+  public Iterator<K> iterator() {
+    return new ReaderKeyIterator<K>(byteIterable.iterator(), serialization);
   }
 
   /**
-   * Store iterator that streams deserialized key/value entries.
-   * <p>
-   * Note that entry objects are reused.
+   * Store key iterator that streams deserialized keys.
    */
-  private static final class ReaderIterator<K, V> implements Iterator<Map.Entry<K, V>> {
+  private static final class ReaderKeyIterator<K> implements Iterator<K> {
 
-    // Reusable entry
-    private final FastEntry<K, V> entry = new FastEntry<K, V>();
     // Iterator
     private final Iterator<Map.Entry<byte[], byte[]>> byteIterator;
     // Buffer
@@ -65,10 +62,10 @@ public final class ReaderIterable<K, V> implements Iterable<Map.Entry<K, V>> {
     /**
      * Constructor.
      *
-     * @param byteIterator byte iterator
+     * @param byteIterator  byte iterator
      * @param serialization serialization
      */
-    ReaderIterator(Iterator<Map.Entry<byte[], byte[]>> byteIterator, StorageSerialization serialization) {
+    ReaderKeyIterator(Iterator<Map.Entry<byte[], byte[]>> byteIterator, StorageSerialization serialization) {
       this.byteIterator = byteIterator;
       this.serialization = serialization;
     }
@@ -79,55 +76,19 @@ public final class ReaderIterable<K, V> implements Iterable<Map.Entry<K, V>> {
     }
 
     @Override
-    public Map.Entry<K, V> next() {
+    public K next() {
       Map.Entry<byte[], byte[]> byteEntry = byteIterator.next();
       try {
         K key = (K) serialization.deserialize(dataInputOutput.reset(byteEntry.getKey()));
-        V value = (V) serialization.deserialize(dataInputOutput.reset(byteEntry.getValue()));
-        entry.set(key, value);
+        return key;
       } catch (Exception ex) {
         throw new RuntimeException(ex);
       }
-      return entry;
     }
 
     @Override
     public void remove() {
       throw new UnsupportedOperationException("Not supported.");
-    }
-
-    /**
-     * Reusable <code>Map.Entry</code>.
-     */
-    private static class FastEntry<K, V> implements Map.Entry<K, V> {
-
-      private K key;
-      private V val;
-
-      /**
-       * Sets the key/value
-       * @param k key
-       * @param v value
-       */
-      protected void set(K k, V v) {
-        this.key = k;
-        this.val = v;
-      }
-
-      @Override
-      public K getKey() {
-        return key;
-      }
-
-      @Override
-      public V getValue() {
-        return val;
-      }
-
-      @Override
-      public Object setValue(Object value) {
-        throw new UnsupportedOperationException("Not supported.");
-      }
     }
   }
 }
