@@ -52,7 +52,7 @@ public final class TempUtils {
         "Failed to create directory within " + 10000 + " attempts (tried " + baseName + "0 to " + baseName + (10000 - 1)
             + ')');
   }
-
+  
   /**
    * Copies <code>inputStream</code> into a temporary file <code>fileName</code>.
    *
@@ -65,23 +65,27 @@ public final class TempUtils {
       throws IOException {
     BufferedInputStream bufferedStream = inputStream instanceof BufferedInputStream ? (BufferedInputStream) inputStream
         : new BufferedInputStream(inputStream);
-    File destFile = File.createTempFile(fileName, null);
-    destFile.deleteOnExit();
+    File destFile = null;
+    try {
+      destFile = File.createTempFile(fileName, null);
+      destFile.deleteOnExit();
 
-    FileOutputStream fileOutputStream = new FileOutputStream(destFile);
-    BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
-
-    byte[] buffer = new byte[8192];
-    int length;
-    while ((length = bufferedStream.read(buffer)) > 0) {
-      bufferedOutputStream.write(buffer, 0, length);
+      FileOutputStream fileOutputStream = new FileOutputStream(destFile);
+      BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
+      try {
+        byte[] buffer = new byte[8192];
+        int length;
+        while ((length = bufferedStream.read(buffer)) > 0) {
+          bufferedOutputStream.write(buffer, 0, length);
+        }
+      } finally {
+        bufferedOutputStream.close();
+        fileOutputStream.close();
+      }
+    } finally {
+      bufferedStream.close();
+      inputStream.close();
     }
-
-    bufferedOutputStream.close();
-    fileOutputStream.close();
-
-    bufferedStream.close();
-    inputStream.close();
     return destFile;
   }
 }
