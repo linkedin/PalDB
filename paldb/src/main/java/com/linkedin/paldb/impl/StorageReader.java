@@ -19,6 +19,7 @@ import com.linkedin.paldb.utils.DataInputOutput;
 import com.linkedin.paldb.utils.FormatVersion;
 import com.linkedin.paldb.utils.HashUtils;
 import com.linkedin.paldb.utils.LongPacker;
+
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -422,10 +423,19 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
       try {
 
         long offset = 0;
-        while (offset == 0) {
-          indexBuffer.get(currentSlotBuffer);
-          offset = LongPacker.unpackLong(currentSlotBuffer, currentKeyLength);
+        byte begin = 0;
+        while(0 == begin) {
+        	byte[] temp = new byte[1];
+        	indexBuffer.get(temp);
+        	if(temp != null) {
+        		begin = temp[0];
+        	}
         }
+        byte[] temp = new byte[currentSlotBuffer.length - 1];
+        indexBuffer.get(temp);
+        currentSlotBuffer[0] = begin;
+        System.arraycopy(temp, 0, currentSlotBuffer, 1, currentSlotBuffer.length - 1);
+        offset = LongPacker.unpackLong(currentSlotBuffer, currentKeyLength);
 
         byte[] key = Arrays.copyOf(currentSlotBuffer, currentKeyLength);
         byte[] value = null;
