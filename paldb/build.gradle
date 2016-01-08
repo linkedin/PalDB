@@ -68,6 +68,20 @@ if (project.hasProperty('release')) {
     sign configurations.archives
   }
 
+  task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+  }
+
+  task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+  }
+
+  artifacts {
+    archives javadocJar, sourcesJar
+  }
+
   uploadArchives {
     repositories {
       mavenDeployer {
