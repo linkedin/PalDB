@@ -1,6 +1,9 @@
 PalDB
 ==========
 
+[![Build Status](https://travis-ci.org/linkedin/PalDB.svg?branch=master)](https://travis-ci.org/linkedin/PalDB)
+[![Coverage Status](https://coveralls.io/repos/linkedin/PalDB/badge.svg?branch=master&service=github)](https://coveralls.io/github/linkedin/PalDB?branch=master)
+
 PalDB is an embeddable write-once key-value store written in Java.
 
 What is PalDB?
