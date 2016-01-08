@@ -22,17 +22,17 @@ public class TestFormatVersion {
 
   @Test
   public void testIs() {
-    Assert.assertTrue(FormatVersion.VERSION_1.is(FormatVersion.VERSION_1));
+    Assert.assertTrue(FormatVersion.PALDB_V1.is(FormatVersion.PALDB_V1));
   }
 
   @Test
   public void testBytes() {
-    Assert.assertEquals(FormatVersion.fromBytes(FormatVersion.VERSION_1.getBytes()), FormatVersion.VERSION_1);
+    Assert.assertEquals(FormatVersion.fromBytes(FormatVersion.PALDB_V1.getBytes()), FormatVersion.PALDB_V1);
   }
 
   @Test
   public void testPrefixBytes() {
-    Assert.assertEquals(FormatVersion.getPrefixBytes(), "VERSION".getBytes());
+    Assert.assertEquals(FormatVersion.getPrefixBytes(), "PALDB".getBytes());
   }
 
   @Test

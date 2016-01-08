@@ -24,7 +24,7 @@ import java.util.Arrays;
  * The format version ensures compatibility between the writer and the reader (i.e. should be equal).
  */
 public enum FormatVersion {
-  VERSION_1;
+  PALDB_V1;
 
   /**
    * Returns true if <code>fv</code> is equals to <code>this</code>.
@@ -84,7 +84,7 @@ public enum FormatVersion {
   public static byte[] getPrefixBytes() {
     try {
       DataInputOutput dio = new DataInputOutput();
-      dio.writeUTF("VERSION");
+      dio.writeUTF("PALDB");
       byte[] res = dio.toByteArray();
       return Arrays.copyOfRange(res, 1, res.length);
     } catch (IOException e) {
