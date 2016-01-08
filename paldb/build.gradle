@@ -1,6 +1,8 @@
 apply plugin: 'java'
 apply plugin: 'jacoco'
 apply plugin: 'com.github.kt3k.coveralls'
+apply plugin: 'signing'
+apply plugin: 'maven'
 
 sourceCompatibility = 1.6
 group = GROUP
@@ -57,5 +59,54 @@ jacocoTestReport {
   reports {
     html.enabled = true
     xml.enabled = true
+  }
+}
+
+if (project.hasProperty('release')) {
+
+  signing {
+    sign configurations.archives
+  }
+
+  uploadArchives {
+    repositories {
+      mavenDeployer {
+        // POM signature
+        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+        // Target repository
+        repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+          authentication(userName: ossrhUser, password: ossrhPassword)
+        }
+        pom.project {
+          group 'com.linkedin.paldb'
+          name 'paldb'
+          description 'Embeddable persistent write-once key-value store'
+          packaging 'jar'
+          url 'https://github.com/linkedin/PalDB'
+
+          scm {
+            connection 'scm:git:https://github.com/linkedin/PalDB.git'
+            developerConnection 'scm:git@github.com:linkedin/PalDB.git'
+            url 'https://github.com/linkedin/PalDB'
+          }
+
+          licenses {
+            license {
+              name 'The Apache Software License, Version 2.0'
+              url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+              distribution 'repo'
+            }
+          }
+
+          developers {
+            developer {
+              id 'mbastian'
+              name 'Mathieu Bastian'
+              email 'mbastian@apache.org'
+            }
+          }
+        }
+      }
+    }
   }
 }
