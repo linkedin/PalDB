@@ -392,6 +392,8 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     private long keyIndex;
     private long keyLimit;
     private long currentDataOffset;
+    private int currentIndexOffset;
+
 
     public StorageIterator(boolean value) {
       withValue = value;
@@ -405,7 +407,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
           currentKeyLength = i;
           keyLimit += c;
           currentSlotBuffer = new byte[slotSizes[i]];
-          indexBuffer.position(indexOffsets[i]);
+          currentIndexOffset = indexOffsets[i];
           currentDataOffset = dataOffsets[i];
           break;
         }
@@ -420,11 +422,13 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     @Override
     public FastEntry next() {
       try {
+        indexBuffer.position(currentIndexOffset);
 
         long offset = 0;
         while (offset == 0) {
           indexBuffer.get(currentSlotBuffer);
           offset = LongPacker.unpackLong(currentSlotBuffer, currentKeyLength);
+          currentIndexOffset += currentSlotBuffer.length;
         }
 
         byte[] key = Arrays.copyOf(currentSlotBuffer, currentKeyLength);
