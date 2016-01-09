@@ -69,6 +69,18 @@ reader.close();
 
 For Scala examples, see [here](https://gist.github.com/mbastian/9b9b49a4b96333da33ec) and [here](https://gist.github.com/mbastian/440a706f5e863bb65622).
 
+Use it
+------
+
+PalDB is available on Maven Central, hence just add the following dependency:
+```
+<dependency>
+    <groupId>com.linkedin.paldb</groupId>
+    <artifactId>paldb</artifactId>
+    <version>1.1.0</version>
+</dependency>
+```
+
 Frequently asked questions
 --------------------------
 
