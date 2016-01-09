@@ -80,6 +80,11 @@ PalDB is available on Maven Central, hence just add the following dependency:
     <version>1.1.0</version>
 </dependency>
 ```
+Scala SBT
+```
+libraryDependencies += "com.linkedin.paldb" % "paldb" % "1.1.0"
+```
+
 
 Frequently asked questions
 --------------------------
