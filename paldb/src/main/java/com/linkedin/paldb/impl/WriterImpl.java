@@ -77,13 +77,9 @@ public final class WriterImpl implements StoreWriter {
     this.file = file;
 
     // Open storage
-    try {
-      LOGGER.log(Level.INFO, "Opening writer storage");
-      serialization = new StorageSerialization(config);
-      storage = new StorageWriter(config, outputStream);
-    } catch (IOException ex) {
-      throw new RuntimeException(ex);
-    }
+    LOGGER.log(Level.INFO, "Opening writer storage");
+    serialization = new StorageSerialization(config);
+    storage = new StorageWriter(config, outputStream);
     opened = true;
   }
 

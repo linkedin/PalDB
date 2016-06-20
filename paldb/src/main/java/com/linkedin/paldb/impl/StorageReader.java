@@ -106,78 +106,82 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     }
 
     //Open file and read metadata
+    long createdAt = 0;
+    FormatVersion formatVersion = null;
     FileInputStream inputStream = new FileInputStream(path);
     DataInputStream dataInputStream = new DataInputStream(new BufferedInputStream(inputStream));
-    int ignoredBytes = -2;
-
-    //Byte mark
-    byte[] mark = FormatVersion.getPrefixBytes();
-    int found = 0;
-    while (found != mark.length) {
-      byte b = dataInputStream.readByte();
-      if (b == mark[found]) {
-        found++;
-      } else {
-        ignoredBytes += found + 1;
-        found = 0;
-      }
-    }
-
-    //Version
-    byte[] versionFound = Arrays.copyOf(mark, FormatVersion.getLatestVersion().getBytes().length);
-    dataInputStream.readFully(versionFound, mark.length, versionFound.length - mark.length);
-
-    FormatVersion formatVersion = FormatVersion.fromBytes(versionFound);
-    if (formatVersion == null || !formatVersion.is(FormatVersion.getLatestVersion())) {
-      throw new RuntimeException(
-          "Version mismatch, expected was '" + FormatVersion.getLatestVersion() + "' and found '" + formatVersion
-              + "'");
-    }
-
-    //Time
-    long createdAt = dataInputStream.readLong();
-
-    //Metadata counters
-    keyCount = dataInputStream.readInt();
-    keyLengthCount = dataInputStream.readInt();
-    maxKeyLength = dataInputStream.readInt();
-
-    //Read offset counts and keys
-    indexOffsets = new int[maxKeyLength + 1];
-    dataOffsets = new long[maxKeyLength + 1];
-    keyCounts = new int[maxKeyLength + 1];
-    slots = new int[maxKeyLength + 1];
-    slotSizes = new int[maxKeyLength + 1];
-
-    int maxSlotSize = 0;
-    for (int i = 0; i < keyLengthCount; i++) {
-      int keyLength = dataInputStream.readInt();
-
-      keyCounts[keyLength] = dataInputStream.readInt();
-      slots[keyLength] = dataInputStream.readInt();
-      slotSizes[keyLength] = dataInputStream.readInt();
-      indexOffsets[keyLength] = dataInputStream.readInt();
-      dataOffsets[keyLength] = dataInputStream.readLong();
-
-      maxSlotSize = Math.max(maxSlotSize, slotSizes[keyLength]);
-    }
-
-    slotBuffer = new byte[maxSlotSize];
-
-    //Read serializers
     try {
-      Serializers.deserialize(dataInputStream, config.getSerializers());
-    } catch (Exception e) {
-      throw new RuntimeException();
+      int ignoredBytes = -2;
+
+      //Byte mark
+      byte[] mark = FormatVersion.getPrefixBytes();
+      int found = 0;
+      while (found != mark.length) {
+        byte b = dataInputStream.readByte();
+        if (b == mark[found]) {
+          found++;
+        } else {
+          ignoredBytes += found + 1;
+          found = 0;
+        }
+      }
+
+      //Version
+      byte[] versionFound = Arrays.copyOf(mark, FormatVersion.getLatestVersion().getBytes().length);
+      dataInputStream.readFully(versionFound, mark.length, versionFound.length - mark.length);
+
+      formatVersion = FormatVersion.fromBytes(versionFound);
+      if (formatVersion == null || !formatVersion.is(FormatVersion.getLatestVersion())) {
+        throw new RuntimeException(
+                "Version mismatch, expected was '" + FormatVersion.getLatestVersion() + "' and found '" + formatVersion
+                        + "'");
+      }
+
+      //Time
+      createdAt = dataInputStream.readLong();
+
+      //Metadata counters
+      keyCount = dataInputStream.readInt();
+      keyLengthCount = dataInputStream.readInt();
+      maxKeyLength = dataInputStream.readInt();
+
+      //Read offset counts and keys
+      indexOffsets = new int[maxKeyLength + 1];
+      dataOffsets = new long[maxKeyLength + 1];
+      keyCounts = new int[maxKeyLength + 1];
+      slots = new int[maxKeyLength + 1];
+      slotSizes = new int[maxKeyLength + 1];
+
+      int maxSlotSize = 0;
+      for (int i = 0; i < keyLengthCount; i++) {
+        int keyLength = dataInputStream.readInt();
+
+        keyCounts[keyLength] = dataInputStream.readInt();
+        slots[keyLength] = dataInputStream.readInt();
+        slotSizes[keyLength] = dataInputStream.readInt();
+        indexOffsets[keyLength] = dataInputStream.readInt();
+        dataOffsets[keyLength] = dataInputStream.readLong();
+
+        maxSlotSize = Math.max(maxSlotSize, slotSizes[keyLength]);
+      }
+
+      slotBuffer = new byte[maxSlotSize];
+
+      //Read serializers
+      try {
+        Serializers.deserialize(dataInputStream, config.getSerializers());
+      } catch (Exception e) {
+        throw new RuntimeException();
+      }
+
+      //Read index and data offset
+      indexOffset = dataInputStream.readInt() + ignoredBytes;
+      dataOffset = dataInputStream.readLong() + ignoredBytes;
+    } finally {
+      //Close metadata
+      dataInputStream.close();
+      inputStream.close();
     }
-
-    //Read index and data offset
-    indexOffset = dataInputStream.readInt() + ignoredBytes;
-    dataOffset = dataInputStream.readLong() + ignoredBytes;
-
-    //Close metadata
-    dataInputStream.close();
-    inputStream.close();
 
     //Create Mapped file in read-only mode
     mappedFile = new RandomAccessFile(path, "r");

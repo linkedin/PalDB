@@ -73,8 +73,7 @@ public class StorageWriter {
   // Number of collisions
   private int collisions;
 
-  StorageWriter(Configuration configuration, OutputStream stream)
-      throws IOException {
+  StorageWriter(Configuration configuration, OutputStream stream) {
     config = configuration;
     loadFactor = config.getDouble(Configuration.LOAD_FACTOR);
     if (loadFactor <= 0.0 || loadFactor >= 1.0) {
@@ -279,78 +278,81 @@ public class StorageWriter {
     // Init index
     File indexFile = new File(tempFolder, "index" + keyLength + ".dat");
     RandomAccessFile indexAccessFile = new RandomAccessFile(indexFile, "rw");
-    indexAccessFile.setLength(slots * slotSize);
-    FileChannel indexChannel = indexAccessFile.getChannel();
-    MappedByteBuffer byteBuffer = indexChannel.map(FileChannel.MapMode.READ_WRITE, 0, indexAccessFile.length());
-
-    // Init reading stream
-    File tempIndexFile = indexFiles[keyLength];
-    DataInputStream tempIndexStream = new DataInputStream(new BufferedInputStream(new FileInputStream(tempIndexFile)));
     try {
-      byte[] keyBuffer = new byte[keyLength];
-      byte[] slotBuffer = new byte[slotSize];
-      byte[] offsetBuffer = new byte[offsetLength];
+      indexAccessFile.setLength(slots * slotSize);
+      FileChannel indexChannel = indexAccessFile.getChannel();
+      MappedByteBuffer byteBuffer = indexChannel.map(FileChannel.MapMode.READ_WRITE, 0, indexAccessFile.length());
 
-      // Read all keys
-      for (int i = 0; i < count; i++) {
-        // Read key
-        tempIndexStream.readFully(keyBuffer);
+      // Init reading stream
+      File tempIndexFile = indexFiles[keyLength];
+      DataInputStream tempIndexStream = new DataInputStream(new BufferedInputStream(new FileInputStream(tempIndexFile)));
+      try {
+        byte[] keyBuffer = new byte[keyLength];
+        byte[] slotBuffer = new byte[slotSize];
+        byte[] offsetBuffer = new byte[offsetLength];
 
-        // Read offset
-        long offset = LongPacker.unpackLong(tempIndexStream);
+        // Read all keys
+        for (int i = 0; i < count; i++) {
+          // Read key
+          tempIndexStream.readFully(keyBuffer);
 
-        // Hash
-        long hash = (long) HashUtils.hash(keyBuffer);
+          // Read offset
+          long offset = LongPacker.unpackLong(tempIndexStream);
 
-        boolean collision = false;
-        for (int probe = 0; probe < count; probe++) {
-          int slot = (int) ((hash + probe) % slots);
-          byteBuffer.position(slot * slotSize);
-          byteBuffer.get(slotBuffer);
+          // Hash
+          long hash = (long) HashUtils.hash(keyBuffer);
 
-          long found = LongPacker.unpackLong(slotBuffer, keyLength);
-          if (found == 0) {
-            // The spot is empty use it
+          boolean collision = false;
+          for (int probe = 0; probe < count; probe++) {
+            int slot = (int) ((hash + probe) % slots);
             byteBuffer.position(slot * slotSize);
-            byteBuffer.put(keyBuffer);
-            int pos = LongPacker.packLong(offsetBuffer, offset);
-            byteBuffer.put(offsetBuffer, 0, pos);
-            break;
-          } else {
-            collision = true;
-            // Check for duplicates
-            if (Arrays.equals(keyBuffer, Arrays.copyOf(slotBuffer, keyLength))) {
-              throw new RuntimeException(
-                  String.format("A duplicate key has been found for for key bytes %s", Arrays.toString(keyBuffer)));
+            byteBuffer.get(slotBuffer);
+
+            long found = LongPacker.unpackLong(slotBuffer, keyLength);
+            if (found == 0) {
+              // The spot is empty use it
+              byteBuffer.position(slot * slotSize);
+              byteBuffer.put(keyBuffer);
+              int pos = LongPacker.packLong(offsetBuffer, offset);
+              byteBuffer.put(offsetBuffer, 0, pos);
+              break;
+            } else {
+              collision = true;
+              // Check for duplicates
+              if (Arrays.equals(keyBuffer, Arrays.copyOf(slotBuffer, keyLength))) {
+                throw new RuntimeException(
+                        String.format("A duplicate key has been found for for key bytes %s", Arrays.toString(keyBuffer)));
+              }
             }
+          }
+
+          if (collision) {
+            collisions++;
           }
         }
 
-        if (collision) {
-          collisions++;
+        String msg = "  Max offset length: " + offsetLength + " bytes" +
+                "\n  Slot size: " + slotSize + " bytes";
+
+        LOGGER.log(Level.INFO, "Built index file {0}\n" + msg, indexFile.getName());
+      } finally {
+        // Close input
+        tempIndexStream.close();
+
+        // Close index and make sure resources are liberated
+        indexChannel.close();
+        indexChannel = null;
+        byteBuffer = null;
+
+        // Delete temp index file
+        if (tempIndexFile.delete()) {
+          LOGGER.log(Level.INFO, "Temporary index file {0} has been deleted", tempIndexFile.getName());
         }
       }
-
-      String msg = "  Max offset length: " + offsetLength + " bytes" +
-          "\n  Slot size: " + slotSize + " bytes";
-
-      LOGGER.log(Level.INFO, "Built index file {0}\n" + msg, indexFile.getName());
-    } finally {
-      // Close input
-      tempIndexStream.close();
-
-      // Close index and make sure resources are liberated
-      indexChannel.close();
+    } finally{
       indexAccessFile.close();
-      indexChannel = null;
       indexAccessFile = null;
-      byteBuffer = null;
       System.gc();
-
-      // Delete temp index file
-      if (tempIndexFile.delete()) {
-        LOGGER.log(Level.INFO, "Temporary index file {0} has been deleted", tempIndexFile.getName());
-      }
     }
 
     return indexFile;
@@ -386,17 +388,18 @@ public class StorageWriter {
       if (f.exists()) {
         FileInputStream fileInputStream = new FileInputStream(f);
         BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+        try {
+          LOGGER.log(Level.INFO, "Merging {0} size={1}", new Object[]{f.getName(), f.length()});
 
-        LOGGER.log(Level.INFO, "Merging {0} size={1}", new Object[]{f.getName(), f.length()});
-
-        byte[] buffer = new byte[8192];
-        int length;
-        while ((length = bufferedInputStream.read(buffer)) > 0) {
-          outputStream.write(buffer, 0, length);
+          byte[] buffer = new byte[8192];
+          int length;
+          while ((length = bufferedInputStream.read(buffer)) > 0) {
+            outputStream.write(buffer, 0, length);
+          }
+        } finally {
+          bufferedInputStream.close();
+          fileInputStream.close();
         }
-
-        bufferedInputStream.close();
-        fileInputStream.close();
       } else {
         LOGGER.log(Level.INFO, "Skip merging file {0} because it doesn't exist", f.getName());
       }
