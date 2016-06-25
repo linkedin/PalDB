@@ -16,6 +16,8 @@ package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.Configuration;
 import com.linkedin.paldb.api.PalDB;
+import com.linkedin.paldb.api.Serializer;
+
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -31,6 +33,19 @@ public class TestStorageCache {
   public void setUp() {
     _configuration = PalDB.newConfiguration();
     _configuration.set(Configuration.CACHE_ENABLED, "true");
+  }
+
+  @Test
+  public void testContainsValid() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    cache.put(0, 0);
+    Assert.assertTrue(cache.contains(0));
+  }
+
+  @Test
+  public void testContainsInValid() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    Assert.assertFalse(cache.contains(0));
   }
 
   @Test
@@ -165,6 +180,90 @@ public class TestStorageCache {
     StorageCache cache = StorageCache.initCache(_configuration);
     cache.put(0, new int[]{1, 2});
     Assert.assertEquals(cache.getWeight(), 16 + 8 + StorageCache.OVERHEAD);
+  }
+
+  @Test
+  public void testWeightValueLongArrayObjects() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    cache.put(0, new long[]{1, 2});
+    Assert.assertEquals(cache.getWeight(), 16 + 16 + StorageCache.OVERHEAD);
+  }
+
+  @Test
+  public void testWeightValueDoubleArrayObjects() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    cache.put(0, new double[]{1.0, 2.0});
+    Assert.assertEquals(cache.getWeight(), 16 + 16 + StorageCache.OVERHEAD);
+  }
+
+  @Test
+  public void testWeightValueFloatArrayObjects() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    cache.put(0, new float[]{1.0F, 2.0F});
+    Assert.assertEquals(cache.getWeight(), 16 + 8 + StorageCache.OVERHEAD);
+  }
+
+  @Test
+  public void testWeightValueBooleanArrayObjects() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    cache.put(0, new boolean[]{true, false});
+    Assert.assertEquals(cache.getWeight(), 16 + 2 + StorageCache.OVERHEAD);
+  }
+
+  @Test
+  public void testWeightValueByteArrayObjects() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    cache.put(0, new byte[]{1, 2});
+    Assert.assertEquals(cache.getWeight(), 16 + 2 + StorageCache.OVERHEAD);
+  }
+
+  @Test
+  public void testWeightValueShortArrayObjects() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    cache.put(0, new short[]{1, 2});
+    Assert.assertEquals(cache.getWeight(), 16 + 4 + StorageCache.OVERHEAD);
+  }
+
+  @Test
+  public void testWeightValueCharArrayObjects() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    cache.put(0, new char[]{'a', 'b'});
+    Assert.assertEquals(cache.getWeight(), 16 + 4 + StorageCache.OVERHEAD);
+  }
+
+  @Test
+  public void testWeightValueStringArrayObjects() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    cache.put(0, new String[]{"one", "two"});
+    Assert.assertEquals(cache.getWeight(), 16 + 46 * 2 + StorageCache.OVERHEAD);
+  }
+
+  @Test
+  public void testWeightValueInt2DArrayObjects() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    cache.put(0, new int[][]{{1, 2}, {3, 4}});
+    Assert.assertEquals(cache.getWeight(), 16 + 8 * 2 + StorageCache.OVERHEAD);
+  }
+
+  @Test
+  public void testWeightValueLong2DArrayObjects() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    cache.put(0, new long[][]{{1, 2}, {3, 4}});
+    Assert.assertEquals(cache.getWeight(), 16 + 16 * 2 + StorageCache.OVERHEAD);
+  }
+
+  @Test
+  public void testWeightValueStringObject() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    cache.put(0, new String("one"));
+    Assert.assertEquals(cache.getWeight(), 16 + 46 + StorageCache.OVERHEAD);
+  }
+
+  @Test
+  public void testWeightValueObjectArrayObjects() {
+    StorageCache cache = StorageCache.initCache(_configuration);
+    cache.put(0, new Object[]{0, 1});
+    Assert.assertEquals(cache.getWeight(), 16 + 32 + StorageCache.OVERHEAD);
   }
 
   @Test
