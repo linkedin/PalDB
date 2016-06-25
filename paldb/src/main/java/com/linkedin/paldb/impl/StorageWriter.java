@@ -73,6 +73,8 @@ public class StorageWriter {
   // Number of collisions
   private int collisions;
 
+  private HashUtils hashUtils;
+
   StorageWriter(Configuration configuration, OutputStream stream) {
     config = configuration;
     loadFactor = config.getDouble(Configuration.LOAD_FACTOR);
@@ -94,6 +96,7 @@ public class StorageWriter {
     dataLengths = new long[0];
     maxOffsetLengths = new int[0];
     keyCounts = new int[0];
+    hashUtils = new HashUtils();
   }
 
   public void put(byte[] key, byte[] value)
@@ -300,7 +303,7 @@ public class StorageWriter {
           long offset = LongPacker.unpackLong(tempIndexStream);
 
           // Hash
-          long hash = (long) HashUtils.hash(keyBuffer);
+          long hash = (long) hashUtils.hash(keyBuffer);
 
           boolean collision = false;
           for (int probe = 0; probe < count; probe++) {

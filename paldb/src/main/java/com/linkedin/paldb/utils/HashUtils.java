@@ -23,12 +23,7 @@ import java.util.zip.Checksum;
 public class HashUtils {
 
   // Hash implementation
-  private static final Murmur3A hash = new Murmur3A(42);
-
-  // Default constructor
-  private HashUtils() {
-
-  }
+  private final Murmur3A hash = new Murmur3A(42);
 
   /**
    * Returns the positive hash for the given <code>bytes</code>.
@@ -36,7 +31,7 @@ public class HashUtils {
    * @param bytes bytes to hash
    * @return hash
    */
-  public static int hash(byte[] bytes) {
+  public int hash(byte[] bytes) {
     hash.reset();
     hash.update(bytes);
     return hash.getIntValue() & 0x7fffffff;

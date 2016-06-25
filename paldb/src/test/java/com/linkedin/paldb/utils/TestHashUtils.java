@@ -19,14 +19,15 @@ import org.testng.annotations.Test;
 
 
 public class TestHashUtils {
+  HashUtils hashUtils = new HashUtils();
 
   @Test
   public void testHashEquals() {
-    Assert.assertEquals(HashUtils.hash("foo".getBytes()), HashUtils.hash("foo".getBytes()));
+    Assert.assertEquals(hashUtils.hash("foo".getBytes()), hashUtils.hash("foo".getBytes()));
   }
 
   @Test
   public void testEmpty() {
-    Assert.assertTrue(HashUtils.hash(new byte[0]) > 0);
+    Assert.assertTrue(hashUtils.hash(new byte[0]) > 0);
   }
 }

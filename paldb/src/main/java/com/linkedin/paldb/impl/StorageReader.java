@@ -87,6 +87,8 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   private final DataInputOutput sizeBuffer = new DataInputOutput(new byte[5]);
   private final byte[] slotBuffer;
 
+  private final HashUtils hashUtils;
+
   StorageReader(Configuration configuration, File file)
       throws IOException {
     path = file;
@@ -98,6 +100,8 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
     //Config
     segmentSize = config.getLong(Configuration.MMAP_SEGMENT_SIZE);
+
+    hashUtils = new HashUtils();
 
     // Check valid segmentSize
     if (segmentSize > Integer.MAX_VALUE) {
@@ -242,7 +246,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     if (keyLength >= slots.length || keyCounts[keyLength] == 0) {
       return null;
     }
-    long hash = (long) HashUtils.hash(key);
+    long hash = (long) hashUtils.hash(key);
     int numSlots = slots[keyLength];
     int slotSize = slotSizes[keyLength];
     int indexOffset = indexOffsets[keyLength];
