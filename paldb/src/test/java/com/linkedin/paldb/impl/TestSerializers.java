@@ -16,9 +16,11 @@ package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.Serializer;
 import com.linkedin.paldb.utils.DataInputOutput;
+
 import java.awt.*;
 import java.io.DataInput;
 import java.io.DataOutput;
+
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -102,8 +104,7 @@ public class TestSerializers {
   }
 
   @Test
-  public void testSerialize()
-      throws Throwable {
+  public void testSerialize() throws Throwable {
     _serializers.registerSerializer(new ColorSerializer());
     DataInputOutput dio = new DataInputOutput();
     Serializers.serialize(dio, _serializers);
@@ -114,6 +115,13 @@ public class TestSerializers {
     Assert.assertNotNull(_serializers.getSerializer(Color.class));
     Assert.assertEquals(_serializers.getIndex(Color.class), 0);
     Assert.assertNotNull(_serializers.getSerializer(0));
+  }
+
+  @Test
+  public void testInterfaceType() throws Throwable {
+    SerializerWithInterface i = new SerializerWithInterface();
+    _serializers.registerSerializer(i);
+    Assert.assertSame(_serializers.getSerializer(AnInterface.class), i);
   }
 
   // HELPER
@@ -186,6 +194,32 @@ public class TestSerializers {
 
     @Override
     public int getWeight(Object instance) {
+      return 0;
+    }
+  }
+
+  public static interface AnInterface {
+
+  }
+
+  public static class AClass implements AnInterface {
+
+  }
+
+  public static class SerializerWithInterface implements Serializer<AnInterface> {
+
+    @Override
+    public AnInterface read(DataInput input) {
+      return null;
+    }
+
+    @Override
+    public void write(DataOutput output, AnInterface input) {
+
+    }
+
+    @Override
+    public int getWeight(AnInterface instance) {
       return 0;
     }
   }

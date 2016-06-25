@@ -17,6 +17,7 @@ package com.linkedin.paldb.impl;
 import com.linkedin.paldb.api.Configuration;
 import com.linkedin.paldb.api.Serializer;
 import com.linkedin.paldb.api.UnsupportedTypeException;
+
 import java.awt.*;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,6 +29,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
+
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -54,16 +56,14 @@ public class TestStorageSerialization {
   }
 
   @Test
-  public void testSerializeKey()
-      throws IOException, ClassNotFoundException {
+  public void testSerializeKey() throws IOException, ClassNotFoundException {
     Integer l = 1;
     Object d = serialization.deserialize(serialization.serializeKey(l));
     Assert.assertEquals(d, l);
   }
 
   @Test
-  public void testSerializeKeyDataOutput()
-      throws IOException, ClassNotFoundException {
+  public void testSerializeKeyDataOutput() throws IOException, ClassNotFoundException {
     Integer l = 1;
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(bos);
@@ -77,8 +77,7 @@ public class TestStorageSerialization {
   }
 
   @Test
-  public void testSerializeValueDataOutput()
-      throws IOException, ClassNotFoundException {
+  public void testSerializeValueDataOutput() throws IOException, ClassNotFoundException {
     Integer l = 1;
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(bos);
@@ -92,8 +91,7 @@ public class TestStorageSerialization {
   }
 
   @Test(expectedExceptions = NullPointerException.class)
-  public void testSerializeKeyNull()
-      throws IOException, ClassNotFoundException {
+  public void testSerializeKeyNull() throws IOException, ClassNotFoundException {
     serialization.serializeKey(null);
   }
 
@@ -184,6 +182,54 @@ public class TestStorageSerialization {
     Point[] p = new Point[]{new Point(42, 9)};
     byte[] buf = serialization.serialize(p);
     Assert.assertEquals(serialization.deserialize(buf), p);
+  }
+
+  @Test
+  public void testInnerClassSerializer() throws Throwable {
+    configuration.registerSerializer(new Serializer<ImplementsA>() {
+
+      @Override
+      public ImplementsA read(DataInput dataInput) throws IOException {
+        return new ImplementsA(dataInput.readInt());
+      }
+
+      @Override
+      public void write(DataOutput dataOutput, ImplementsA input) throws IOException {
+        dataOutput.writeInt(input.getVal());
+      }
+
+      @Override
+      public int getWeight(ImplementsA instance) {
+        return 0;
+      }
+    });
+    ImplementsA a = new ImplementsA(42);
+    byte[] buf = serialization.serialize(a);
+    Assert.assertEquals(serialization.deserialize(buf), a);
+  }
+
+  @Test
+  public void testInheritedSerializer() throws Throwable {
+    configuration.registerSerializer(new Serializer<A>() {
+
+      @Override
+      public A read(DataInput dataInput) throws IOException {
+        return new ImplementsA(dataInput.readInt());
+      }
+
+      @Override
+      public void write(DataOutput dataOutput, A input) throws IOException {
+        dataOutput.writeInt(input.getVal());
+      }
+
+      @Override
+      public int getWeight(A instance) {
+        return 0;
+      }
+    });
+    ImplementsA a = new ImplementsA(42);
+    byte[] buf = serialization.serialize(a);
+    Assert.assertEquals(serialization.deserialize(buf), a);
   }
 
   @Test
@@ -603,5 +649,39 @@ public class TestStorageSerialization {
       array[i] = (char) (Math.random() * range - range / 2.0);
     }
     return array;
+  }
+
+  private static interface A {
+
+    int getVal();
+  }
+
+  private static class ImplementsA implements A {
+
+    int val;
+
+    public ImplementsA(int val) {
+      this.val = val;
+    }
+
+    @Override
+    public int getVal() {
+      return val;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+
+      ImplementsA that = (ImplementsA) o;
+
+      return val == that.val;
+    }
+
+    @Override
+    public int hashCode() {
+      return val;
+    }
   }
 }

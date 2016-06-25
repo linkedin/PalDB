@@ -15,6 +15,7 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.Serializer;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -81,7 +82,7 @@ public final class Serializers implements Serializable {
    * @return serializer instance or null if not found
    */
   public Serializer getSerializer(Class cls) {
-    SerializerWrapper w = serializers.get(cls);
+    SerializerWrapper w = getSerializerWrapper(cls);
     if (w != null) {
       return w.serializer;
     }
@@ -202,7 +203,29 @@ public final class Serializers implements Serializable {
    * @return serializer index
    */
   int getIndex(Class cls) {
-    return serializers.get(cls).index;
+    return getSerializerWrapper(cls).index;
+  }
+
+  /**
+   * Returns the serializer and its index associated with <code>cls</code>.
+   *
+   * @param cls object clas
+   * @return serializer wrapper object
+   */
+  private SerializerWrapper getSerializerWrapper(Class cls) {
+    SerializerWrapper w = serializers.get(cls);
+    if (w != null) {
+      return w;
+    } else {
+      // Try with interfaces implemented
+      for (Class c : cls.getInterfaces()) {
+        w = serializers.get(c);
+        if (w != null) {
+          return w;
+        }
+      }
+    }
+    return null;
   }
 
   /**
