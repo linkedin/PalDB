@@ -1,6 +1,15 @@
 Change Log
 ==========
 
+Version 1.2.0 *(June 26th 2016)*
+--------------------------
+
+### Bugfixes
+
+- Custom serializers with interfaces as types don't work (#25)
+- Fix exception handling (#15)
+- Fix concurrent database access with multiple instances (#26)
+
 Version 1.1.0 *(January 8th 2016)*
 --------------------------
 
