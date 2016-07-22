@@ -4,7 +4,7 @@ apply plugin: 'com.github.kt3k.coveralls'
 apply plugin: 'signing'
 apply plugin: 'maven'
 
-sourceCompatibility = 1.6
+sourceCompatibility = 1.8
 group = GROUP
 version = VERSION_NAME
 
@@ -49,6 +49,7 @@ dependencies {
   // Only used for benchmark
   perfTestCompile 'org.fusesource.leveldbjni:leveldbjni-all:1.8'
   perfTestCompile 'org.rocksdb:rocksdbjni:4.0'
+  perfTestCompile 'net.openhft:chronicle-map:3.9.1'
 }
 
 javadoc {
