@@ -33,8 +33,6 @@ import org.xerial.snappy.Snappy;
  */
 public final class StorageSerialization {
 
-  //Buffer
-  private final DataInputOutput dataInputOutput = new DataInputOutput();
   //Compression
   private final boolean compression;
   //Serializers
@@ -65,7 +63,8 @@ public final class StorageSerialization {
     if (key == null) {
       throw new NullPointerException();
     }
-    serializeObject(key, dataInputOutput.reset(), false);
+    final DataInputOutput dataInputOutput = new DataInputOutput();
+    serializeObject(key, dataInputOutput, false);
     return dataInputOutput.toByteArray();
   }
 
@@ -90,7 +89,7 @@ public final class StorageSerialization {
    */
   public byte[] serializeValue(Object value)
       throws IOException {
-
+    final DataInputOutput dataInputOutput = new DataInputOutput();
     serializeObject(value, dataInputOutput.reset(), compression);
     return dataInputOutput.toByteArray();
   }

@@ -59,6 +59,8 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   private final int[] keyCounts;
   // Slot size for each key length
   private final int[] slotSizes;
+  private final int maxSlotSize;
+
   // Number of slots for each key length
   private final int[] slots;
   // Number of different key length
@@ -83,9 +85,6 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   private FileChannel channel;
   // Use MMap for data?
   private final boolean mMapData;
-  // Buffers
-  private final DataInputOutput sizeBuffer = new DataInputOutput(new byte[5]);
-  private final byte[] slotBuffer;
 
   private final HashUtils hashUtils;
 
@@ -168,8 +167,8 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
         maxSlotSize = Math.max(maxSlotSize, slotSizes[keyLength]);
       }
+      this.maxSlotSize = maxSlotSize;
 
-      slotBuffer = new byte[maxSlotSize];
 
       //Read serializers
       try {
@@ -251,7 +250,8 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     int slotSize = slotSizes[keyLength];
     int indexOffset = indexOffsets[keyLength];
     long dataOffset = dataOffsets[keyLength];
-
+    MappedByteBuffer indexBuffer = (MappedByteBuffer) this.indexBuffer.duplicate();
+    final byte[] slotBuffer = new byte[maxSlotSize];
     for (int probe = 0; probe < numSlots; probe++) {
       int slot = (int) ((hash + probe) % numSlots);
       indexBuffer.position(indexOffset + slot * slotSize);
@@ -313,7 +313,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
       //The size of the data is spread over multiple buffers
       int len = maxLen;
       int off = 0;
-      sizeBuffer.reset();
+      DataInputOutput sizeBuffer = new DataInputOutput(new byte[5]);
       while (len > 0) {
         buf = getDataBuffer(offset + off);
         int count = Math.min(len, buf.remaining());
@@ -350,7 +350,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   }
 
   //Get data from disk
-  private byte[] getDiskBytes(long offset)
+  private synchronized byte[] getDiskBytes(long offset)
       throws IOException {
     mappedFile.seek(dataOffset + offset);
 
@@ -370,7 +370,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
   //Return the data buffer for the given position
   private ByteBuffer getDataBuffer(long index) {
-    ByteBuffer buf = dataBuffers[(int) (index / segmentSize)];
+    ByteBuffer buf = dataBuffers[(int) (index / segmentSize)].duplicate();
     buf.position((int) (index % segmentSize));
     return buf;
   }
