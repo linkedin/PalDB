@@ -22,9 +22,6 @@ import java.util.zip.Checksum;
  */
 public class HashUtils {
 
-  // Hash implementation
-  private final Murmur3A hash = new Murmur3A(42);
-
   /**
    * Returns the positive hash for the given <code>bytes</code>.
    *
@@ -32,7 +29,7 @@ public class HashUtils {
    * @return hash
    */
   public int hash(byte[] bytes) {
-    hash.reset();
+    Murmur3A hash = new Murmur3A(42);
     hash.update(bytes);
     return hash.getIntValue() & 0x7fffffff;
   }

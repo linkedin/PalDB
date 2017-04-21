@@ -34,8 +34,6 @@ public final class ReaderImpl implements StoreReader {
   private final static Logger LOGGER = Logger.getLogger(ReaderImpl.class.getName());
   // Configuration
   private final Configuration config;
-  // Buffer
-  private final DataInputOutput dataInputOutput = new DataInputOutput();
   // Storage
   private final StorageReader storage;
   // Serialization
@@ -115,8 +113,7 @@ public final class ReaderImpl implements StoreReader {
       try {
         byte[] valueBytes = storage.get(serialization.serializeKey(key));
         if (valueBytes != null) {
-
-          Object v = serialization.deserialize(dataInputOutput.reset(valueBytes));
+          Object v = serialization.deserialize(new DataInputOutput(valueBytes));
           cache.put(key, v);
           return (K) v;
         } else {
