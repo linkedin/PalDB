@@ -97,9 +97,9 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     //Open file and read metadata
     long createdAt = 0;
     FormatVersion formatVersion = null;
-    FileInputStream inputStream = new FileInputStream(path);
-    DataInputStream dataInputStream = new DataInputStream(new BufferedInputStream(inputStream));
-    try {
+
+    try (FileInputStream inputStream = new FileInputStream(path);
+         DataInputStream dataInputStream = new DataInputStream(new BufferedInputStream(inputStream))) {
       int ignoredBytes = -2;
 
       //Byte mark
@@ -166,11 +166,8 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
       //Read index and data offset
       indexOffset = dataInputStream.readInt() + ignoredBytes;
       dataOffset = dataInputStream.readLong() + ignoredBytes;
-    } finally {
-      //Close metadata
-      dataInputStream.close();
-      inputStream.close();
     }
+    //Close metadata
 
     //Create Mapped file in read-only mode
     mappedFile = new RandomAccessFile(path, "r");

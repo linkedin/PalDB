@@ -1211,9 +1211,14 @@ public final class StorageSerialization {
     return ret;
   }
 
+  private static final byte[] EMPTY_BYTES = new byte[0];
+
   private static byte[] deserializeByteArray(DataInput is)
       throws IOException {
     int size = LongPacker.unpackInt(is);
+    if (size == 0) {
+      return EMPTY_BYTES;
+    }
     byte[] b = new byte[size];
     is.readFully(b);
     return b;

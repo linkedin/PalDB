@@ -39,12 +39,11 @@ public class TestStoreReader {
 
     Configuration configuration = new Configuration();
     configuration.registerSerializer(new PointSerializer());
-    StoreWriter writer = PalDB.createWriter(STORE_FILE, configuration);
-    for (int i = 0; i < testValues.length; i++) {
-      writer.put(i, testValues[i]);
+    try (StoreWriter writer = PalDB.createWriter(STORE_FILE, configuration)) {
+      for (int i = 0; i < testValues.length; i++) {
+        writer.put(i, testValues[i]);
+      }
     }
-    writer.close();
-
     reader = PalDB.createReader(STORE_FILE, new Configuration());
   }
 
@@ -82,33 +81,6 @@ public class TestStoreReader {
   private final Object[] testValues =
       new Object[]{true, (byte) 1, 'a', 1.0, 1f, (short) 1, 1, 1l, "foo", new boolean[]{true}, new byte[]{1}, new char[]{'a'}, new double[]{1.0}, new float[]{1f}, new short[]{1}, new int[]{1}, new long[]{1l}, new String[]{"foo"}, new Object[]{"foo"}, new Point(
           4, 56)};
-
-/*  @BeforeMethod
-  public void setUp() {
-    STORE_FILE.delete();
-    STORE_FOLDER.delete();
-    STORE_FOLDER.mkdir();
-
-    Configuration configuration = new Configuration();
-    configuration.registerSerializer(new PointSerializer());
-    StoreWriter writer = PalDB.createWriter(STORE_FILE, configuration);
-    for (int i = 0; i < testValues.length; i++) {
-      writer.put(i, testValues[i]);
-    }
-    writer.close();
-
-    reader = PalDB.createReader(STORE_FILE, new Configuration());
-  }*/
-
-/*  @AfterMethod
-  public void cleanUp() {
-    try {
-      reader.close();
-    } catch (Exception e) {
-    }
-    STORE_FILE.delete();
-    STORE_FOLDER.delete();
-  }*/
 
   @Test
   public void testFile() {

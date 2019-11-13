@@ -24,13 +24,14 @@ package com.linkedin.paldb.api;
  * <p>
  * Note that duplicates aren't allowed.
  */
-public interface StoreWriter {
+public interface StoreWriter extends AutoCloseable {
 
   /**
    * Close the store writer and append the data to the final destination. A
    * closed writer can't be reopened.
    */
-  public void close();
+  @Override
+  void close();
 
   /**
    * Return the writer configuration. Configuration values should always be
@@ -39,7 +40,7 @@ public interface StoreWriter {
    *
    * @return the store configuration
    */
-  public Configuration getConfiguration();
+  Configuration getConfiguration();
 
   /**
    * Put key-value to the store.
@@ -49,7 +50,7 @@ public interface StoreWriter {
    * @throws NullPointerException if <code>key</code> or <code>value</code> is
    * null
    */
-  public void put(Object key, Object value);
+  void put(Object key, Object value);
 
   /**
    * Put multiple key-values to the store.
@@ -57,7 +58,7 @@ public interface StoreWriter {
    * @param keys a collection of keys
    * @param values a collection of values
    */
-  public void putAll(Object[] keys, Object[] values);
+  void putAll(Object[] keys, Object[] values);
 
   /**
    * Put serialized key-value entry to the store. <p> Use only this method if
@@ -68,5 +69,5 @@ public interface StoreWriter {
    * @throws NullPointerException if <code>key</code> or <code>value</code> is
    * null
    */
-  public void put(byte[] key, byte[] value);
+  void put(byte[] key, byte[] value);
 }

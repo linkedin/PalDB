@@ -213,7 +213,7 @@ public class StorageWriter {
     dataOutputStream.writeInt(maxKeyLength);
 
     // For each keyLength
-    long datasLength = 0l;
+    long datasLength = 0L;
     for (int i = 0; i < keyCounts.length; i++) {
       if (keyCounts[i] > 0) {
         // Write the key length

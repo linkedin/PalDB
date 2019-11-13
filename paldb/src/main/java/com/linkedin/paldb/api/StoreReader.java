@@ -25,35 +25,36 @@ import java.util.Map;
  * <code>get()</code> method to fetch. Call the
  * <code>close()</code> to liberate resources when done.
  */
-public interface StoreReader {
+public interface StoreReader extends AutoCloseable {
 
   /**
    * Closes the store reader and free resources.
    * <p>
    * A closed reader can't be reopened.
    */
-  public void close();
+  @Override
+  void close();
 
   /**
    * Returns the reader's configuration.
    *
    * @return the store configuration
    */
-  public Configuration getConfiguration();
+  Configuration getConfiguration();
 
   /**
    * Returns the store file.
    *
    * @return file
    */
-  public File getFile();
+  File getFile();
 
   /**
    * Returns the number of keys in the store.
    *
    * @return key count
    */
-  public long size();
+  long size();
 
   /**
    * Gets the value for <code>key</code> or null if not found.
@@ -62,7 +63,7 @@ public interface StoreReader {
    * @param <K> return type
    * @return value or null if not found
    */
-  public <K> K get(Object key);
+  <K> K get(Object key);
 
   /**
    * Gets the value for <code>key</code> or <code>defaultValue</code> if not found.
@@ -72,7 +73,7 @@ public interface StoreReader {
    * @param <K> return type
    * @return value of <code>defaultValue</code> if not found
    */
-  public <K> K get(Object key, K defaultValue);
+  <K> K get(Object key, K defaultValue);
 
   /**
    * Gets the int value for <code>key</code>.
@@ -81,7 +82,7 @@ public interface StoreReader {
    * @return int value
    * @throws NotFoundException if not found
    */
-  public int getInt(Object key)
+  int getInt(Object key)
       throws NotFoundException;
 
   /**
@@ -91,7 +92,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return int value or <code>defaultValue</code> if not found
    */
-  public int getInt(Object key, int defaultValue);
+  int getInt(Object key, int defaultValue);
 
   /**
    * Gets the long value for <code>key</code>.
@@ -100,7 +101,7 @@ public interface StoreReader {
    * @return long value
    * @throws NotFoundException if not found
    */
-  public long getLong(Object key)
+  long getLong(Object key)
       throws NotFoundException;
 
   /**
@@ -110,7 +111,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return long value or <code>defaultValue</code> if not found
    */
-  public long getLong(Object key, long defaultValue);
+  long getLong(Object key, long defaultValue);
 
   /**
    * Gets the boolean value for <code>key</code>.
@@ -119,7 +120,7 @@ public interface StoreReader {
    * @return boolean value
    * @throws NotFoundException if not found
    */
-  public boolean getBoolean(Object key)
+  boolean getBoolean(Object key)
       throws NotFoundException;
 
   /**
@@ -129,7 +130,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return boolean value or <code>defaultValue</code> if not found
    */
-  public boolean getBoolean(Object key, boolean defaultValue);
+  boolean getBoolean(Object key, boolean defaultValue);
 
   /**
    * Gets the float value for <code>key</code>.
@@ -138,7 +139,7 @@ public interface StoreReader {
    * @return float value
    * @throws NotFoundException if not found
    */
-  public float getFloat(Object key)
+  float getFloat(Object key)
       throws NotFoundException;
 
   /**
@@ -148,7 +149,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return float value or <code>defaultValue</code> if not found
    */
-  public float getFloat(Object key, float defaultValue);
+  float getFloat(Object key, float defaultValue);
 
   /**
    * Gets the double value for <code>key</code>.
@@ -157,7 +158,7 @@ public interface StoreReader {
    * @return double value
    * @throws NotFoundException if not found
    */
-  public double getDouble(Object key)
+  double getDouble(Object key)
       throws NotFoundException;
 
   /**
@@ -167,7 +168,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return double value or <code>defaultValue</code> if not found
    */
-  public double getDouble(Object key, double defaultValue);
+  double getDouble(Object key, double defaultValue);
 
   /**
    * Gets the short value for <code>key</code>.
@@ -176,7 +177,7 @@ public interface StoreReader {
    * @return short value
    * @throws NotFoundException if not found
    */
-  public short getShort(Object key)
+  short getShort(Object key)
       throws NotFoundException;
 
   /**
@@ -186,7 +187,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return short value or <code>defaultValue</code> if not found
    */
-  public short getShort(Object key, short defaultValue);
+  short getShort(Object key, short defaultValue);
 
   /**
    * Gets the byte value for <code>key</code>.
@@ -195,7 +196,7 @@ public interface StoreReader {
    * @return byte value
    * @throws NotFoundException if not found
    */
-  public byte getByte(Object key)
+  byte getByte(Object key)
       throws NotFoundException;
 
   /**
@@ -205,7 +206,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return byte value or <code>defaultValue</code> if not found
    */
-  public byte getByte(Object key, byte defaultValue);
+  byte getByte(Object key, byte defaultValue);
 
   /**
    * Gets the string value for <code>key</code> or null if not found.
@@ -213,7 +214,7 @@ public interface StoreReader {
    * @param key key to fetch
    * @return string value
    */
-  public String getString(Object key);
+  String getString(Object key);
 
   /**
    * Gets the string value for <code>key</code> or <code>defaultValue</code> if not found.
@@ -222,7 +223,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return string value or <code>defaultValue</code> if not found
    */
-  public String getString(Object key, String defaultValue);
+  String getString(Object key, String defaultValue);
 
   /**
    * Gets the char value for <code>key</code>.
@@ -231,7 +232,7 @@ public interface StoreReader {
    * @return char value
    * @throws NotFoundException if not found
    */
-  public char getChar(Object key)
+  char getChar(Object key)
       throws NotFoundException;
 
   /**
@@ -241,7 +242,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return char value or <code>defaultValue</code> if not found
    */
-  public char getChar(Object key, char defaultValue);
+  char getChar(Object key, char defaultValue);
 
   /**
    * Gets the object array value for <code>key</code> or null if not found.
@@ -250,7 +251,7 @@ public interface StoreReader {
    * @param <K> return type
    * @return object array value or null if not found
    */
-  public <K> K[] getArray(Object key);
+  <K> K[] getArray(Object key);
 
   /**
    * Gets the object array value for <code>key</code> or <code>defaultValue</code> if not found.
@@ -260,7 +261,7 @@ public interface StoreReader {
    * @param <K> return type
    * @return object array value or <code>defaultValue</code> if not found
    */
-  public <K> K[] getArray(Object key, K[] defaultValue);
+  <K> K[] getArray(Object key, K[] defaultValue);
 
   /**
    * Gets the int array value for <code>key</code>.
@@ -269,7 +270,7 @@ public interface StoreReader {
    * @return int array value
    * @throws NotFoundException if not found
    */
-  public int[] getIntArray(Object key)
+  int[] getIntArray(Object key)
       throws NotFoundException;
 
   /**
@@ -279,7 +280,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return int array value or <code>defaultValue</code> if not found
    */
-  public int[] getIntArray(Object key, int[] defaultValue);
+  int[] getIntArray(Object key, int[] defaultValue);
 
   /**
    * Gets the long array value for <code>key</code>.
@@ -288,7 +289,7 @@ public interface StoreReader {
    * @return long array value
    * @throws NotFoundException if not found
    */
-  public long[] getLongArray(Object key)
+  long[] getLongArray(Object key)
       throws NotFoundException;
 
   /**
@@ -298,7 +299,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return long array value or <code>defaultValue</code> if not found
    */
-  public long[] getLongArray(Object key, long[] defaultValue);
+  long[] getLongArray(Object key, long[] defaultValue);
 
   /**
    * Gets the boolean array value for <code>key</code>.
@@ -307,7 +308,7 @@ public interface StoreReader {
    * @return boolean array value
    * @throws NotFoundException if not found
    */
-  public boolean[] getBooleanArray(Object key)
+  boolean[] getBooleanArray(Object key)
       throws NotFoundException;
 
   /**
@@ -317,7 +318,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return boolean array value or <code>defaultValue</code> if not found
    */
-  public boolean[] getBooleanArray(Object key, boolean[] defaultValue);
+  boolean[] getBooleanArray(Object key, boolean[] defaultValue);
 
   /**
    * Gets the float array value for <code>key</code>.
@@ -326,7 +327,7 @@ public interface StoreReader {
    * @return float array value
    * @throws NotFoundException if not found
    */
-  public float[] getFloatArray(Object key)
+  float[] getFloatArray(Object key)
       throws NotFoundException;
 
   /**
@@ -336,7 +337,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return float array value or <code>defaultValue</code> if not found
    */
-  public float[] getFloatArray(Object key, float[] defaultValue);
+  float[] getFloatArray(Object key, float[] defaultValue);
 
   /**
    * Gets the double array value for <code>key</code>.
@@ -345,7 +346,7 @@ public interface StoreReader {
    * @return double array value
    * @throws NotFoundException if not found
    */
-  public double[] getDoubleArray(Object key)
+  double[] getDoubleArray(Object key)
       throws NotFoundException;
 
   /**
@@ -355,7 +356,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return double array value or <code>defaultValue</code> if not found
    */
-  public double[] getDoubleArray(Object key, double[] defaultValue);
+  double[] getDoubleArray(Object key, double[] defaultValue);
 
   /**
    * Gets the short array value for <code>key</code>.
@@ -364,7 +365,7 @@ public interface StoreReader {
    * @return short array value
    * @throws NotFoundException if not found
    */
-  public short[] getShortArray(Object key)
+  short[] getShortArray(Object key)
       throws NotFoundException;
 
   /**
@@ -374,7 +375,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return short array value or <code>defaultValue</code> if not found
    */
-  public short[] getShortArray(Object key, short[] defaultValue);
+  short[] getShortArray(Object key, short[] defaultValue);
 
   /**
    * Gets the byte array value for <code>key</code>.
@@ -383,7 +384,7 @@ public interface StoreReader {
    * @return byte array value
    * @throws NotFoundException if not found
    */
-  public byte[] getByteArray(Object key)
+  byte[] getByteArray(Object key)
       throws NotFoundException;
 
   /**
@@ -393,7 +394,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return byte array value or <code>defaultValue</code> if not found
    */
-  public byte[] getByteArray(Object key, byte[] defaultValue);
+  byte[] getByteArray(Object key, byte[] defaultValue);
 
   /**
    * Gets the char array value for <code>key</code>.
@@ -402,7 +403,7 @@ public interface StoreReader {
    * @return char array value
    * @throws NotFoundException if not found
    */
-  public char[] getCharArray(Object key)
+  char[] getCharArray(Object key)
       throws NotFoundException;
 
   /**
@@ -412,7 +413,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return char array value or <code>defaultValue</code> if not found
    */
-  public char[] getCharArray(Object key, char[] defaultValue);
+  char[] getCharArray(Object key, char[] defaultValue);
 
   /**
    * Gets the string array value for <code>key</code> or null if not found.
@@ -421,7 +422,7 @@ public interface StoreReader {
    * @return string array value or null if not found
    * @throws NotFoundException if not found
    */
-  public String[] getStringArray(Object key)
+  String[] getStringArray(Object key)
       throws NotFoundException;
 
   /**
@@ -431,7 +432,7 @@ public interface StoreReader {
    * @param defaultValue default value
    * @return string array value or <code>defaultValue</code> if not found
    */
-  public String[] getStringArray(Object key, String[] defaultValue);
+  String[] getStringArray(Object key, String[] defaultValue);
 
   /**
    * Gets the store iterable.
@@ -442,7 +443,7 @@ public interface StoreReader {
    * @param <V> value type
    * @return iterable over store
    */
-  public <K, V> Iterable<Map.Entry<K, V>> iterable();
+  <K, V> Iterable<Map.Entry<K, V>> iterable();
 
   /**
    * Gets the store keys iterable.
@@ -450,5 +451,5 @@ public interface StoreReader {
    * @param <K> key type
    * @return iterable over keys
    */
-  public <K> Iterable<K> keys();
+  <K> Iterable<K> keys();
 }
