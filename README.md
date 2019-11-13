@@ -141,10 +141,18 @@ Read parameters:
 + `cache.initial.capacity`, cache initial capacity (int) [default: 1000]
 + `cache.load.factor`, cache load factor (double) [default: 0.75]
 
-Configuration values are passed at init time. Example:
+Configuration values are passed at init time. Example using fluent builder:
 ```java
-Configuration config = PalDB.newConfiguration();
-config.set(Configuration.CACHE_ENABLED, "true");
+var config = PalDBConfigBuilder.create()
+                .withMemoryMapSegmentSize(512 * 1024 * 1024)
+                .withMemoryMapDataEnabled(false)
+                .withIndexLoadFactor(0.75)
+                .withLRUCacheEnabled(true)
+                .withCacheSizeLimit(10_000)
+                .withCacheInitialCapacity(1000)
+                .withCacheLoadFactor(0.5)
+                .withEnableCompression(true)
+                .build();
 StoreReader reader = PalDB.createReader(new File("store.paldb"), config);
 ```
 

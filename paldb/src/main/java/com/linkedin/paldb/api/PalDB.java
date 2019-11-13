@@ -26,13 +26,7 @@ import java.io.OutputStream;
  * This class is the entry point to obtain {@link com.linkedin.paldb.api.StoreReader} and
  * {@link com.linkedin.paldb.api.StoreWriter} interfaces.
  */
-public final class PalDB {
-
-  /**
-   * This class is only static
-   */
-  private PalDB() {
-  }
+public interface PalDB {
 
   /**
    * Creates a store reader from the specified <code>file</code> with a default configuration.
@@ -42,7 +36,7 @@ public final class PalDB {
    * @param file a PalDB store file
    * @return a store reader
    */
-  public static StoreReader createReader(File file) {
+  static StoreReader createReader(File file) {
     return StoreImpl.createReader(file, newConfiguration());
   }
 
@@ -55,7 +49,7 @@ public final class PalDB {
    * @param config configuration
    * @return a store reader
    */
-  public static StoreReader createReader(File file, Configuration config) {
+  static StoreReader createReader(File file, Configuration config) {
     return StoreImpl.createReader(file, config);
   }
 
@@ -69,7 +63,7 @@ public final class PalDB {
    * @param config configuration
    * @return a store reader
    */
-  public static StoreReader createReader(InputStream stream, Configuration config) {
+  static StoreReader createReader(InputStream stream, Configuration config) {
     return StoreImpl.createReader(stream, config);
   }
 
@@ -81,7 +75,7 @@ public final class PalDB {
    * @param file location of the output file
    * @return a store writer
    */
-  public static StoreWriter createWriter(File file) {
+  static StoreWriter createWriter(File file) {
     return StoreImpl.createWriter(file, newConfiguration());
   }
 
@@ -94,7 +88,7 @@ public final class PalDB {
    * @param config configuration
    * @return a store writer
    */
-  public static StoreWriter createWriter(File file, Configuration config) {
+  static StoreWriter createWriter(File file, Configuration config) {
     return StoreImpl.createWriter(file, config);
   }
 
@@ -108,7 +102,7 @@ public final class PalDB {
    * @param config configuration
    * @return a store writer
    */
-  public static StoreWriter createWriter(OutputStream stream, Configuration config) {
+  static StoreWriter createWriter(OutputStream stream, Configuration config) {
     return StoreImpl.createWriter(stream, config);
   }
 
@@ -117,7 +111,7 @@ public final class PalDB {
    *
    * @return new configuration
    */
-  public static Configuration newConfiguration() {
+  static Configuration newConfiguration() {
     return new Configuration();
   }
 }

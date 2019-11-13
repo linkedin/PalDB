@@ -44,7 +44,7 @@ public class TestStoreReader {
         writer.put(i, testValues[i]);
       }
     }
-    reader = PalDB.createReader(STORE_FILE, new Configuration());
+    reader = PalDB.createReader(STORE_FILE, PalDBConfigBuilder.create().build());
   }
 
   @AfterMethod
