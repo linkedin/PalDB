@@ -4,7 +4,8 @@ apply plugin: 'com.github.kt3k.coveralls'
 apply plugin: 'signing'
 apply plugin: 'maven'
 
-sourceCompatibility = 1.6
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
 group = GROUP
 version = VERSION_NAME
 
@@ -28,7 +29,7 @@ jar {
 }
 
 task perfTest(type: Test) {
-  testClassesDir = sourceSets.perfTest.output.classesDir
+  testClassesDirs = sourceSets.perfTest.output.classesDirs
   classpath = sourceSets.perfTest.runtimeClasspath
 }
 
@@ -39,10 +40,12 @@ perfTest {
 }
 
 dependencies {
-  compile 'org.xerial.snappy:snappy-java:1.0.5'
+  compile 'org.xerial.snappy:snappy-java:1.1.7.3'
+  compile 'org.slf4j:slf4j-api:1.7.28'
 
-  testCompile 'org.testng:testng:6.8.8'
+  testCompile 'org.testng:testng:7.0.0'
   testCompile 'commons-lang:commons-lang:2.6'
+  testCompile 'ch.qos.logback:logback-classic:1.2.3'
 
   perfTestCompile configurations.testCompile
 
@@ -92,16 +95,16 @@ if (project.hasProperty('release')) {
           authentication(userName: ossrhUser, password: ossrhPassword)
         }
         pom.project {
-          group 'com.linkedin.paldb'
+          group 'net.soundvibe.paldb'
           name 'paldb'
           description 'Embeddable persistent write-once key-value store'
           packaging 'jar'
-          url 'https://github.com/linkedin/PalDB'
+          url 'https://github.com/soundvibe/PalDB'
 
           scm {
-            connection 'scm:git:https://github.com/linkedin/PalDB.git'
-            developerConnection 'scm:git@github.com:linkedin/PalDB.git'
-            url 'https://github.com/linkedin/PalDB'
+            connection 'scm:git@github.com:soundvibe/PalDB.git'
+            developerConnection 'scm:git@github.com:soundvibe/PalDB.git'
+            url 'https://github.com/soundvibe/PalDB'
           }
 
           licenses {
@@ -114,9 +117,9 @@ if (project.hasProperty('release')) {
 
           developers {
             developer {
-              id 'mbastian'
-              name 'Mathieu Bastian'
-              email 'mbastian@apache.org'
+              id 'lnaginionis'
+              name 'Linas Naginionis'
+              email 'lnaginionis@gmail.com'
             }
           }
         }

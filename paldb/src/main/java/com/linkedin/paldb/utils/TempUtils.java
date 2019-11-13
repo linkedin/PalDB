@@ -63,28 +63,17 @@ public final class TempUtils {
    */
   public static File copyIntoTempFile(String fileName, InputStream inputStream)
       throws IOException {
-    BufferedInputStream bufferedStream = inputStream instanceof BufferedInputStream ? (BufferedInputStream) inputStream
-        : new BufferedInputStream(inputStream);
-    File destFile = null;
-    try {
-      destFile = File.createTempFile(fileName, null);
-      destFile.deleteOnExit();
-
-      FileOutputStream fileOutputStream = new FileOutputStream(destFile);
-      BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
-      try {
-        byte[] buffer = new byte[8192];
-        int length;
-        while ((length = bufferedStream.read(buffer)) > 0) {
-          bufferedOutputStream.write(buffer, 0, length);
-        }
-      } finally {
-        bufferedOutputStream.close();
-        fileOutputStream.close();
+    File destFile = File.createTempFile(fileName, null);
+    destFile.deleteOnExit();
+    try (BufferedInputStream bufferedStream = inputStream instanceof BufferedInputStream ? (BufferedInputStream) inputStream
+            : new BufferedInputStream(inputStream);
+         FileOutputStream fileOutputStream = new FileOutputStream(destFile);
+         BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream)) {
+      byte[] buffer = new byte[8192];
+      int length;
+      while ((length = bufferedStream.read(buffer)) > 0) {
+        bufferedOutputStream.write(buffer, 0, length);
       }
-    } finally {
-      bufferedStream.close();
-      inputStream.close();
     }
     return destFile;
   }

@@ -78,85 +78,72 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
   }
 
   @Override
-  public void readFully(byte[] b)
-      throws IOException {
+  public void readFully(byte[] b) {
     readFully(b, 0, b.length);
   }
 
   @Override
-  public void readFully(byte[] b, int off, int len)
-      throws IOException {
+  public void readFully(byte[] b, int off, int len) {
     System.arraycopy(buf, pos, b, off, len);
     pos += len;
   }
 
   @Override
-  public int skipBytes(int n)
-      throws IOException {
+  public int skipBytes(int n) {
     pos += n;
     return n;
   }
 
   @Override
-  public boolean readBoolean()
-      throws IOException {
+  public boolean readBoolean() {
     return buf[pos++] == 1;
   }
 
   @Override
-  public byte readByte()
-      throws IOException {
+  public byte readByte() {
     return buf[pos++];
   }
 
   @Override
-  public int readUnsignedByte()
-      throws IOException {
+  public int readUnsignedByte() {
     return buf[pos++] & 0xff;
   }
 
   @Override
-  public short readShort()
-      throws IOException {
+  public short readShort() {
     return (short) (((short) (buf[pos++] & 0xff) << 8) | ((short) (buf[pos++] & 0xff) << 0));
   }
 
   @Override
-  public int readUnsignedShort()
-      throws IOException {
+  public int readUnsignedShort() {
     return (((int) (buf[pos++] & 0xff) << 8) | ((int) (buf[pos++] & 0xff) << 0));
   }
 
   @Override
-  public char readChar()
-      throws IOException {
+  public char readChar() {
     return (char) readInt();
   }
 
   @Override
-  public int readInt()
-      throws IOException {
+  public int readInt() {
     return (((buf[pos++] & 0xff) << 24) | ((buf[pos++] & 0xff) << 16) | ((buf[pos++] & 0xff) << 8) | (
         (buf[pos++] & 0xff) << 0));
   }
 
   @Override
-  public long readLong()
-      throws IOException {
+  public long readLong() {
     return (((long) (buf[pos++] & 0xff) << 56) | ((long) (buf[pos++] & 0xff) << 48) | ((long) (buf[pos++] & 0xff) << 40)
         | ((long) (buf[pos++] & 0xff) << 32) | ((long) (buf[pos++] & 0xff) << 24) | ((long) (buf[pos++] & 0xff) << 16)
         | ((long) (buf[pos++] & 0xff) << 8) | ((long) (buf[pos++] & 0xff) << 0));
   }
 
   @Override
-  public float readFloat()
-      throws IOException {
+  public float readFloat() {
     return Float.intBitsToFloat(readInt());
   }
 
   @Override
-  public double readDouble()
-      throws IOException {
+  public double readDouble() {
     return Double.longBitsToDouble(readLong());
   }
 
@@ -189,57 +176,49 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
   }
 
   @Override
-  public void write(int b)
-      throws IOException {
+  public void write(int b) {
     ensureAvail(1);
     buf[pos++] = (byte) b;
   }
 
   @Override
-  public void write(byte[] b)
-      throws IOException {
+  public void write(byte[] b) {
     write(b, 0, b.length);
   }
 
   @Override
-  public void write(byte[] b, int off, int len)
-      throws IOException {
+  public void write(byte[] b, int off, int len) {
     ensureAvail(len);
     System.arraycopy(b, off, buf, pos, len);
     pos += len;
   }
 
   @Override
-  public void writeBoolean(boolean v)
-      throws IOException {
+  public void writeBoolean(boolean v) {
     ensureAvail(1);
     buf[pos++] = (byte) (v ? 1 : 0);
   }
 
   @Override
-  public void writeByte(int v)
-      throws IOException {
+  public void writeByte(int v) {
     ensureAvail(1);
     buf[pos++] = (byte) (v);
   }
 
   @Override
-  public void writeShort(int v)
-      throws IOException {
+  public void writeShort(int v) {
     ensureAvail(2);
     buf[pos++] = (byte) (0xff & (v >> 8));
     buf[pos++] = (byte) (0xff & (v >> 0));
   }
 
   @Override
-  public void writeChar(int v)
-      throws IOException {
+  public void writeChar(int v) {
     writeInt(v);
   }
 
   @Override
-  public void writeInt(int v)
-      throws IOException {
+  public void writeInt(int v) {
     ensureAvail(4);
     buf[pos++] = (byte) (0xff & (v >> 24));
     buf[pos++] = (byte) (0xff & (v >> 16));
@@ -248,8 +227,7 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
   }
 
   @Override
-  public void writeLong(long v)
-      throws IOException {
+  public void writeLong(long v) {
     ensureAvail(8);
     buf[pos++] = (byte) (0xff & (v >> 56));
     buf[pos++] = (byte) (0xff & (v >> 48));
@@ -262,15 +240,13 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
   }
 
   @Override
-  public void writeFloat(float v)
-      throws IOException {
+  public void writeFloat(float v) {
     ensureAvail(4);
     writeInt(Float.floatToIntBits(v));
   }
 
   @Override
-  public void writeDouble(double v)
-      throws IOException {
+  public void writeDouble(double v) {
     ensureAvail(8);
     writeLong(Double.doubleToLongBits(v));
   }
@@ -299,59 +275,51 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
   }
 
   @Override
-  public int read()
-      throws IOException {
+  public int read() {
     //is here just to implement ObjectInput
     return readUnsignedByte();
   }
 
   @Override
-  public int read(byte[] b)
-      throws IOException {
+  public int read(byte[] b) {
     //is here just to implement ObjectInput
     readFully(b);
     return b.length;
   }
 
   @Override
-  public int read(byte[] b, int off, int len)
-      throws IOException {
+  public int read(byte[] b, int off, int len) {
     //is here just to implement ObjectInput
     readFully(b, off, len);
     return len;
   }
 
   @Override
-  public long skip(long n)
-      throws IOException {
+  public long skip(long n) {
     //is here just to implement ObjectInput
     pos += n;
     return n;
   }
 
   @Override
-  public void close()
-      throws IOException {
+  public void close() {
     //is here just to implement ObjectInput
     //do nothing
   }
 
   @Override
-  public void flush()
-      throws IOException {
+  public void flush() {
     //is here just to implement ObjectOutput
     //do nothing
   }
 
   @Override
-  public Object readObject()
-      throws ClassNotFoundException, IOException {
+  public Object readObject() {
     throw new UnsupportedOperationException("Not supported");
   }
 
   @Override
-  public void writeObject(Object o)
-      throws IOException {
+  public void writeObject(Object o) {
     throw new UnsupportedOperationException("Not supported");
   }
 }

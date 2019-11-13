@@ -14,13 +14,11 @@
 
 package com.linkedin.paldb.impl;
 
-import com.linkedin.paldb.api.Configuration;
-import com.linkedin.paldb.api.Serializer;
+import com.linkedin.paldb.api.*;
+import org.slf4j.*;
+
 import java.text.DecimalFormat;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.*;
 
 
 /**
@@ -41,7 +39,7 @@ public class StorageCache {
   protected static final Object NULL_VALUE = new Object();
 
   //Logger
-  private final static Logger LOGGER = Logger.getLogger(StorageCache.class.getName());
+  private static final Logger log = LoggerFactory.getLogger(StorageCache.class);
 
   /**
    * Factory to create and initialize the cache.
@@ -62,7 +60,7 @@ public class StorageCache {
    *  632 bytes for the LinkedHashMap
    *  24 bytes theoretical overhead per entry but more like 45 in practice
    */
-  final static int OVERHEAD = 50;
+  static final int OVERHEAD = 50;
   private final LinkedHashMap cache;
   private final Configuration configuration;
   private long maxWeight;
@@ -88,7 +86,7 @@ public class StorageCache {
       }
     };
     maxWeight = config.getLong(Configuration.CACHE_BYTES);
-    LOGGER.log(Level.INFO, "Cache initialized with maximum {0} Mb usage",
+    log.info("Cache initialized with maximum {} Mb usage",
         new DecimalFormat("#,##0.00").format(maxWeight / (1024.0 * 1024.0)));
     configuration = config;
   }
@@ -242,7 +240,7 @@ public class StorageCache {
   private static class DisabledCache extends StorageCache {
 
     DisabledCache() {
-      LOGGER.log(Level.INFO, "Cache disabled");
+      log.info("Cache disabled");
     }
 
     @Override

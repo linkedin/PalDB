@@ -14,19 +14,13 @@
 
 package com.linkedin.paldb.impl;
 
-import com.linkedin.paldb.api.Configuration;
-import com.linkedin.paldb.api.Serializer;
-import com.linkedin.paldb.api.UnsupportedTypeException;
-import com.linkedin.paldb.utils.DataInputOutput;
-import com.linkedin.paldb.utils.LongPacker;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.EOFException;
-import java.io.IOException;
-import java.lang.reflect.Array;
-import java.math.BigDecimal;
-import java.math.BigInteger;
+import com.linkedin.paldb.api.*;
+import com.linkedin.paldb.utils.*;
 import org.xerial.snappy.Snappy;
+
+import java.io.*;
+import java.lang.reflect.Array;
+import java.math.*;
 
 /**
  * Internal serialization implementation.
@@ -1110,7 +1104,7 @@ public final class StorageSerialization {
   private static Class deserializeClass(DataInput is)
       throws IOException, ClassNotFoundException {
     is.readByte();
-    String className = (String) deserializeString(is);
+    String className = deserializeString(is);
     Class cls = Class.forName(className);
     return cls;
   }

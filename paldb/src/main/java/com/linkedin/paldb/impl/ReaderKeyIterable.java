@@ -44,7 +44,7 @@ public final class ReaderKeyIterable<K> implements Iterable<K> {
 
   @Override
   public Iterator<K> iterator() {
-    return new ReaderKeyIterator<K>(byteIterable.iterator(), serialization);
+    return new ReaderKeyIterator<>(byteIterable.iterator(), serialization);
   }
 
   /**
@@ -79,8 +79,7 @@ public final class ReaderKeyIterable<K> implements Iterable<K> {
     public K next() {
       Map.Entry<byte[], byte[]> byteEntry = byteIterator.next();
       try {
-        K key = (K) serialization.deserialize(dataInputOutput.reset(byteEntry.getKey()));
-        return key;
+        return (K) serialization.deserialize(dataInputOutput.reset(byteEntry.getKey()));
       } catch (Exception ex) {
         throw new RuntimeException(ex);
       }

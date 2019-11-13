@@ -43,7 +43,7 @@ public final class ReaderIterable<K, V> implements Iterable<Map.Entry<K, V>> {
 
   @Override
   public Iterator<Map.Entry<K, V>> iterator() {
-    return new ReaderIterator<K, V>(byteIterable.iterator(), serialization);
+    return new ReaderIterator<>(byteIterable.iterator(), serialization);
   }
 
   /**
@@ -54,7 +54,7 @@ public final class ReaderIterable<K, V> implements Iterable<Map.Entry<K, V>> {
   private static final class ReaderIterator<K, V> implements Iterator<Map.Entry<K, V>> {
 
     // Reusable entry
-    private final FastEntry<K, V> entry = new FastEntry<K, V>();
+    private final FastEntry<K, V> entry = new FastEntry<>();
     // Iterator
     private final Iterator<Map.Entry<byte[], byte[]>> byteIterator;
     // Buffer
@@ -125,7 +125,7 @@ public final class ReaderIterable<K, V> implements Iterable<Map.Entry<K, V>> {
       }
 
       @Override
-      public Object setValue(Object value) {
+      public V setValue(V value) {
         throw new UnsupportedOperationException("Not supported.");
       }
     }

@@ -15,29 +15,14 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.Configuration;
-import com.linkedin.paldb.utils.DataInputOutput;
-import com.linkedin.paldb.utils.FormatVersion;
-import com.linkedin.paldb.utils.HashUtils;
-import com.linkedin.paldb.utils.LongPacker;
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
+import com.linkedin.paldb.utils.*;
+import org.slf4j.*;
+
+import java.io.*;
+import java.nio.*;
 import java.nio.channels.FileChannel;
-import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.text.*;
+import java.util.*;
 
 
 /**
@@ -46,7 +31,7 @@ import java.util.logging.Logger;
 public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
   // Logger
-  private final static Logger LOGGER = Logger.getLogger(StorageReader.class.getName());
+  private static final Logger log = LoggerFactory.getLogger(StorageReader.class);
   // Configuration
   private final Configuration config;
   // File path
@@ -96,7 +81,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     if (!file.exists()) {
       throw new FileNotFoundException("File " + file.getAbsolutePath() + " not found");
     }
-    LOGGER.log(Level.INFO, "Opening file {0}", file.getName());
+    log.info("Opening file {}", file.getName());
 
     //Config
     segmentSize = config.getLong(Configuration.MMAP_SEGMENT_SIZE);
@@ -219,24 +204,26 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     }
 
     //logging
-    DecimalFormat integerFormat = new DecimalFormat("#,##0.00");
-    StringBuilder statMsg = new StringBuilder("Storage metadata\n");
-    statMsg.append("  Created at: " + formatCreatedAt(createdAt) + "\n");
-    statMsg.append("  Format version: " + formatVersion.name() + "\n");
-    statMsg.append("  Key count: " + keyCount + "\n");
-    for (int i = 0; i < keyCounts.length; i++) {
-      if (keyCounts[i] > 0) {
-        statMsg.append("  Key count for key length " + i + ": " + keyCounts[i] + "\n");
+    if (log.isDebugEnabled()) {
+      DecimalFormat integerFormat = new DecimalFormat("#,##0.00");
+      StringBuilder statMsg = new StringBuilder("Storage metadata\n");
+      statMsg.append("  Created at: ").append(formatCreatedAt(createdAt)).append("\n");
+      statMsg.append("  Format version: ").append(formatVersion.name()).append("\n");
+      statMsg.append("  Key count: ").append(keyCount).append("\n");
+      for (int i = 0; i < keyCounts.length; i++) {
+        if (keyCounts[i] > 0) {
+          statMsg.append("  Key count for key length ").append(i).append(": ").append(keyCounts[i]).append("\n");
+        }
       }
+      statMsg.append("  Index size: ").append(integerFormat.format((dataOffset - indexOffset) / (1024.0 * 1024.0))).append(" Mb\n");
+      statMsg.append("  Data size: ").append(integerFormat.format((fileSize - dataOffset) / (1024.0 * 1024.0))).append(" Mb\n");
+      if (mMapData) {
+        statMsg.append("  Number of memory mapped data buffers: ").append(dataBuffers.length);
+      } else {
+        statMsg.append("  Memory mapped data disabled, using disk");
+      }
+      log.debug(statMsg.toString());
     }
-    statMsg.append("  Index size: " + integerFormat.format((dataOffset - indexOffset) / (1024.0 * 1024.0)) + " Mb\n");
-    statMsg.append("  Data size: " + integerFormat.format((fileSize - dataOffset) / (1024.0 * 1024.0)) + " Mb\n");
-    if (mMapData) {
-      statMsg.append("  Number of memory mapped data buffers: " + dataBuffers.length);
-    } else {
-      statMsg.append("  Memory mapped data disabled, using disk");
-    }
-    LOGGER.info(statMsg.toString());
   }
 
   //Get the value for the given key or null
@@ -262,8 +249,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
         return null;
       }
       if (isKey(slotBuffer, key)) {
-        byte[] value = mMapData ? getMMapBytes(dataOffset + offset) : getDiskBytes(dataOffset + offset);
-        return value;
+        return mMapData ? getMMapBytes(dataOffset + offset) : getDiskBytes(dataOffset + offset);
       }
     }
     return null;
@@ -287,7 +273,6 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     dataBuffers = null;
     mappedFile = null;
     channel = null;
-    System.gc();
   }
 
   public int getKeyCount() {
@@ -454,7 +439,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
         }
         return entry;
       } catch (IOException ex) {
-        throw new RuntimeException(ex);
+        throw new UncheckedIOException(ex);
       }
     }
 

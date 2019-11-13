@@ -15,23 +15,12 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.Serializer;
+import org.slf4j.*;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.lang.reflect.Array;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.*;
+import java.lang.reflect.*;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
 /**
@@ -40,8 +29,8 @@ import java.util.logging.Logger;
 public final class Serializers implements Serializable {
 
   // Logger
-  private final static Logger LOGGER = Logger.getLogger(Serializers.class.getName());
-  private AtomicInteger COUNTER;
+  private static final Logger log = LoggerFactory.getLogger(Serializers.class);
+  private AtomicInteger counter;
   private Map<Class, SerializerWrapper> serializers;
   private Serializer[] serializersArray;
 
@@ -49,8 +38,8 @@ public final class Serializers implements Serializable {
    * Default constructor.
    */
   public Serializers() {
-    COUNTER = new AtomicInteger();
-    serializers = new HashMap<Class, SerializerWrapper>();
+    counter = new AtomicInteger();
+    serializers = new HashMap<>();
     serializersArray = new Serializer[0];
   }
 
@@ -62,16 +51,15 @@ public final class Serializers implements Serializable {
   public synchronized void registerSerializer(Serializer serializer) {
     Class objClass = getSerializerType(serializer);
     if (!serializers.containsKey(objClass)) {
-      int index = COUNTER.getAndIncrement();
+      int index = counter.getAndIncrement();
       serializers.put(objClass, new SerializerWrapper(index, serializer));
       if (serializersArray.length <= index) {
         serializersArray = Arrays.copyOf(serializersArray, index + 1);
       }
       serializersArray[index] = serializer;
 
-      LOGGER.info(String
-          .format("Registered new serializer '%s' %n  for '%s' at index %d", serializer.getClass().getName(),
-              objClass.getName(), index));
+      log.info("Registered new serializer '{}' for '{}' at index {}", serializer.getClass().getName(),
+              objClass.getName(), index);
     }
   }
 
@@ -123,7 +111,7 @@ public final class Serializers implements Serializable {
 
         msg.append(String.format("%n  (%d) %s", index, name));
       }
-      LOGGER.info(msg.toString());
+      log.info(msg.toString());
     }
   }
 
@@ -137,8 +125,8 @@ public final class Serializers implements Serializable {
   private void readObject(ObjectInputStream in)
       throws IOException, ClassNotFoundException {
     // Init
-    COUNTER = new AtomicInteger();
-    serializers = new HashMap<Class, SerializerWrapper>();
+    counter = new AtomicInteger();
+    serializers = new HashMap<>();
     serializersArray = new Serializer[0];
 
     deserialize(in, this);
@@ -176,12 +164,12 @@ public final class Serializers implements Serializable {
 
           msg.append(String.format("%n  (%d) %s", index, serializerClassName));
         } catch (Exception ex) {
-          LOGGER.log(Level.WARNING, (String.format("Can't find the serializer '%s'", serializerClassName)), ex);
+          log.warn("Can't find the serializer '{}'", serializerClassName, ex);
         }
       }
-      serializers.COUNTER.set(max + 1);
+      serializers.counter.set(max + 1);
 
-      LOGGER.info(msg.toString());
+      log.info(msg.toString());
     }
   }
 
@@ -189,11 +177,11 @@ public final class Serializers implements Serializable {
    * Clear all serializers.
    */
   void clear() {
-    LOGGER.info("Clear all serializers");
+    log.info("Clear all serializers");
 
     serializers.clear();
     serializersArray = new Serializer[0];
-    COUNTER.set(0);
+    counter.set(0);
   }
 
   /**

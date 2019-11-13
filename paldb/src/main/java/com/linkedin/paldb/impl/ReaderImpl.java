@@ -18,11 +18,10 @@ import com.linkedin.paldb.api.Configuration;
 import com.linkedin.paldb.api.NotFoundException;
 import com.linkedin.paldb.api.StoreReader;
 import com.linkedin.paldb.utils.DataInputOutput;
-import java.io.File;
-import java.io.IOException;
+import org.slf4j.*;
+
+import java.io.*;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
 /**
@@ -31,7 +30,7 @@ import java.util.logging.Logger;
 public final class ReaderImpl implements StoreReader {
 
   // Logger
-  private final static Logger LOGGER = Logger.getLogger(ReaderImpl.class.getName());
+  private static final Logger log = LoggerFactory.getLogger(ReaderImpl.class);
   // Configuration
   private final Configuration config;
   // Buffer
@@ -59,11 +58,11 @@ public final class ReaderImpl implements StoreReader {
 
     // Open storage
     try {
-      LOGGER.log(Level.INFO, "Opening reader storage");
+      log.info("Opening reader storage");
       serialization = new StorageSerialization(config);
       storage = new StorageReader(config, file);
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     }
     opened = true;
 
@@ -75,11 +74,11 @@ public final class ReaderImpl implements StoreReader {
   public void close() {
     checkOpen();
     try {
-      LOGGER.log(Level.INFO, "Closing reader storage");
+      log.info("Closing reader storage");
       storage.close();
       opened = false;
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     }
   }
 
@@ -404,13 +403,13 @@ public final class ReaderImpl implements StoreReader {
   @Override
   public <K, V> Iterable<Map.Entry<K, V>> iterable() {
     checkOpen();
-    return new ReaderIterable(storage, serialization);
+    return new ReaderIterable<>(storage, serialization);
   }
 
   @Override
   public <K> Iterable<K> keys() {
     checkOpen();
-    return new ReaderKeyIterable<K>(storage, serialization);
+    return new ReaderKeyIterable<>(storage, serialization);
   }
 
   // UTILITIES

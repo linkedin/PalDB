@@ -15,44 +15,49 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
-import com.linkedin.paldb.api.PalDB;
-import com.linkedin.paldb.utils.DataInputOutput;
-import com.linkedin.paldb.utils.FormatVersion;
-import com.linkedin.paldb.utils.LongPacker;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import com.linkedin.paldb.utils.*;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
 
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
 
 public class TestStore {
 
-  private final File STORE_FOLDER = new File("data");
-  private final File STORE_FILE = new File(STORE_FOLDER, "paldb.dat");
+  private Path tempDir;
+  private File STORE_FILE = createTempFile();
 
-  @BeforeClass
-  public void setUp() {
-    STORE_FILE.delete();
-    STORE_FOLDER.delete();
-    STORE_FOLDER.mkdir();
+  @BeforeMethod
+  public void setUp() throws IOException {
+    tempDir = Files.createTempDirectory("tmp");
+    STORE_FILE = Files.createTempFile(tempDir, "paldb", ".dat").toFile();
+    STORE_FILE.mkdir();
   }
 
-  @AfterClass
+  @AfterMethod
   public void cleanUp() {
-    STORE_FILE.delete();
-    STORE_FOLDER.delete();
+    deleteDirectory(tempDir.toFile());
+  }
+
+  private boolean deleteDirectory(File directoryToBeDeleted) {
+      if (directoryToBeDeleted.isDirectory()) {
+          File[] allContents = directoryToBeDeleted.listFiles();
+          if (allContents != null) {
+              for (File file : allContents) {
+                  deleteDirectory(file);
+              }
+          }
+      }
+      return directoryToBeDeleted.delete();
+  }
+
+  private static File createTempFile() {
+    try {
+      return Files.createTempFile( "paldb", ".dat").toFile();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   @Test
@@ -339,6 +344,7 @@ public class TestStore {
     int byteSize = serialization.serialize(values[0]).length + serialization.serialize(values[1]).length;
 
     //Write
+    System.out.println(STORE_FILE);
     writeStore(STORE_FILE, keys, values);
 
     //Read
@@ -365,6 +371,7 @@ public class TestStore {
         LongPacker.packInt(new DataInputOutput(), b1.length) + LongPacker.packInt(new DataInputOutput(), b2.length);
 
     //Write
+    System.out.println(STORE_FILE);
     writeStore(STORE_FILE, keys, values);
 
     //Read

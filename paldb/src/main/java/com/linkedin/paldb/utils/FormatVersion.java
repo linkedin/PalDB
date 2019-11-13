@@ -14,7 +14,7 @@
 
 package com.linkedin.paldb.utils;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.Arrays;
 
 
@@ -42,13 +42,12 @@ public enum FormatVersion {
    * @return format version byte representation
    */
   public byte[] getBytes() {
-    try {
-      DataInputOutput dio = new DataInputOutput();
+    try (DataInputOutput dio = new DataInputOutput()) {
       dio.writeUTF(this.name());
       byte[] res = dio.toByteArray();
       return Arrays.copyOfRange(res, 1, res.length);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
   }
 
@@ -60,14 +59,13 @@ public enum FormatVersion {
    */
   public static FormatVersion fromBytes(byte[] bytes) {
     String version = null;
-    try {
-      byte[] withSize = new byte[bytes.length + 1];
-      withSize[0] = (byte) bytes.length;
-      System.arraycopy(bytes, 0, withSize, 1, bytes.length);
-      DataInputOutput dio = new DataInputOutput(withSize);
+    byte[] withSize = new byte[bytes.length + 1];
+    withSize[0] = (byte) bytes.length;
+    System.arraycopy(bytes, 0, withSize, 1, bytes.length);
+    try (DataInputOutput dio = new DataInputOutput(withSize)) {
       version = dio.readUTF();
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
     try {
       return FormatVersion.valueOf(version);
@@ -82,13 +80,12 @@ public enum FormatVersion {
    * @return prefix byte representation
    */
   public static byte[] getPrefixBytes() {
-    try {
-      DataInputOutput dio = new DataInputOutput();
+    try (DataInputOutput dio = new DataInputOutput()) {
       dio.writeUTF("PALDB");
       byte[] res = dio.toByteArray();
       return Arrays.copyOfRange(res, 1, res.length);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
   }
 

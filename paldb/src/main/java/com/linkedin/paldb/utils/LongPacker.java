@@ -42,11 +42,11 @@ public final class LongPacker {
    * @return the number of bytes written
    * @throws IOException if an error occurs with the stream
    */
-  static public int packLong(DataOutput os, long value)
+  public static int packLong(DataOutput os, long value)
       throws IOException {
 
     if (value < 0) {
-      throw new IllegalArgumentException("negative value: v=" + value);
+      throw new IllegalArgumentException("Negative value: v=" + value);
     }
 
     int i = 1;
@@ -66,13 +66,11 @@ public final class LongPacker {
    * @param ba the byte array
    * @param value the long value
    * @return the number of bytes written
-   * @throws IOException if an error occurs with the stream
    */
-  static public int packLong(byte[] ba, long value)
-      throws IOException {
+  public static int packLong(byte[] ba, long value) {
 
     if (value < 0) {
-      throw new IllegalArgumentException("negative value: v=" + value);
+      throw new IllegalArgumentException("Negative value: v=" + value);
     }
 
     int i = 1;
@@ -92,7 +90,7 @@ public final class LongPacker {
    * @return the long value
    * @throws IOException if an error occurs with the stream
    */
-  static public long unpackLong(DataInput is)
+  public static long unpackLong(DataInput is)
       throws IOException {
 
     long result = 0;
@@ -112,7 +110,7 @@ public final class LongPacker {
    * @param ba byte array
    * @return the long value
    */
-  static public long unpackLong(byte[] ba) {
+  public static long unpackLong(byte[] ba) {
     return unpackLong(ba, 0);
   }
 
@@ -125,7 +123,7 @@ public final class LongPacker {
    * @param index index in ba
    * @return the long value
    */
-  static public long unpackLong(byte[] ba, int index) {
+  public static long unpackLong(byte[] ba, int index) {
     long result = 0;
     for (int offset = 0; offset < 64; offset += 7) {
       long b = ba[index++];
@@ -146,7 +144,7 @@ public final class LongPacker {
    * @return the number of bytes written
    * @throws IOException if an error occurs with the stream
    */
-  static public int packInt(DataOutput os, int value)
+  public static int packInt(DataOutput os, int value)
       throws IOException {
 
     if (value < 0) {
@@ -171,7 +169,7 @@ public final class LongPacker {
    * @return the long value
    * @throws IOException if an error occurs with the stream
    */
-  static public int unpackInt(DataInput is)
+  public static int unpackInt(DataInput is)
       throws IOException {
     for (int offset = 0, result = 0; offset < 32; offset += 7) {
       int b = is.readUnsignedByte();
@@ -188,10 +186,8 @@ public final class LongPacker {
    *
    * @param bb The byte buffer
    * @return the long value
-   * @throws IOException if an error occurs with the stream
    */
-  static public int unpackInt(ByteBuffer bb)
-      throws IOException {
+  public static int unpackInt(ByteBuffer bb) {
     for (int offset = 0, result = 0; offset < 32; offset += 7) {
       int b = bb.get() & 0xffff;
       result |= (b & 0x7F) << offset;

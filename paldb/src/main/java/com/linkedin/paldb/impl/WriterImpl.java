@@ -14,14 +14,10 @@
 
 package com.linkedin.paldb.impl;
 
-import com.linkedin.paldb.api.Configuration;
-import com.linkedin.paldb.api.StoreWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import com.linkedin.paldb.api.*;
+import org.slf4j.*;
+
+import java.io.*;
 
 
 /**
@@ -30,7 +26,7 @@ import java.util.logging.Logger;
 public final class WriterImpl implements StoreWriter {
 
   // Logger
-  private final static Logger LOGGER = Logger.getLogger(WriterImpl.class.getName());
+  private static final Logger log = LoggerFactory.getLogger(WriterImpl.class);
   // Configuration
   private final Configuration config;
   // Storage
@@ -77,7 +73,7 @@ public final class WriterImpl implements StoreWriter {
     this.file = file;
 
     // Open storage
-    LOGGER.log(Level.INFO, "Opening writer storage");
+    log.debug("Opening writer storage");
     serialization = new StorageSerialization(config);
     storage = new StorageWriter(config, outputStream);
     opened = true;
@@ -88,16 +84,16 @@ public final class WriterImpl implements StoreWriter {
     checkOpen();
     try {
       if (file != null) {
-        LOGGER.log(Level.INFO, "Closing writer storage, writing to file at " + file.getAbsolutePath());
+        log.info("Closing writer storage, writing to file at {}", file.getAbsolutePath());
       } else {
-        LOGGER.log(Level.INFO, "Closing writer storage, writing to stream");
+        log.info("Closing writer storage, writing to stream");
       }
 
       storage.close();
       outputStream.close();
       opened = false;
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     }
   }
 
@@ -116,7 +112,7 @@ public final class WriterImpl implements StoreWriter {
       byte[] keyBytes = serialization.serializeKey(key);
       storage.put(keyBytes, serialization.serializeValue(value));
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     }
   }
 
@@ -144,7 +140,7 @@ public final class WriterImpl implements StoreWriter {
     try {
       storage.put(key, value);
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     }
   }
 

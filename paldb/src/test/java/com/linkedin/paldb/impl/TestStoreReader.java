@@ -15,39 +15,27 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
-import com.linkedin.paldb.api.PalDB;
+import org.testng.Assert;
+import org.testng.annotations.*;
 
 import java.awt.*;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.File;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-
-import org.testng.Assert;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
 
 
 public class TestStoreReader {
 
-  private final File STORE_FOLDER = new File("data");
-  private final File STORE_FILE = new File(STORE_FOLDER, "paldb.dat");
   private StoreReader reader;
 
-  private final Object[] testValues =
-      new Object[]{true, (byte) 1, 'a', 1.0, 1f, (short) 1, 1, 1l, "foo", new boolean[]{true}, new byte[]{1}, new char[]{'a'}, new double[]{1.0}, new float[]{1f}, new short[]{1}, new int[]{1}, new long[]{1l}, new String[]{"foo"}, new Object[]{"foo"}, new Point(
-          4, 56)};
+  private Path tempDir;
+  private File STORE_FILE = createTempFile();
 
   @BeforeMethod
-  public void setUp() {
-    STORE_FILE.delete();
-    STORE_FOLDER.delete();
-    STORE_FOLDER.mkdir();
+  public void setUp() throws IOException {
+    tempDir = Files.createTempDirectory("tmp");
+    STORE_FILE = Files.createTempFile(tempDir, "paldb", ".dat").toFile();
+    STORE_FILE.mkdir();
 
     Configuration configuration = new Configuration();
     configuration.registerSerializer(new PointSerializer());
@@ -65,10 +53,62 @@ public class TestStoreReader {
     try {
       reader.close();
     } catch (Exception e) {
+      //nop
+    }
+    deleteDirectory(tempDir.toFile());
+  }
+
+  private boolean deleteDirectory(File directoryToBeDeleted) {
+    if (directoryToBeDeleted.isDirectory()) {
+      File[] allContents = directoryToBeDeleted.listFiles();
+      if (allContents != null) {
+        for (File file : allContents) {
+          deleteDirectory(file);
+        }
+      }
+    }
+    return directoryToBeDeleted.delete();
+  }
+
+  private static File createTempFile() {
+    try {
+      return Files.createTempFile( "paldb", ".dat").toFile();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+
+  private final Object[] testValues =
+      new Object[]{true, (byte) 1, 'a', 1.0, 1f, (short) 1, 1, 1l, "foo", new boolean[]{true}, new byte[]{1}, new char[]{'a'}, new double[]{1.0}, new float[]{1f}, new short[]{1}, new int[]{1}, new long[]{1l}, new String[]{"foo"}, new Object[]{"foo"}, new Point(
+          4, 56)};
+
+/*  @BeforeMethod
+  public void setUp() {
+    STORE_FILE.delete();
+    STORE_FOLDER.delete();
+    STORE_FOLDER.mkdir();
+
+    Configuration configuration = new Configuration();
+    configuration.registerSerializer(new PointSerializer());
+    StoreWriter writer = PalDB.createWriter(STORE_FILE, configuration);
+    for (int i = 0; i < testValues.length; i++) {
+      writer.put(i, testValues[i]);
+    }
+    writer.close();
+
+    reader = PalDB.createReader(STORE_FILE, new Configuration());
+  }*/
+
+/*  @AfterMethod
+  public void cleanUp() {
+    try {
+      reader.close();
+    } catch (Exception e) {
     }
     STORE_FILE.delete();
     STORE_FOLDER.delete();
-  }
+  }*/
 
   @Test
   public void testFile() {
