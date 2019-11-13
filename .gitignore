@@ -15,5 +15,3 @@ out/
 /ligradle
 .DS_Store
 /doc
-gradle/
-gradlew*
