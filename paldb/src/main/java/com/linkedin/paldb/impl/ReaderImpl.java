@@ -21,7 +21,7 @@ import com.linkedin.paldb.utils.DataInputOutput;
 import org.slf4j.*;
 
 import java.io.*;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -404,6 +404,11 @@ public final class ReaderImpl implements StoreReader {
   public <K, V> Iterable<Map.Entry<K, V>> iterable() {
     checkOpen();
     return new ReaderIterable<>(storage, serialization);
+  }
+
+  @Override
+  public Iterator<Map.Entry<Object,Object>> iterator() {
+      return iterable().iterator();
   }
 
   @Override

@@ -42,29 +42,28 @@ API documentation can be found [here](http://linkedin.github.com/PalDB/doc/javad
 
 How to write a store
 ```java
-StoreWriter writer = PalDB.createWriter(new File("store.paldb"));
-writer.put("foo", "bar");
-writer.put(1213, new int[] {1, 2, 3});
-writer.close();
+try (var writer = PalDB.createWriter(new File("store.paldb"))) {
+    writer.put("foo", "bar");
+    writer.put(1213, new int[] {1, 2, 3});
+}
 ```
 
 How to read a store
 ```java
-StoreReader reader = PalDB.createReader(new File("store.paldb"));
-String val1 = reader.get("foo");
-int[] val2 = reader.get(1213);
-reader.close();
+try (var reader = PalDB.createReader(new File("store.paldb"))) {
+    String val1 = reader.get("foo");
+    int[] val2 = reader.get(1213);
+}
 ```
 
 How to iterate on a store
 ```java
-StoreReader reader = PalDB.createReader(new File("store.paldb"));
-Iterable<Map.Entry<String, String>> iterable = reader.iterable();
-for (Map.Entry<String, String> entry : iterable) {
-  String key = entry.getKey();
-  String value = entry.getValue();
+try (var reader = PalDB.createReader(new File("store.paldb"))) {
+    for (var entry : reader) {
+      String key = (String) entry.getKey();
+      String value = (String) entry.getValue();
+    }
 }
-reader.close();
 ```
 
 For Scala examples, see [here](https://gist.github.com/mbastian/9b9b49a4b96333da33ec) and [here](https://gist.github.com/mbastian/440a706f5e863bb65622).

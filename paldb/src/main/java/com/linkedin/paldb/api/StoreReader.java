@@ -15,7 +15,7 @@
 package com.linkedin.paldb.api;
 
 import java.io.File;
-import java.util.Map;
+import java.util.*;
 
 
 /**
@@ -25,7 +25,7 @@ import java.util.Map;
  * <code>get()</code> method to fetch. Call the
  * <code>close()</code> to liberate resources when done.
  */
-public interface StoreReader extends AutoCloseable {
+public interface StoreReader extends AutoCloseable, Iterable<Map.Entry<Object,Object>> {
 
   /**
    * Closes the store reader and free resources.
@@ -444,6 +444,16 @@ public interface StoreReader extends AutoCloseable {
    * @return iterable over store
    */
   <K, V> Iterable<Map.Entry<K, V>> iterable();
+
+  /**
+   * Gets the store iterator.
+   * <p>
+   * Note that entry objects are reused.
+   *
+   * @return iterable over store
+   */
+  @Override
+  Iterator<Map.Entry<Object,Object>> iterator();
 
   /**
    * Gets the store keys iterable.

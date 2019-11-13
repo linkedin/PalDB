@@ -211,16 +211,14 @@ public class TestStoreReader {
   }
 
   @Test
-  public void testGetString()
-      throws Throwable {
+  public void testGetString() {
     Assert.assertEquals(reader.getString(8), "foo");
     Assert.assertEquals(reader.getString(8, "bar"), "foo");
     Assert.assertEquals(reader.getString(-1, "bar"), "bar");
   }
 
   @Test
-  public void testGetStringMissing()
-      throws Throwable {
+  public void testGetStringMissing() {
     Assert.assertNull(reader.getString(-1));
   }
 
@@ -351,28 +349,24 @@ public class TestStoreReader {
   }
 
   @Test
-  public void testGetMissing()
-      throws Throwable {
+  public void testGetMissing() {
     Assert.assertNull(reader.get(-1));
   }
 
   @Test
-  public void testGetArray()
-      throws Throwable {
+  public void testGetArray() {
     Assert.assertEquals(reader.getArray(18), new Object[]{"foo"});
     Assert.assertEquals(reader.getArray(18, new Object[]{"bar"}), new Object[]{"foo"});
     Assert.assertEquals(reader.getArray(-1, new Object[]{"bar"}), new Object[]{"bar"});
   }
 
   @Test
-  public void testGetArrayMissing()
-      throws Throwable {
+  public void testGetArrayMissing() {
     Assert.assertNull(reader.getArray(-1));
   }
 
   @Test
-  public void testGetPoint()
-      throws Throwable {
+  public void testGetPoint() {
     Assert.assertEquals(reader.get(19), new Point(4, 56));
   }
 
@@ -388,6 +382,14 @@ public class TestStoreReader {
       Map.Entry<Integer, Object> v = itr.next();
       Object val = testValues[v.getKey()];
       Assert.assertEquals(v.getValue(), val);
+    }
+  }
+
+  @Test
+  public void testIterate() {
+    for (var entry: reader) {
+      Object val = testValues[(int) entry.getKey()];
+      Assert.assertEquals(entry.getValue(), val);
     }
   }
 
