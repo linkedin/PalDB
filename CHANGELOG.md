@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+Version 2.0.0
+--------------------------
+- Bumped minimal java version to 11
+- StoreReader and StoreWriter implement AutoCloseable
+- New config builder
+- Reader and writer use generics
+
+
 Version 1.2.0 *(June 26th 2016)*
 --------------------------
 

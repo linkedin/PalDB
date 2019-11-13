@@ -23,16 +23,17 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
+import static com.linkedin.paldb.utils.TestTempUtils.deleteDirectory;
+
 public class TestStore {
 
   private Path tempDir;
-  private File STORE_FILE = createTempFile();
+  private File storeFile;
 
   @BeforeMethod
   public void setUp() throws IOException {
     tempDir = Files.createTempDirectory("tmp");
-    STORE_FILE = Files.createTempFile(tempDir, "paldb", ".dat").toFile();
-    STORE_FILE.mkdir();
+    storeFile = Files.createTempFile(tempDir, "paldb", ".dat").toFile();
   }
 
   @AfterMethod
@@ -40,39 +41,17 @@ public class TestStore {
     deleteDirectory(tempDir.toFile());
   }
 
-  private boolean deleteDirectory(File directoryToBeDeleted) {
-      if (directoryToBeDeleted.isDirectory()) {
-          File[] allContents = directoryToBeDeleted.listFiles();
-          if (allContents != null) {
-              for (File file : allContents) {
-                  deleteDirectory(file);
-              }
-          }
-      }
-      return directoryToBeDeleted.delete();
-  }
-
-  private static File createTempFile() {
-    try {
-      return Files.createTempFile( "paldb", ".dat").toFile();
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-  }
-
   @Test
   public void testEmpty() {
-    StoreWriter writer = PalDB.createWriter(STORE_FILE, new Configuration());
+    StoreWriter writer = PalDB.createWriter(storeFile, new Configuration());
     writer.close();
 
-    Assert.assertTrue(STORE_FILE.exists());
+    Assert.assertTrue(storeFile.exists());
 
-    StoreReader reader = PalDB.createReader(STORE_FILE, new Configuration());
-
-    Assert.assertEquals(reader.size(), 0);
-    Assert.assertNull(reader.get(1, null));
-
-    reader.close();
+    try (StoreReader<Integer,Integer> reader = PalDB.createReader(storeFile, new Configuration())) {
+      Assert.assertEquals(reader.size(), 0);
+      Assert.assertNull(reader.get(1, null));
+    }
   }
 
   @Test
@@ -90,17 +69,15 @@ public class TestStore {
 
   @Test
   public void testEmptyDefaultConfig() {
-    StoreWriter writer = PalDB.createWriter(STORE_FILE);
+    StoreWriter writer = PalDB.createWriter(storeFile);
     writer.close();
 
-    Assert.assertTrue(STORE_FILE.exists());
+    Assert.assertTrue(storeFile.exists());
 
-    StoreReader reader = PalDB.createReader(STORE_FILE);
-
-    Assert.assertEquals(reader.size(), 0);
-    Assert.assertNull(reader.get(1, null));
-
-    reader.close();
+    try (StoreReader<Integer,Integer> reader = PalDB.createReader(storeFile)) {
+      Assert.assertEquals(reader.size(), 0);
+      Assert.assertNull(reader.get(1, null));
+    }
   }
 
   @Test
@@ -177,82 +154,77 @@ public class TestStore {
 
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void testInvalidSegmentSize() {
-    StoreWriter writer = PalDB.createWriter(STORE_FILE);
+    StoreWriter writer = PalDB.createWriter(storeFile);
     writer.close();
 
     Configuration config = new Configuration();
     config.set(Configuration.MMAP_SEGMENT_SIZE, String.valueOf(1 + (long) Integer.MAX_VALUE));
-    PalDB.createReader(STORE_FILE, config);
+    PalDB.createReader(storeFile, config);
   }
 
   @Test
-  public void testByteMarkEmpty()
-      throws IOException {
-    FileOutputStream fos = new FileOutputStream(STORE_FILE);
-    fos.write(12345);
-    fos.write(FormatVersion.getPrefixBytes()[0]);
-    fos.write(3456);
-    StoreWriter writer = PalDB.createWriter(fos, new Configuration());
-    writer.close();
+  public void testByteMarkEmpty() throws IOException {
+    try (FileOutputStream fos = new FileOutputStream(storeFile)) {
+      fos.write(12345);
+      fos.write(FormatVersion.getPrefixBytes()[0]);
+      fos.write(3456);
+      StoreWriter writer = PalDB.createWriter(fos, new Configuration());
+      writer.close();
+    }
 
-    StoreReader reader = PalDB.createReader(STORE_FILE, new Configuration());
-
-    Assert.assertEquals(reader.size(), 0);
-    Assert.assertNull(reader.get(1, null));
-
-    reader.close();
+    try (StoreReader<Integer,Integer> reader = PalDB.createReader(storeFile, new Configuration())) {
+      Assert.assertEquals(reader.size(), 0);
+      Assert.assertNull(reader.get(1, null));
+    }
   }
 
   @Test
   public void testOneKey() {
-    StoreWriter writer = PalDB.createWriter(STORE_FILE, new Configuration());
-    writer.put(1, "foo");
-    writer.close();
+    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+      writer.put(1, "foo");
+    }
 
-    StoreReader reader = PalDB.createReader(STORE_FILE, new Configuration());
-    Assert.assertEquals(reader.size(), 1);
-    Assert.assertEquals(reader.get(1), "foo");
-    reader.close();
+    try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile, new Configuration())) {
+      Assert.assertEquals(reader.size(), 1);
+      Assert.assertEquals(reader.get(1), "foo");
+    }
   }
 
   @Test
-  public void testPutSerializedKey()
-      throws IOException {
+  public void testPutSerializedKey() throws IOException {
     StorageSerialization storageSerialization = new StorageSerialization(new Configuration());
     byte[] serializedKey = storageSerialization.serializeKey(1);
     byte[] serializedValue = storageSerialization.serializeValue("foo");
 
-    StoreWriter writer = PalDB.createWriter(STORE_FILE, new Configuration());
-    writer.put(serializedKey, serializedValue);
-    writer.close();
+    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+      writer.put(serializedKey, serializedValue);
+    }
 
-    StoreReader reader = PalDB.createReader(STORE_FILE, new Configuration());
-    Assert.assertEquals(reader.size(), 1);
-    Assert.assertEquals(reader.get(1), "foo");
-    reader.close();
+    try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile, new Configuration())) {
+      Assert.assertEquals(reader.size(), 1);
+      Assert.assertEquals(reader.get(1), "foo");
+    }
   }
 
   @Test
-  public void testByteMarkOneKey()
-      throws IOException {
-    FileOutputStream fos = new FileOutputStream(STORE_FILE);
-    fos.write(12345);
-    fos.write(FormatVersion.getPrefixBytes()[0]);
-    fos.write(3456);
-    StoreWriter writer = PalDB.createWriter(fos, new Configuration());
-    writer.put(1, "foo");
-    writer.close();
+  public void testByteMarkOneKey() throws IOException {
+    try (FileOutputStream fos = new FileOutputStream(storeFile);
+         StoreWriter writer = PalDB.createWriter(fos, new Configuration());) {
+      fos.write(12345);
+      fos.write(FormatVersion.getPrefixBytes()[0]);
+      fos.write(3456);
 
-    StoreReader reader = PalDB.createReader(STORE_FILE, new Configuration());
+      writer.put(1, "foo");
+    }
 
-    Assert.assertEquals(reader.size(), 1);
-    Assert.assertEquals(reader.get(1), "foo");
-    reader.close();
+    try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile, new Configuration())) {
+      Assert.assertEquals(reader.size(), 1);
+      Assert.assertEquals(reader.get(1), "foo");
+    }
   }
 
   @Test
-  public void testTwoFirstKeyLength()
-      throws NotFoundException {
+  public void testTwoFirstKeyLength() {
     Integer key1 = 1;
     Integer key2 = 245;
 
@@ -261,22 +233,22 @@ public class TestStore {
     testKeyLength(key2, 2);
 
     //Write
-    writeStore(STORE_FILE, new Object[]{key1, key2}, new Object[]{1, 6});
+    writeStore(storeFile, new Object[]{key1, key2}, new Object[]{1, 6});
 
     //Read
-    StoreReader reader = PalDB.createReader(STORE_FILE, new Configuration());
-    Assert.assertEquals(reader.getInt(key1), 1);
-    Assert.assertEquals(reader.getInt(key2), 6);
-    Assert.assertNull(reader.get(0, null));
-    Assert.assertNull(reader.get(6, null));
-    Assert.assertNull(reader.get(244, null));
-    Assert.assertNull(reader.get(246, null));
-    Assert.assertNull(reader.get(1245, null));
+    try (StoreReader<Integer, Integer> reader = PalDB.createReader(storeFile, new Configuration())) {
+      Assert.assertEquals(reader.get(key1).intValue(), 1);
+      Assert.assertEquals(reader.get(key2).intValue(), 6);
+      Assert.assertNull(reader.get(0, null));
+      Assert.assertNull(reader.get(6, null));
+      Assert.assertNull(reader.get(244, null));
+      Assert.assertNull(reader.get(246, null));
+      Assert.assertNull(reader.get(1245, null));
+    }
   }
 
   @Test
-  public void testKeyLengthGap()
-      throws NotFoundException {
+  public void testKeyLengthGap() {
     Integer key1 = 1;
     Integer key2 = 2450;
 
@@ -285,24 +257,24 @@ public class TestStore {
     testKeyLength(key2, 3);
 
     //Write
-    writeStore(STORE_FILE, new Object[]{key1, key2}, new Object[]{1, 6});
+    writeStore(storeFile, new Object[]{key1, key2}, new Object[]{1, 6});
 
     //Read
-    StoreReader reader = PalDB.createReader(STORE_FILE, new Configuration());
-    Assert.assertEquals(reader.getInt(key1), 1);
-    Assert.assertEquals(reader.getInt(key2), 6);
-    Assert.assertNull(reader.get(0, null));
-    Assert.assertNull(reader.get(6, null));
-    Assert.assertNull(reader.get(244, null));
-    Assert.assertNull(reader.get(267, null));
-    Assert.assertNull(reader.get(2449, null));
-    Assert.assertNull(reader.get(2451, null));
-    Assert.assertNull(reader.get(2454441, null));
+    try (StoreReader<Integer,Integer> reader = PalDB.createReader(storeFile, new Configuration())) {
+      Assert.assertEquals(reader.get(key1).intValue(), 1);
+      Assert.assertEquals(reader.get(key2).intValue(), 6);
+      Assert.assertNull(reader.get(0, null));
+      Assert.assertNull(reader.get(6, null));
+      Assert.assertNull(reader.get(244, null));
+      Assert.assertNull(reader.get(267, null));
+      Assert.assertNull(reader.get(2449, null));
+      Assert.assertNull(reader.get(2451, null));
+      Assert.assertNull(reader.get(2454441, null));
+    }
   }
 
   @Test
-  public void testKeyLengthStartTwo()
-      throws NotFoundException {
+  public void testKeyLengthStartTwo() {
     Integer key1 = 245;
     Integer key2 = 2450;
 
@@ -311,31 +283,31 @@ public class TestStore {
     testKeyLength(key2, 3);
 
     //Write
-    writeStore(STORE_FILE, new Object[]{key1, key2}, new Object[]{1, 6});
+    writeStore(storeFile, new Object[]{key1, key2}, new Object[]{1, 6});
 
     //Read
-    StoreReader reader = PalDB.createReader(STORE_FILE, new Configuration());
-    Assert.assertEquals(reader.getInt(key1), 1);
-    Assert.assertEquals(reader.getInt(key2), 6);
-    Assert.assertNull(reader.get(6, null));
-    Assert.assertNull(reader.get(244, null));
-    Assert.assertNull(reader.get(267, null));
-    Assert.assertNull(reader.get(2449, null));
-    Assert.assertNull(reader.get(2451, null));
-    Assert.assertNull(reader.get(2454441, null));
+    try (StoreReader<Integer,Integer> reader = PalDB.createReader(storeFile, new Configuration())) {
+      Assert.assertEquals(reader.get(key1).intValue(), 1);
+      Assert.assertEquals(reader.get(key2).intValue(), 6);
+      Assert.assertNull(reader.get(6, null));
+      Assert.assertNull(reader.get(244, null));
+      Assert.assertNull(reader.get(267, null));
+      Assert.assertNull(reader.get(2449, null));
+      Assert.assertNull(reader.get(2451, null));
+      Assert.assertNull(reader.get(2454441, null));
+    }
   }
 
   @Test(expectedExceptions = RuntimeException.class, expectedExceptionsMessageRegExp = ".*duplicate.*")
   public void testDuplicateKeys() {
-    StoreWriter writer = PalDB.createWriter(STORE_FILE, new Configuration());
-    writer.put(0, "ABC");
-    writer.put(0, "DGE");
-    writer.close();
+    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+      writer.put(0, "ABC");
+      writer.put(0, "DGE");
+    }
   }
 
   @Test
-  public void testDataOnTwoBuffers()
-      throws IOException {
+  public void testDataOnTwoBuffers() throws IOException {
     Object[] keys = new Object[]{1, 2, 3};
     Object[] values = new Object[]{GenerateTestData.generateStringData(100), GenerateTestData
         .generateStringData(10000), GenerateTestData.generateStringData(100)};
@@ -344,21 +316,20 @@ public class TestStore {
     int byteSize = serialization.serialize(values[0]).length + serialization.serialize(values[1]).length;
 
     //Write
-    System.out.println(STORE_FILE);
-    writeStore(STORE_FILE, keys, values);
+    writeStore(storeFile, keys, values);
 
     //Read
     Configuration configuration = new Configuration();
     configuration.set(Configuration.MMAP_SEGMENT_SIZE, String.valueOf(byteSize - 100));
-    StoreReader reader = PalDB.createReader(STORE_FILE, configuration);
-    for (int i = 0; i < keys.length; i++) {
-      Assert.assertEquals(reader.get(keys[i], null), values[i]);
+    try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile, configuration)) {
+      for (int i = 0; i < keys.length; i++) {
+        Assert.assertEquals(reader.get((Integer) keys[i], null), values[i]);
+      }
     }
   }
 
   @Test
-  public void testDataSizeOnTwoBuffers()
-      throws IOException {
+  public void testDataSizeOnTwoBuffers() throws IOException {
     Object[] keys = new Object[]{1, 2, 3};
     Object[] values = new Object[]{GenerateTestData.generateStringData(100), GenerateTestData
         .generateStringData(10000), GenerateTestData.generateStringData(100)};
@@ -371,15 +342,15 @@ public class TestStore {
         LongPacker.packInt(new DataInputOutput(), b1.length) + LongPacker.packInt(new DataInputOutput(), b2.length);
 
     //Write
-    System.out.println(STORE_FILE);
-    writeStore(STORE_FILE, keys, values);
+    writeStore(storeFile, keys, values);
 
     //Read
     Configuration configuration = new Configuration();
     configuration.set(Configuration.MMAP_SEGMENT_SIZE, String.valueOf(byteSize + sizeSize + 3));
-    StoreReader reader = PalDB.createReader(STORE_FILE, configuration);
-    for (int i = 0; i < keys.length; i++) {
-      Assert.assertEquals(reader.get(keys[i], null), values[i]);
+    try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile, configuration)) {
+      for (int i = 0; i < keys.length; i++) {
+        Assert.assertEquals(reader.get((Integer) keys[i], null), values[i]);
+      }
     }
   }
 
@@ -444,23 +415,23 @@ public class TestStore {
     Configuration configuration = new Configuration();
 
     //Write
-    StoreWriter writer = PalDB.createWriter(STORE_FILE, configuration);
     Object[] values = GenerateTestData.generateStringData(keys.length, 1000);
-    writer.putAll(keys, values);
-    writer.close();
+    try (StoreWriter writer = PalDB.createWriter(storeFile, configuration)) {
+      writer.putAll(keys, values);
+    }
 
     //Read
     configuration.set(Configuration.MMAP_DATA_ENABLED, "false");
-    StoreReader reader = PalDB.createReader(STORE_FILE, configuration);
-    Assert.assertEquals(reader.size(), keys.length);
+    try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile, configuration)) {
+      Assert.assertEquals(reader.size(), keys.length);
 
-    for (int i = 0; i < keys.length; i++) {
-      Object key = keys[i];
-      Object val = reader.getString(key, null);
-      Assert.assertNotNull(val);
-      Assert.assertEquals(val, values[i]);
+      for (int i = 0; i < keys.length; i++) {
+        Integer key = keys[i];
+        Object val = reader.get(key, null);
+        Assert.assertNotNull(val);
+        Assert.assertEquals(val, values[i]);
+      }
     }
-    reader.close();
   }
 
   @Test
@@ -469,28 +440,28 @@ public class TestStore {
     String[] values = GenerateTestData.generateStringData(keys.length, 12);
 
     //Write
-    writeStore(STORE_FILE, keys, values);
+    writeStore(storeFile, keys, values);
 
     //Sets
-    Set<Integer> keysSet = new HashSet<Integer>(Arrays.asList(keys));
-    Set<String> valuesSet = new HashSet<String>(Arrays.asList(values));
+    Set<Integer> keysSet = new HashSet<>(Arrays.asList(keys));
+    Set<String> valuesSet = new HashSet<>(Arrays.asList(values));
 
     //Read
-    StoreReader reader = PalDB.createReader(STORE_FILE, new Configuration());
-    Iterator<Map.Entry<Object, Object>> itr = reader.iterable().iterator();
-    for (int i = 0; i < keys.length; i++) {
-      Assert.assertTrue(itr.hasNext());
-      Map.Entry<Object, Object> entry = itr.next();
-      Assert.assertNotNull(entry);
-      Assert.assertTrue(keysSet.remove(entry.getKey()));
-      Assert.assertTrue(valuesSet.remove(entry.getValue()));
+    try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile, new Configuration())) {
+      var itr = reader.iterable().iterator();
+      for (int i = 0; i < keys.length; i++) {
+        Assert.assertTrue(itr.hasNext());
+        var entry = itr.next();
+        Assert.assertNotNull(entry);
+        Assert.assertTrue(keysSet.remove(entry.getKey()));
+        Assert.assertTrue(valuesSet.remove(entry.getValue()));
 
-      Object valSearch = reader.get(entry.getKey(), null);
-      Assert.assertNotNull(valSearch);
-      Assert.assertEquals(valSearch, entry.getValue());
+        Object valSearch = reader.get(entry.getKey(), null);
+        Assert.assertNotNull(valSearch);
+        Assert.assertEquals(valSearch, entry.getValue());
+      }
+      Assert.assertFalse(itr.hasNext());
     }
-    Assert.assertFalse(itr.hasNext());
-    reader.close();
 
     Assert.assertTrue(keysSet.isEmpty());
     Assert.assertTrue(valuesSet.isEmpty());
@@ -498,98 +469,90 @@ public class TestStore {
 
   // UTILITY
 
-  private void testReadKeyToString(Object[] keys) {
+  private <K> void testReadKeyToString(K[] keys) {
     // Write
-    StoreWriter writer = PalDB.createWriter(STORE_FILE, new Configuration());
-    Object[] values = GenerateTestData.generateStringData(keys.length, 10);
-    writer.putAll(keys, values);
-    writer.close();
-
-    // Read
-    StoreReader reader = PalDB.createReader(STORE_FILE, new Configuration());
-    Assert.assertEquals(reader.size(), keys.length);
-
-    for (int i = 0; i < keys.length; i++) {
-      Object key = keys[i];
-      Object val = reader.getString(key, null);
-      Assert.assertNotNull(val);
-      Assert.assertEquals(val, values[i]);
+    String[] values = GenerateTestData.generateStringData(keys.length, 10);
+    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+      writer.putAll(keys, values);
     }
+      // Read
+    try (StoreReader<K,String> reader = PalDB.createReader(storeFile, new Configuration())) {
+      Assert.assertEquals(reader.size(), keys.length);
 
-    reader.close();
+      for (int i = 0; i < keys.length; i++) {
+        K key = keys[i];
+        String val = reader.get(key, null);
+        Assert.assertNotNull(val);
+        Assert.assertEquals(val, values[i]);
+      }
+    }
   }
 
-  private void testReadKeyToInt(Object[] keys) {
+  private <K> void testReadKeyToInt(K[] keys) {
     // Write
-    StoreWriter writer = PalDB.createWriter(STORE_FILE, new Configuration());
     Integer[] values = GenerateTestData.generateIntData(keys.length);
-    writer.putAll(keys, values);
-    writer.close();
-
-    // Read
-    StoreReader reader = PalDB.createReader(STORE_FILE, new Configuration());
-    Assert.assertEquals(reader.size(), keys.length);
-
-    for (int i = 0; i < keys.length; i++) {
-      Object key = keys[i];
-      Object val = reader.getInt(key, 0);
-      Assert.assertNotNull(val);
-      Assert.assertEquals(val, values[i]);
+    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+      writer.putAll(keys, values);
     }
 
-    reader.close();
+    try (StoreReader<K, Integer> reader = PalDB.createReader(storeFile, new Configuration())) {
+      Assert.assertEquals(reader.size(), keys.length);
+
+      for (int i = 0; i < keys.length; i++) {
+        K key = keys[i];
+        Object val = reader.get(key, 0);
+        Assert.assertNotNull(val);
+        Assert.assertEquals(val, values[i]);
+      }
+    }
   }
 
-  private void testReadKeyToNull(Object[] keys) {
+  private <K> void testReadKeyToNull(K[] keys) {
     //Write
-    StoreWriter writer = PalDB.createWriter(STORE_FILE, new Configuration());
-    Object[] values = new Object[keys.length];
-    writer.putAll(keys, values);
-    writer.close();
-
-    //Read
-    StoreReader reader = PalDB.createReader(STORE_FILE, new Configuration());
-    Assert.assertEquals(reader.size(), keys.length);
-
-    for (int i = 0; i < keys.length; i++) {
-      Object key = keys[i];
-      Object val = reader.get(key, 0);
-      Assert.assertNull(val);
-    }
-    for (int i = 0; i < keys.length; i++) {
-      Object key = keys[i];
-      Object val = reader.get(key, 0);
-      Assert.assertNull(val);
+    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+      Object[] values = new Object[keys.length];
+      writer.putAll(keys, values);
     }
 
-    reader.close();
+    try (StoreReader<K, Object> reader = PalDB.createReader(storeFile, new Configuration())) {
+      Assert.assertEquals(reader.size(), keys.length);
+
+      for (K key : keys) {
+        Object val = reader.get(key, null);
+        Assert.assertNull(val);
+      }
+
+      for (K key : keys) {
+        Object val = reader.get(key, null);
+        Assert.assertNull(val);
+      }
+    }
   }
 
-  private void testReadKeyToIntArray(Object[] keys) {
+  private <K> void testReadKeyToIntArray(K[] keys) {
     //Write
-    StoreWriter writer = PalDB.createWriter(STORE_FILE, new Configuration());
     int[][] values = GenerateTestData.generateIntArrayData(keys.length, 100);
-    writer.putAll(keys, values);
-    writer.close();
-
-    //Read
-    StoreReader reader = PalDB.createReader(STORE_FILE, new Configuration());
-    Assert.assertEquals(reader.size(), keys.length);
-
-    for (int i = 0; i < keys.length; i++) {
-      Object key = keys[i];
-      int[] val = reader.getIntArray(key, null);
-      Assert.assertNotNull(val);
-      Assert.assertEquals(val, values[i]);
+    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+      writer.putAll(keys, values);
     }
 
-    reader.close();
+    //Read
+    try (StoreReader<K,int[]> reader = PalDB.createReader(storeFile, new Configuration())) {
+      Assert.assertEquals(reader.size(), keys.length);
+
+      for (int i = 0; i < keys.length; i++) {
+        K key = keys[i];
+        int[] val = reader.get(key, null);
+        Assert.assertNotNull(val);
+        Assert.assertEquals(val, values[i]);
+      }
+    }
   }
 
   private void writeStore(File location, Object[] keys, Object[] values) {
-    StoreWriter writer = PalDB.createWriter(location, new Configuration());
-    writer.putAll(keys, values);
-    writer.close();
+    try (StoreWriter writer = PalDB.createWriter(location, new Configuration())) {
+      writer.putAll(keys, values);
+    }
   }
 
   private void testKeyLength(Object key, int expectedLength) {

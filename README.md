@@ -43,25 +43,23 @@ API documentation can be found [here](http://linkedin.github.com/PalDB/doc/javad
 How to write a store
 ```java
 try (var writer = PalDB.createWriter(new File("store.paldb"))) {
-    writer.put("foo", "bar");
-    writer.put(1213, new int[] {1, 2, 3});
+    writer.put(1213, "foo");
 }
 ```
 
 How to read a store
 ```java
-try (var reader = PalDB.createReader(new File("store.paldb"))) {
-    String val1 = reader.get("foo");
-    int[] val2 = reader.get(1213);
+try (var reader = PalDB.<Integer,String>createReader(new File("store.paldb"))) {
+    String val = reader.get(1213);
 }
 ```
 
 How to iterate on a store
 ```java
-try (var reader = PalDB.createReader(new File("store.paldb"))) {
+try (var reader = PalDB.<Integer,String>createReader(new File("store.paldb"))) {
     for (var entry : reader) {
-      String key = (String) entry.getKey();
-      String value = (String) entry.getValue();
+      Integer key = entry.getKey();
+      String value = entry.getValue();
     }
 }
 ```
@@ -153,7 +151,7 @@ var config = PalDBConfigBuilder.create()
                 .withCacheLoadFactor(0.5)
                 .withEnableCompression(true)
                 .build();
-StoreReader reader = PalDB.createReader(new File("store.paldb"), config);
+StoreReader<String,String> reader = PalDB.createReader(new File("store.paldb"), config);
 ```
 
 A few tips on how configuration can affect performance:

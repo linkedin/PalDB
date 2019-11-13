@@ -14,16 +14,25 @@
 
 package com.linkedin.paldb.utils;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.io.*;
+
 
 public class TestTempUtils {
+
+  public static boolean deleteDirectory(File directoryToBeDeleted) {
+    if (directoryToBeDeleted.isDirectory()) {
+      File[] allContents = directoryToBeDeleted.listFiles();
+      if (allContents != null) {
+        for (File file : allContents) {
+          deleteDirectory(file);
+        }
+      }
+    }
+    return directoryToBeDeleted.delete();
+  }
 
   @Test
   public void testTempDir() {

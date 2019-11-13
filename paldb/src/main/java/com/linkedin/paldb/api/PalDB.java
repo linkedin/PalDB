@@ -36,7 +36,7 @@ public interface PalDB {
    * @param file a PalDB store file
    * @return a store reader
    */
-  static StoreReader createReader(File file) {
+  static <K,V> StoreReader<K,V> createReader(File file) {
     return StoreImpl.createReader(file, newConfiguration());
   }
 
@@ -49,7 +49,7 @@ public interface PalDB {
    * @param config configuration
    * @return a store reader
    */
-  static StoreReader createReader(File file, Configuration config) {
+  static <K,V> StoreReader<K,V> createReader(File file, Configuration config) {
     return StoreImpl.createReader(file, config);
   }
 
@@ -63,7 +63,7 @@ public interface PalDB {
    * @param config configuration
    * @return a store reader
    */
-  static StoreReader createReader(InputStream stream, Configuration config) {
+  static <K,V> StoreReader<K,V> createReader(InputStream stream, Configuration config) {
     return StoreImpl.createReader(stream, config);
   }
 

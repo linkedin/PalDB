@@ -25,7 +25,7 @@ import java.util.*;
  * <code>get()</code> method to fetch. Call the
  * <code>close()</code> to liberate resources when done.
  */
-public interface StoreReader extends AutoCloseable, Iterable<Map.Entry<Object,Object>> {
+public interface StoreReader<K,V> extends AutoCloseable, Iterable<Map.Entry<K,V>> {
 
   /**
    * Closes the store reader and free resources.
@@ -60,390 +60,27 @@ public interface StoreReader extends AutoCloseable, Iterable<Map.Entry<Object,Ob
    * Gets the value for <code>key</code> or null if not found.
    *
    * @param key key to fetch
-   * @param <K> return type
    * @return value or null if not found
    */
-  <K> K get(Object key);
+  V get(K key);
 
   /**
    * Gets the value for <code>key</code> or <code>defaultValue</code> if not found.
    *
    * @param key key to fetch
    * @param defaultValue default value
-   * @param <K> return type
    * @return value of <code>defaultValue</code> if not found
    */
-  <K> K get(Object key, K defaultValue);
-
-  /**
-   * Gets the int value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return int value
-   * @throws NotFoundException if not found
-   */
-  int getInt(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the int value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return int value or <code>defaultValue</code> if not found
-   */
-  int getInt(Object key, int defaultValue);
-
-  /**
-   * Gets the long value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return long value
-   * @throws NotFoundException if not found
-   */
-  long getLong(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the long value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return long value or <code>defaultValue</code> if not found
-   */
-  long getLong(Object key, long defaultValue);
-
-  /**
-   * Gets the boolean value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return boolean value
-   * @throws NotFoundException if not found
-   */
-  boolean getBoolean(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the boolean value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return boolean value or <code>defaultValue</code> if not found
-   */
-  boolean getBoolean(Object key, boolean defaultValue);
-
-  /**
-   * Gets the float value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return float value
-   * @throws NotFoundException if not found
-   */
-  float getFloat(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the float value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return float value or <code>defaultValue</code> if not found
-   */
-  float getFloat(Object key, float defaultValue);
-
-  /**
-   * Gets the double value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return double value
-   * @throws NotFoundException if not found
-   */
-  double getDouble(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the double value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return double value or <code>defaultValue</code> if not found
-   */
-  double getDouble(Object key, double defaultValue);
-
-  /**
-   * Gets the short value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return short value
-   * @throws NotFoundException if not found
-   */
-  short getShort(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the short value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return short value or <code>defaultValue</code> if not found
-   */
-  short getShort(Object key, short defaultValue);
-
-  /**
-   * Gets the byte value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return byte value
-   * @throws NotFoundException if not found
-   */
-  byte getByte(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the byte value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return byte value or <code>defaultValue</code> if not found
-   */
-  byte getByte(Object key, byte defaultValue);
-
-  /**
-   * Gets the string value for <code>key</code> or null if not found.
-   *
-   * @param key key to fetch
-   * @return string value
-   */
-  String getString(Object key);
-
-  /**
-   * Gets the string value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return string value or <code>defaultValue</code> if not found
-   */
-  String getString(Object key, String defaultValue);
-
-  /**
-   * Gets the char value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return char value
-   * @throws NotFoundException if not found
-   */
-  char getChar(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the char value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return char value or <code>defaultValue</code> if not found
-   */
-  char getChar(Object key, char defaultValue);
-
-  /**
-   * Gets the object array value for <code>key</code> or null if not found.
-   *
-   * @param key key to fetch
-   * @param <K> return type
-   * @return object array value or null if not found
-   */
-  <K> K[] getArray(Object key);
-
-  /**
-   * Gets the object array value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @param <K> return type
-   * @return object array value or <code>defaultValue</code> if not found
-   */
-  <K> K[] getArray(Object key, K[] defaultValue);
-
-  /**
-   * Gets the int array value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return int array value
-   * @throws NotFoundException if not found
-   */
-  int[] getIntArray(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the int array value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return int array value or <code>defaultValue</code> if not found
-   */
-  int[] getIntArray(Object key, int[] defaultValue);
-
-  /**
-   * Gets the long array value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return long array value
-   * @throws NotFoundException if not found
-   */
-  long[] getLongArray(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the long array value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return long array value or <code>defaultValue</code> if not found
-   */
-  long[] getLongArray(Object key, long[] defaultValue);
-
-  /**
-   * Gets the boolean array value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return boolean array value
-   * @throws NotFoundException if not found
-   */
-  boolean[] getBooleanArray(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the boolean array value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return boolean array value or <code>defaultValue</code> if not found
-   */
-  boolean[] getBooleanArray(Object key, boolean[] defaultValue);
-
-  /**
-   * Gets the float array value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return float array value
-   * @throws NotFoundException if not found
-   */
-  float[] getFloatArray(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the float array value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return float array value or <code>defaultValue</code> if not found
-   */
-  float[] getFloatArray(Object key, float[] defaultValue);
-
-  /**
-   * Gets the double array value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return double array value
-   * @throws NotFoundException if not found
-   */
-  double[] getDoubleArray(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the double array value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return double array value or <code>defaultValue</code> if not found
-   */
-  double[] getDoubleArray(Object key, double[] defaultValue);
-
-  /**
-   * Gets the short array value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return short array value
-   * @throws NotFoundException if not found
-   */
-  short[] getShortArray(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the short array value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return short array value or <code>defaultValue</code> if not found
-   */
-  short[] getShortArray(Object key, short[] defaultValue);
-
-  /**
-   * Gets the byte array value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return byte array value
-   * @throws NotFoundException if not found
-   */
-  byte[] getByteArray(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the byte array value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return byte array value or <code>defaultValue</code> if not found
-   */
-  byte[] getByteArray(Object key, byte[] defaultValue);
-
-  /**
-   * Gets the char array value for <code>key</code>.
-   *
-   * @param key key to fetch
-   * @return char array value
-   * @throws NotFoundException if not found
-   */
-  char[] getCharArray(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the char array value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return char array value or <code>defaultValue</code> if not found
-   */
-  char[] getCharArray(Object key, char[] defaultValue);
-
-  /**
-   * Gets the string array value for <code>key</code> or null if not found.
-   *
-   * @param key key to fetch
-   * @return string array value or null if not found
-   * @throws NotFoundException if not found
-   */
-  String[] getStringArray(Object key)
-      throws NotFoundException;
-
-  /**
-   * Gets the string array value for <code>key</code> or <code>defaultValue</code> if not found.
-   *
-   * @param key key to fetch
-   * @param defaultValue default value
-   * @return string array value or <code>defaultValue</code> if not found
-   */
-  String[] getStringArray(Object key, String[] defaultValue);
+  V get(K key, V defaultValue);
 
   /**
    * Gets the store iterable.
    * <p>
    * Note that entry objects are reused.
    *
-   * @param <K> key type
-   * @param <V> value type
    * @return iterable over store
    */
-  <K, V> Iterable<Map.Entry<K, V>> iterable();
+  Iterable<Map.Entry<K, V>> iterable();
 
   /**
    * Gets the store iterator.
@@ -453,13 +90,12 @@ public interface StoreReader extends AutoCloseable, Iterable<Map.Entry<Object,Ob
    * @return iterable over store
    */
   @Override
-  Iterator<Map.Entry<Object,Object>> iterator();
+  Iterator<Map.Entry<K,V>> iterator();
 
   /**
    * Gets the store keys iterable.
    *
-   * @param <K> key type
    * @return iterable over keys
    */
-  <K> Iterable<K> keys();
+  Iterable<K> keys();
 }

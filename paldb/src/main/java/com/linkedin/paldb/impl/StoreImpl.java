@@ -31,15 +31,15 @@ public final class StoreImpl {
   private StoreImpl() {
   }
 
-  public static StoreReader createReader(File file, Configuration config) {
+  public static <K,V> StoreReader<K,V> createReader(File file, Configuration config) {
     if (file == null || config == null) {
       throw new NullPointerException();
     }
     log.info("Initialize reader from file {}", file.getName());
-    return new ReaderImpl(config, file);
+    return new ReaderImpl<>(config, file);
   }
 
-  public static StoreReader createReader(InputStream stream, Configuration config) {
+  public static <K,V> StoreReader<K,V> createReader(InputStream stream, Configuration config) {
     if (stream == null || config == null) {
       throw new NullPointerException();
     }
@@ -47,7 +47,7 @@ public final class StoreImpl {
     try {
       File file = TempUtils.copyIntoTempFile("paldbtempreader", stream);
       log.info("Copied stream into temp file {}", file.getName());
-      return new ReaderImpl(config, file);
+      return new ReaderImpl<>(config, file);
     } catch (IOException ex) {
       throw new UncheckedIOException(ex);
     }

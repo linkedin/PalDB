@@ -2,9 +2,6 @@ buildscript {
   repositories {
     mavenCentral()
   }
-  dependencies {
-    classpath "org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.8.3"
-  }
 }
 
 allprojects {

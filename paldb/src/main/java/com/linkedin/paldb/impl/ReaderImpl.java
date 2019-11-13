@@ -14,9 +14,7 @@
 
 package com.linkedin.paldb.impl;
 
-import com.linkedin.paldb.api.Configuration;
-import com.linkedin.paldb.api.NotFoundException;
-import com.linkedin.paldb.api.StoreReader;
+import com.linkedin.paldb.api.*;
 import com.linkedin.paldb.utils.DataInputOutput;
 import org.slf4j.*;
 
@@ -27,7 +25,7 @@ import java.util.*;
 /**
  * Store reader implementation.
  */
-public final class ReaderImpl implements StoreReader {
+public final class ReaderImpl<K,V> implements StoreReader<K,V> {
 
   // Logger
   private static final Logger log = LoggerFactory.getLogger(ReaderImpl.class);
@@ -99,17 +97,17 @@ public final class ReaderImpl implements StoreReader {
   }
 
   @Override
-  public <K> K get(Object key) {
-    return (K) get(key, null);
+  public V get(K key) {
+    return get(key, null);
   }
 
   @Override
-  public <K> K get(Object key, K defaultValue) {
+  public V get(K key, V defaultValue) {
     checkOpen();
     if (key == null) {
       throw new NullPointerException("The key can't be null");
     }
-    K value = cache.get(key);
+    V value = cache.get(key);
     if (value == null) {
       try {
         byte[] valueBytes = storage.get(serialization.serializeKey(key));
@@ -117,11 +115,11 @@ public final class ReaderImpl implements StoreReader {
 
           Object v = serialization.deserialize(dataInputOutput.reset(valueBytes));
           cache.put(key, v);
-          return (K) v;
+          return (V) v;
         } else {
           return defaultValue;
         }
-      } catch (Exception ex) {
+      } catch (IOException | ClassNotFoundException ex) {
         throw new RuntimeException(ex);
       }
     } else if (value == StorageCache.NULL_VALUE) {
@@ -131,288 +129,18 @@ public final class ReaderImpl implements StoreReader {
   }
 
   @Override
-  public int getInt(Object key, int defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public int getInt(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return ((Integer) val).intValue();
-  }
-
-  @Override
-  public long getLong(Object key, long defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public long getLong(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return ((Long) val).longValue();
-  }
-
-  @Override
-  public boolean getBoolean(Object key, boolean defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public boolean getBoolean(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return ((Boolean) val).booleanValue();
-  }
-
-  @Override
-  public float getFloat(Object key, float defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public float getFloat(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return ((Float) val).floatValue();
-  }
-
-  @Override
-  public double getDouble(Object key, double defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public double getDouble(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return ((Double) val).intValue();
-  }
-
-  @Override
-  public short getShort(Object key, short defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public short getShort(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return ((Short) val).shortValue();
-  }
-
-  @Override
-  public byte getByte(Object key, byte defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public byte getByte(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return ((Byte) val).byteValue();
-  }
-
-  @Override
-  public String getString(Object key, String defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public String getString(Object key) {
-    return (String) get(key, null);
-  }
-
-  @Override
-  public char getChar(Object key, char defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public char getChar(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return ((Character) val).charValue();
-  }
-
-  @Override
-  public <K> K[] getArray(Object key) {
-    return (K[]) get(key, null);
-  }
-
-  @Override
-  public <K> K[] getArray(Object key, K[] defaultValue) {
-    return (K[]) get(key, defaultValue);
-  }
-
-  @Override
-  public int[] getIntArray(Object key, int[] defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public int[] getIntArray(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return (int[]) val;
-  }
-
-  @Override
-  public long[] getLongArray(Object key, long[] defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public long[] getLongArray(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return (long[]) val;
-  }
-
-  @Override
-  public boolean[] getBooleanArray(Object key, boolean[] defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public boolean[] getBooleanArray(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return (boolean[]) val;
-  }
-
-  @Override
-  public float[] getFloatArray(Object key, float[] defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public float[] getFloatArray(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return (float[]) val;
-  }
-
-  @Override
-  public double[] getDoubleArray(Object key, double[] defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public double[] getDoubleArray(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return (double[]) val;
-  }
-
-  @Override
-  public short[] getShortArray(Object key, short[] defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public short[] getShortArray(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return (short[]) val;
-  }
-
-  @Override
-  public byte[] getByteArray(Object key, byte[] defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public byte[] getByteArray(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return (byte[]) val;
-  }
-
-  @Override
-  public String[] getStringArray(Object key, String[] defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public String[] getStringArray(Object key) {
-    return (String[]) get(key, null);
-  }
-
-  @Override
-  public char[] getCharArray(Object key, char[] defaultValue) {
-    return get(key, defaultValue);
-  }
-
-  @Override
-  public char[] getCharArray(Object key)
-      throws NotFoundException {
-    Object val = get(key);
-    if (val == null) {
-      throw new NotFoundException(key);
-    }
-    return (char[]) val;
-  }
-
-  @Override
-  public <K, V> Iterable<Map.Entry<K, V>> iterable() {
+  public Iterable<Map.Entry<K, V>> iterable() {
     checkOpen();
     return new ReaderIterable<>(storage, serialization);
   }
 
   @Override
-  public Iterator<Map.Entry<Object,Object>> iterator() {
+  public Iterator<Map.Entry<K,V>> iterator() {
       return iterable().iterator();
   }
 
   @Override
-  public <K> Iterable<K> keys() {
+  public Iterable<K> keys() {
     checkOpen();
     return new ReaderKeyIterable<>(storage, serialization);
   }
