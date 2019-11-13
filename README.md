@@ -1,8 +1,8 @@
 PalDB
 ==========
 
-[![Build Status](https://travis-ci.org/linkedin/PalDB.svg?branch=master)](https://travis-ci.org/linkedin/PalDB)
-[![Coverage Status](https://coveralls.io/repos/linkedin/PalDB/badge.svg?branch=master&service=github)](https://coveralls.io/github/linkedin/PalDB?branch=master)
+[![Build Status](https://travis-ci.org/soundvibe/PalDB.svg?branch=java11)](https://travis-ci.org/soundvibe/PalDB)
+[![Coverage Status](https://codecov.io/github/soundvibe/PalDB/coverage.svg?branch=java11)](https://codecov.io/github/soundvibe/PalDB?branch=java11)
 
 PalDB is an embeddable write-once key-value store written in Java.
 
@@ -75,14 +75,14 @@ Use it
 PalDB is available on Maven Central, hence just add the following dependency:
 ```
 <dependency>
-    <groupId>com.linkedin.paldb</groupId>
+    <groupId>net.soundvibe.paldb</groupId>
     <artifactId>paldb</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
 </dependency>
 ```
 Scala SBT
 ```
-libraryDependencies += "com.linkedin.paldb" % "paldb" % "1.2.0"
+libraryDependencies += "net.soundvibe.paldb" % "paldb" % "1.2.1"
 ```
 
 
@@ -104,7 +104,7 @@ No, like a hashtable PalDB stores have no order.
 Build
 -----
 
-PalDB requires Java 6+ and gradle. The target Java version is 6.
+PalDB requires Java 11+ and gradle. The target Java version is 11.
 
 ```bash
 gradle build

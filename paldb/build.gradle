@@ -1,6 +1,5 @@
 apply plugin: 'java'
 apply plugin: 'jacoco'
-apply plugin: 'com.github.kt3k.coveralls'
 apply plugin: 'signing'
 apply plugin: 'maven'
 
@@ -60,7 +59,7 @@ javadoc {
 
 jacocoTestReport {
   reports {
-    html.enabled = true
+    html.enabled = false
     xml.enabled = true
   }
 }

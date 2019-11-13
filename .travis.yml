@@ -10,7 +10,7 @@ matrix:
     - jdk: openjdk13
 
 script:
-  - gradle build
+  - gradle build jacocoTestReport
 
 after_success:
-  - gradle jacocoTestReport coveralls
+  - bash <(curl -s https://codecov.io/bash)
