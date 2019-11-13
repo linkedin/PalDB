@@ -2,7 +2,7 @@ PalDB
 ==========
 
 [![Build Status](https://travis-ci.org/soundvibe/PalDB.svg?branch=java11)](https://travis-ci.org/soundvibe/PalDB)
-[![Coverage Status](https://codecov.io/github/soundvibe/PalDB/coverage.svg?branch=java11)](https://codecov.io/github/soundvibe/PalDB?branch=java11)
+[![codecov](https://codecov.io/gh/soundvibe/PalDB/branch/java11/graph/badge.svg)](https://codecov.io/gh/soundvibe/PalDB)
 
 PalDB is an embeddable write-once key-value store written in Java.
 
