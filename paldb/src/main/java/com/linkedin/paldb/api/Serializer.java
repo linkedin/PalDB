@@ -39,7 +39,7 @@ public interface Serializer<K> extends Serializable {
    * @param input instance
    * @throws IOException if an io error occurs
    */
-  public void write(DataOutput dataOutput, K input)
+  void write(DataOutput dataOutput, K input)
       throws IOException;
 
   /**
@@ -49,7 +49,7 @@ public interface Serializer<K> extends Serializable {
    * @return new instance of type <code>K</code>.
    * @throws IOException if an io error occurs
    */
-  public K read(DataInput dataInput)
+  K read(DataInput dataInput)
       throws IOException;
 
   /**
@@ -59,5 +59,5 @@ public interface Serializer<K> extends Serializable {
    * @param instance instance to get weight for
    * @return the number of bytes the object uses in memory
    */
-  public int getWeight(K instance);
+  int getWeight(K instance);
 }

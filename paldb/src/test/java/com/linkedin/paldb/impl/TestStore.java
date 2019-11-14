@@ -145,8 +145,7 @@ public class TestStore {
   public void testWriterNullConfigForStream() {
     PalDB.createWriter(new OutputStream() {
       @Override
-      public void write(int i)
-              throws IOException {
+      public void write(int i) {
 
       }
     }, null);
@@ -180,7 +179,7 @@ public class TestStore {
 
   @Test
   public void testOneKey() {
-    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+    try (StoreWriter<Integer,String> writer = PalDB.createWriter(storeFile, new Configuration())) {
       writer.put(1, "foo");
     }
 
@@ -196,7 +195,7 @@ public class TestStore {
     byte[] serializedKey = storageSerialization.serializeKey(1);
     byte[] serializedValue = storageSerialization.serializeValue("foo");
 
-    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+    try (StoreWriter<Integer,String> writer = PalDB.createWriter(storeFile, new Configuration())) {
       writer.put(serializedKey, serializedValue);
     }
 
@@ -209,7 +208,7 @@ public class TestStore {
   @Test
   public void testByteMarkOneKey() throws IOException {
     try (FileOutputStream fos = new FileOutputStream(storeFile);
-         StoreWriter writer = PalDB.createWriter(fos, new Configuration());) {
+         StoreWriter<Integer,String> writer = PalDB.createWriter(fos, new Configuration());) {
       fos.write(12345);
       fos.write(FormatVersion.getPrefixBytes()[0]);
       fos.write(3456);
@@ -300,7 +299,7 @@ public class TestStore {
 
   @Test(expectedExceptions = RuntimeException.class, expectedExceptionsMessageRegExp = ".*duplicate.*")
   public void testDuplicateKeys() {
-    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+    try (StoreWriter<Integer,String> writer = PalDB.createWriter(storeFile, new Configuration())) {
       writer.put(0, "ABC");
       writer.put(0, "DGE");
     }
@@ -415,8 +414,8 @@ public class TestStore {
     Configuration configuration = new Configuration();
 
     //Write
-    Object[] values = GenerateTestData.generateStringData(keys.length, 1000);
-    try (StoreWriter writer = PalDB.createWriter(storeFile, configuration)) {
+    String[] values = GenerateTestData.generateStringData(keys.length, 1000);
+    try (StoreWriter<Integer,String> writer = PalDB.createWriter(storeFile, configuration)) {
       writer.putAll(keys, values);
     }
 
@@ -472,7 +471,7 @@ public class TestStore {
   private <K> void testReadKeyToString(K[] keys) {
     // Write
     String[] values = GenerateTestData.generateStringData(keys.length, 10);
-    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+    try (StoreWriter<K,String> writer = PalDB.createWriter(storeFile, new Configuration())) {
       writer.putAll(keys, values);
     }
       // Read
@@ -491,7 +490,7 @@ public class TestStore {
   private <K> void testReadKeyToInt(K[] keys) {
     // Write
     Integer[] values = GenerateTestData.generateIntData(keys.length);
-    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+    try (StoreWriter<K, Integer> writer = PalDB.createWriter(storeFile, new Configuration())) {
       writer.putAll(keys, values);
     }
 
@@ -509,7 +508,7 @@ public class TestStore {
 
   private <K> void testReadKeyToNull(K[] keys) {
     //Write
-    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+    try (StoreWriter<K, Object> writer = PalDB.createWriter(storeFile, new Configuration())) {
       Object[] values = new Object[keys.length];
       writer.putAll(keys, values);
     }
@@ -532,7 +531,7 @@ public class TestStore {
   private <K> void testReadKeyToIntArray(K[] keys) {
     //Write
     int[][] values = GenerateTestData.generateIntArrayData(keys.length, 100);
-    try (StoreWriter writer = PalDB.createWriter(storeFile, new Configuration())) {
+    try (StoreWriter<K,int[]> writer = PalDB.createWriter(storeFile, new Configuration())) {
       writer.putAll(keys, values);
     }
 
@@ -550,7 +549,7 @@ public class TestStore {
   }
 
   private void writeStore(File location, Object[] keys, Object[] values) {
-    try (StoreWriter writer = PalDB.createWriter(location, new Configuration())) {
+    try (StoreWriter<Object,Object> writer = PalDB.createWriter(location, new Configuration())) {
       writer.putAll(keys, values);
     }
   }

@@ -23,7 +23,7 @@ import java.io.*;
 /**
  * Store writer implementation.
  */
-public final class WriterImpl implements StoreWriter {
+public final class WriterImpl<K,V> implements StoreWriter<K,V> {
 
   // Logger
   private static final Logger log = LoggerFactory.getLogger(WriterImpl.class);
@@ -103,7 +103,7 @@ public final class WriterImpl implements StoreWriter {
   }
 
   @Override
-  public void put(Object key, Object value) {
+  public void put(K key, V value) {
     checkOpen();
     if (key == null) {
       throw new NullPointerException();
@@ -117,7 +117,7 @@ public final class WriterImpl implements StoreWriter {
   }
 
   @Override
-  public void putAll(Object[] keys, Object[] values) {
+  public void putAll(K[] keys, V[] values) {
     checkOpen();
     if (keys == null || values == null) {
       throw new NullPointerException();

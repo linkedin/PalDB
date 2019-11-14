@@ -43,28 +43,28 @@ import java.util.Map;
 public class Configuration implements Serializable {
 
   // Buffer segment size
-  public final static String MMAP_SEGMENT_SIZE = "mmap.segment.size";
+  public static final String MMAP_SEGMENT_SIZE = "mmap.segment.size";
   // Enable memory mapping for data
-  public final static String MMAP_DATA_ENABLED = "mmap.data.enabled";
+  public static final String MMAP_DATA_ENABLED = "mmap.data.enabled";
   // Load factor
-  public final static String LOAD_FACTOR = "load.factor";
+  public static final String LOAD_FACTOR = "load.factor";
   // Cache enabled
-  public final static String CACHE_ENABLED = "cache.enabled";
+  public static final String CACHE_ENABLED = "cache.enabled";
   // Cache limit (in bytes)
-  public final static String CACHE_BYTES = "cache.bytes";
+  public static final String CACHE_BYTES = "cache.bytes";
   // Cache initial capacity
-  public final static String CACHE_INITIAL_CAPACITY = "cache.initial.capacity";
+  public static final String CACHE_INITIAL_CAPACITY = "cache.initial.capacity";
   // Cache load factor
-  public final static String CACHE_LOAD_FACTOR = "cache.load.factor";
+  public static final String CACHE_LOAD_FACTOR = "cache.load.factor";
   // Enable compression
-  public final static String COMPRESSION_ENABLED = "compression.enabled";
+  public static final String COMPRESSION_ENABLED = "compression.enabled";
 
   // Property map
-  protected final Map<String, String> properties = new HashMap<String, String>();
+  private final Map<String, String> properties = new HashMap<>();
   // Read only
-  protected final boolean readOnly;
+  private final boolean readOnly;
   // Serializers
-  protected final Serializers serializers;
+  private final Serializers serializers;
 
   /**
    * Default constructor that initializes default values.
@@ -427,16 +427,12 @@ public class Configuration implements Serializable {
     if (!properties.equals(that.properties)) {
       return false;
     }
-    if (!serializers.equals(that.serializers)) {
-      return false;
-    }
-
-    return true;
+    return serializers.equals(that.serializers);
   }
 
   @Override
   public int hashCode() {
-    int result = properties != null ? properties.hashCode() : 0;
+    int result = properties.hashCode();
     result = 31 * result + (serializers != null ? serializers.hashCode() : 0);
     return result;
   }

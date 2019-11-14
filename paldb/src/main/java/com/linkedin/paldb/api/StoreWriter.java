@@ -24,7 +24,7 @@ package com.linkedin.paldb.api;
  * <p>
  * Note that duplicates aren't allowed.
  */
-public interface StoreWriter extends AutoCloseable {
+public interface StoreWriter<K,V> extends AutoCloseable {
 
   /**
    * Close the store writer and append the data to the final destination. A
@@ -50,7 +50,7 @@ public interface StoreWriter extends AutoCloseable {
    * @throws NullPointerException if <code>key</code> or <code>value</code> is
    * null
    */
-  void put(Object key, Object value);
+  void put(K key, V value);
 
   /**
    * Put multiple key-values to the store.
@@ -58,7 +58,7 @@ public interface StoreWriter extends AutoCloseable {
    * @param keys a collection of keys
    * @param values a collection of values
    */
-  void putAll(Object[] keys, Object[] values);
+  void putAll(K[] keys, V[] values);
 
   /**
    * Put serialized key-value entry to the store. <p> Use only this method if

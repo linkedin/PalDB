@@ -42,7 +42,7 @@ API documentation can be found [here](http://linkedin.github.com/PalDB/doc/javad
 
 How to write a store
 ```java
-try (var writer = PalDB.createWriter(new File("store.paldb"))) {
+try (var writer = PalDB.<Integer,String>createWriter(new File("store.paldb"))) {
     writer.put(1213, "foo");
 }
 ```
@@ -74,12 +74,12 @@ PalDB is available on Maven Central, hence just add the following dependency:
 <dependency>
     <groupId>net.soundvibe.paldb</groupId>
     <artifactId>paldb</artifactId>
-    <version>1.2.1</version>
+    <version>2.0.0</version>
 </dependency>
 ```
 Scala SBT
 ```
-libraryDependencies += "net.soundvibe.paldb" % "paldb" % "1.2.1"
+libraryDependencies += "net.soundvibe.paldb" % "paldb" % "2.0.0"
 ```
 
 

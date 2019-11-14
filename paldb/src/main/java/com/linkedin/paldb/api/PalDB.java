@@ -75,7 +75,7 @@ public interface PalDB {
    * @param file location of the output file
    * @return a store writer
    */
-  static StoreWriter createWriter(File file) {
+  static <K,V> StoreWriter<K,V> createWriter(File file) {
     return StoreImpl.createWriter(file, newConfiguration());
   }
 
@@ -88,7 +88,7 @@ public interface PalDB {
    * @param config configuration
    * @return a store writer
    */
-  static StoreWriter createWriter(File file, Configuration config) {
+  static <K,V> StoreWriter<K,V> createWriter(File file, Configuration config) {
     return StoreImpl.createWriter(file, config);
   }
 
@@ -102,7 +102,7 @@ public interface PalDB {
    * @param config configuration
    * @return a store writer
    */
-  static StoreWriter createWriter(OutputStream stream, Configuration config) {
+  static <K,V> StoreWriter<K,V> createWriter(OutputStream stream, Configuration config) {
     return StoreImpl.createWriter(stream, config);
   }
 

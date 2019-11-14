@@ -53,7 +53,7 @@ public final class StoreImpl {
     }
   }
 
-  public static StoreWriter createWriter(File file, Configuration config) {
+  public static <K,V> StoreWriter<K,V> createWriter(File file, Configuration config) {
     if (file == null || config == null) {
       throw new NullPointerException();
     }
@@ -67,17 +67,17 @@ public final class StoreImpl {
           throw new RuntimeException(String.format("Couldn't create directory %s", parent));
         }
       }
-      return new WriterImpl(config, file);
+      return new WriterImpl<>(config, file);
     } catch (IOException ex) {
       throw new UncheckedIOException(ex);
     }
   }
 
-  public static StoreWriter createWriter(OutputStream stream, Configuration config) {
+  public static <K,V> StoreWriter<K,V> createWriter(OutputStream stream, Configuration config) {
     if (stream == null || config == null) {
       throw new NullPointerException();
     }
     log.info("Initialize writer from stream");
-    return new WriterImpl(config, stream);
+    return new WriterImpl<>(config, stream);
   }
 }
