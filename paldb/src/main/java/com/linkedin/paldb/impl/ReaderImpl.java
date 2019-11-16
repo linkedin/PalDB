@@ -38,7 +38,7 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
   // Serialization
   private final StorageSerialization serialization;
   // Cache
-  private final StorageCache cache;
+  private final StorageCache<K,V> cache;
   // File
   private final File file;
   // Opened?
@@ -113,9 +113,9 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
         byte[] valueBytes = storage.get(serialization.serializeKey(key));
         if (valueBytes != null) {
 
-          Object v = serialization.deserialize(dataInputOutput.reset(valueBytes));
+          V v = (V) serialization.deserialize(dataInputOutput.reset(valueBytes));
           cache.put(key, v);
-          return (V) v;
+          return v;
         } else {
           return defaultValue;
         }

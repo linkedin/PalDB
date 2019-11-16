@@ -34,7 +34,7 @@ import java.util.*;
  * The cache estimates the size of the objects it contains so it consumes no more than the configured
  * memory limit.
  */
-public class StorageCache {
+public class StorageCache<K,V> {
   // Static null object to recognizes null from missing values
   protected static final Object NULL_VALUE = new Object();
 
@@ -47,11 +47,11 @@ public class StorageCache {
    * @param configuration configuration
    * @return new cache
    */
-  static StorageCache initCache(Configuration configuration) {
+  static <K,V> StorageCache<K,V> initCache(Configuration configuration) {
     if (configuration.getBoolean(Configuration.CACHE_ENABLED) && configuration.getLong(Configuration.CACHE_BYTES) > 0) {
-      return new StorageCache(configuration);
+      return new StorageCache<>(configuration);
     } else {
-      return new DisabledCache();
+      return new DisabledCache<>();
     }
   }
 
@@ -61,7 +61,7 @@ public class StorageCache {
    *  24 bytes theoretical overhead per entry but more like 45 in practice
    */
   static final int OVERHEAD = 50;
-  private final LinkedHashMap cache;
+  private final LinkedHashMap<K,V> cache;
   private final Configuration configuration;
   private long maxWeight;
   private long currentWeight;
@@ -72,14 +72,14 @@ public class StorageCache {
    * @param config configuration
    */
   private StorageCache(Configuration config) {
-    cache = new LinkedHashMap(config.getInt(Configuration.CACHE_INITIAL_CAPACITY),
+    cache = new LinkedHashMap<>(config.getInt(Configuration.CACHE_INITIAL_CAPACITY),
         config.getFloat(Configuration.CACHE_LOAD_FACTOR), true) {
       @Override
-      protected boolean removeEldestEntry(Map.Entry eldest) {
+      protected boolean removeEldestEntry(Map.Entry<K,V> eldest) {
         boolean res = currentWeight > maxWeight;
         if (res) {
-          Object key = eldest.getKey();
-          Object value = eldest.getValue();
+          K key = eldest.getKey();
+          V value = eldest.getValue();
           currentWeight -= getWeight(key) + getWeight(value) + OVERHEAD;
         }
         return res;
@@ -106,11 +106,10 @@ public class StorageCache {
    * <code>StorageCache.NULL_VALUE</code>.
    *
    * @param key key to get value for
-   * @param <K> return type
    * @return value, null or <code>StorageCache.NULL_VALUE</code>
    */
-  public <K> K get(Object key) {
-    return (K) cache.get(key);
+  public V get(K key) {
+    return cache.get(key);
   }
 
   /**
@@ -119,7 +118,7 @@ public class StorageCache {
    * @param key key to test presence for
    * @return true if found, false otherwise
    */
-  public boolean contains(Object key) {
+  public boolean contains(K key) {
     return cache.containsKey(key);
   }
 
@@ -129,10 +128,10 @@ public class StorageCache {
    * @param key key
    * @param value value
    */
-  public void put(Object key, Object value) {
+  public void put(K key, V value) {
     int weight = getWeight(key) + getWeight(value) + OVERHEAD;
     currentWeight += weight;
-    if (cache.put(key, value == null ? NULL_VALUE : value) != null) {
+    if (cache.put(key, value == null ? (V) NULL_VALUE : value) != null) {
       currentWeight -= weight;
     }
   }
@@ -143,7 +142,7 @@ public class StorageCache {
    * @param value value to get weight for
    * @return weight
    */
-  private int getWeight(Object value) {
+  private <T> int getWeight(T value) {
     if (value == null) {
       return 0;
     }
@@ -199,7 +198,7 @@ public class StorageCache {
     } else if (value instanceof String) {
       return ((String) value).length() * 2 + 40;
     } else {
-      Serializer serializer = configuration.getSerializer(value.getClass());
+      Serializer<T> serializer = configuration.getSerializer((Class<T>) value.getClass());
       if (serializer != null) {
         return serializer.getWeight(value);
       }
@@ -237,24 +236,25 @@ public class StorageCache {
   /**
    * Special inner class that overrides all cache's features when the cache is disabled.
    */
-  private static class DisabledCache extends StorageCache {
+  private static class DisabledCache<K,V> extends StorageCache<K,V> {
 
     DisabledCache() {
       log.info("Cache disabled");
     }
 
     @Override
-    public Object get(Object key) {
+    public V get(K key) {
       return null;
     }
 
     @Override
-    public boolean contains(Object key) {
+    public boolean contains(K key) {
       return false;
     }
 
     @Override
-    public void put(Object key, Object value) {
+    public void put(K key, V value) {
+      //nop
     }
 
     @Override

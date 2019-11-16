@@ -69,7 +69,7 @@ public final class Serializers implements Serializable {
    * @param cls object class
    * @return serializer instance or null if not found
    */
-  public Serializer getSerializer(Class cls) {
+  public <T> Serializer<T> getSerializer(Class<T> cls) {
     SerializerWrapper w = getSerializerWrapper(cls);
     if (w != null) {
       return w.serializer;

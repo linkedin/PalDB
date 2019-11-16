@@ -405,7 +405,7 @@ public class Configuration implements Serializable {
    * @param cls object class
    * @return serializer or null if not found
    */
-  public Serializer getSerializer(Class cls) {
+  public <T> Serializer<T> getSerializer(Class<T> cls) {
     return serializers.getSerializer(cls);
   }
 
@@ -432,7 +432,7 @@ public class Configuration implements Serializable {
 
   @Override
   public int hashCode() {
-    int result = properties.hashCode();
+    int result = properties != null ? properties.hashCode() : 0;
     result = 31 * result + (serializers != null ? serializers.hashCode() : 0);
     return result;
   }
