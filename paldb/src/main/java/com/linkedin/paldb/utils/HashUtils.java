@@ -42,7 +42,7 @@ public class HashUtils {
    *
    * Originally developed for greenrobot by Markus Junginger.
    */
-  private static class Murmur3A implements Checksum {
+  public static class Murmur3A implements Checksum {
 
     private static final int C1 = 0xcc9e2d51;
     private static final int C2 = 0x1b873593;

@@ -54,13 +54,13 @@ public final class StorageSerialization {
    * @return key as byte array
    * @throws IOException if an io error occurs
    */
-  public byte[] serializeKey(Object key)
-      throws IOException {
+  public byte[] serializeKey(Object key) throws IOException {
     if (key == null) {
       throw new NullPointerException();
     }
-    serializeObject(key, dataInputOutput.reset(), false);
-    return dataInputOutput.toByteArray();
+    var dataIO = new DataInputOutput();
+    serializeObject(key, dataIO, false);
+    return dataIO.toByteArray();
   }
 
   /**

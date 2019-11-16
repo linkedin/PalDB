@@ -107,25 +107,19 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
     if (key == null) {
       throw new NullPointerException("The key can't be null");
     }
-    V value = cache.get(key);
-    if (value == null) {
-      try {
-        byte[] valueBytes = storage.get(serialization.serializeKey(key));
-        if (valueBytes != null) {
 
-          V v = (V) serialization.deserialize(dataInputOutput.reset(valueBytes));
-          cache.put(key, v);
-          return v;
-        } else {
-          return defaultValue;
-        }
-      } catch (IOException | ClassNotFoundException ex) {
-        throw new RuntimeException(ex);
+    try {
+      byte[] valueBytes = storage.get(serialization.serializeKey(key));
+      if (valueBytes != null) {
+        return (V) serialization.deserialize(new DataInputOutput(valueBytes));
+      } else {
+        return defaultValue;
       }
-    } else if (value == StorageCache.NULL_VALUE) {
-      return null;
+    } catch (IOException ex) {
+      throw new UncheckedIOException(ex);
+    } catch (ClassNotFoundException e) {
+      throw new RuntimeException(e);
     }
-    return value;
   }
 
   @Override

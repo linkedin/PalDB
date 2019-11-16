@@ -247,8 +247,8 @@ public class StorageWriter {
     //Write serializers
     try {
       Serializers.serialize(dataOutputStream, config.getSerializers());
-    } catch (Exception e) {
-      throw new RuntimeException();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
 
     //Write the position of the index and the data

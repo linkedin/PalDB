@@ -16,14 +16,12 @@ package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.Serializer;
 import com.linkedin.paldb.utils.DataInputOutput;
+import org.testng.annotations.*;
 
 import java.awt.*;
-import java.io.DataInput;
-import java.io.DataOutput;
+import java.io.*;
 
-import org.testng.Assert;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import static org.testng.Assert.*;
 
 
 public class TestSerializers {
@@ -39,8 +37,8 @@ public class TestSerializers {
   public void testRegister() {
     ColorSerializer i = new ColorSerializer();
     _serializers.registerSerializer(i);
-    Assert.assertSame(_serializers.getSerializer(Color.class), i);
-    Assert.assertEquals(_serializers.getIndex(Color.class), 0);
+    assertSame(_serializers.getSerializer(Color.class), i);
+    assertEquals(_serializers.getIndex(Color.class), 0);
   }
 
   @Test
@@ -49,7 +47,7 @@ public class TestSerializers {
     ColorSerializer i2 = new ColorSerializer();
     _serializers.registerSerializer(i1);
     _serializers.registerSerializer(i2);
-    Assert.assertSame(_serializers.getSerializer(Color.class), i1);
+    assertSame(_serializers.getSerializer(Color.class), i1);
   }
 
   @Test
@@ -58,32 +56,32 @@ public class TestSerializers {
     PointSerializer f = new PointSerializer();
     _serializers.registerSerializer(i);
     _serializers.registerSerializer(f);
-    Assert.assertSame(_serializers.getSerializer(Color.class), i);
-    Assert.assertEquals(_serializers.getIndex(Color.class), 0);
-    Assert.assertSame(_serializers.getSerializer(Point.class), f);
-    Assert.assertEquals(_serializers.getIndex(Point.class), 1);
+    assertSame(_serializers.getSerializer(Color.class), i);
+    assertEquals(_serializers.getIndex(Color.class), 0);
+    assertSame(_serializers.getSerializer(Point.class), f);
+    assertEquals(_serializers.getIndex(Point.class), 1);
   }
 
   @Test
   public void testGetSerializer() {
     ColorSerializer i = new ColorSerializer();
     _serializers.registerSerializer(i);
-    Assert.assertNull(_serializers.getSerializer(Point.class));
-    Assert.assertNotNull(_serializers.getSerializer(Color.class));
+    assertNull(_serializers.getSerializer(Point.class));
+    assertNotNull(_serializers.getSerializer(Color.class));
   }
 
   @Test
   public void testGetIndex() {
     ColorSerializer i = new ColorSerializer();
     _serializers.registerSerializer(i);
-    Assert.assertEquals(_serializers.getIndex(Color.class), 0);
+    assertEquals(_serializers.getIndex(Color.class), 0);
   }
 
   @Test
   public void testGetByIndex() {
     ColorSerializer i = new ColorSerializer();
     _serializers.registerSerializer(i);
-    Assert.assertSame(_serializers.getSerializer(0), i);
+    assertSame(_serializers.getSerializer(0), i);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -112,16 +110,16 @@ public class TestSerializers {
     dio = new DataInputOutput(bytes);
     _serializers.clear();
     Serializers.deserialize(dio, _serializers);
-    Assert.assertNotNull(_serializers.getSerializer(Color.class));
-    Assert.assertEquals(_serializers.getIndex(Color.class), 0);
-    Assert.assertNotNull(_serializers.getSerializer(0));
+    assertNotNull(_serializers.getSerializer(Color.class));
+    assertEquals(_serializers.getIndex(Color.class), 0);
+    assertNotNull(_serializers.getSerializer(0));
   }
 
   @Test
   public void testInterfaceType() throws Throwable {
     SerializerWithInterface i = new SerializerWithInterface();
     _serializers.registerSerializer(i);
-    Assert.assertSame(_serializers.getSerializer(AnInterface.class), i);
+    assertSame(_serializers.getSerializer(AnInterface.class), i);
   }
 
   // HELPER

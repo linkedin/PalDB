@@ -23,8 +23,10 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.linkedin.paldb.utils.TestTempUtils.*;
+import static com.linkedin.paldb.utils.TestTempUtils.deleteDirectory;
 import static org.testng.Assert.*;
 
 public class TestStoreReader {
@@ -47,7 +49,7 @@ public class TestStoreReader {
   private <V> StoreReader<Integer, V> readerForMany(V... values) {
     Configuration configuration = new Configuration();
     configuration.registerSerializer(new PointSerializer());
-    try (StoreWriter writer = PalDB.createWriter(storeFile, configuration)) {
+    try (StoreWriter<Integer, V> writer = PalDB.createWriter(storeFile, configuration)) {
       for (int i = 0; i < values.length; i++) {
         writer.put(i, values[i]);
       }
@@ -83,9 +85,9 @@ public class TestStoreReader {
   @Test
   public void testGetBoolean() {
     try (var reader = readerFor(true)) {
-      Assert.assertTrue(reader.get(0));
-      Assert.assertTrue(reader.get(0, false));
-      Assert.assertFalse(reader.get(-1, false));
+      assertTrue(reader.get(0));
+      assertTrue(reader.get(0, false));
+      assertFalse(reader.get(-1, false));
     }
   }
 
@@ -408,7 +410,7 @@ public class TestStoreReader {
       Assert.assertNotNull(itr);
 
       for (int i = 0; i < values.size(); i++) {
-        Assert.assertTrue(itr.hasNext());
+        assertTrue(itr.hasNext());
         var v = itr.next();
         assertEquals(v.getValue(), values.get(v.getKey()));
       }
@@ -438,12 +440,40 @@ public class TestStoreReader {
       Set<Integer> actual = new HashSet<>();
       Set<Integer> expected = new HashSet<>();
       for (int i = 0; i < values.size(); i++) {
-        Assert.assertTrue(itr.hasNext());
+        assertTrue(itr.hasNext());
         Integer k = itr.next();
         actual.add(k);
         expected.add(i);
       }
       assertEquals(actual, expected);
+    }
+  }
+
+  @Test
+  public void testMultiThreadRead() throws InterruptedException {
+    int threadCount = 50;
+    final CountDownLatch latch = new CountDownLatch(threadCount);
+    final AtomicBoolean success = new AtomicBoolean(true);
+    var values = List.of("foobar", "any", "any value");
+    try (var reader = readerForMany(values.get(0), values.get(1))) {
+      for(int i = 0; i < threadCount; i++) {
+        new Thread(() -> {
+          try {
+            for(int c = 0; c < 100000; c++) {
+              if(!success.get())break;
+              assertEquals(reader.get(1), "any");
+              assertEquals(reader.get(0), "foobar");
+            }
+          } catch (Throwable error){
+            error.printStackTrace();
+            success.set(false);
+          } finally {
+            latch.countDown();
+          }
+        }).start();
+      }
+      latch.await();
+      assertTrue(success.get());
     }
   }
 

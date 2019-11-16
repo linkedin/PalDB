@@ -14,25 +14,16 @@
 
 package com.linkedin.paldb.impl;
 
-import com.linkedin.paldb.api.Configuration;
-import com.linkedin.paldb.api.Serializer;
-import com.linkedin.paldb.api.UnsupportedTypeException;
+import com.linkedin.paldb.api.*;
+import org.testng.Assert;
+import org.testng.annotations.*;
 
 import java.awt.*;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInput;
-import java.io.DataInputStream;
-import java.io.DataOutput;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
+import java.io.*;
+import java.math.*;
 import java.util.Arrays;
 
-import org.testng.Assert;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import static org.testng.Assert.*;
 
 
 public class TestStorageSerialization {
@@ -48,18 +39,18 @@ public class TestStorageSerialization {
 
   @Test
   public void testCompressionEnabled() {
-    Assert.assertFalse(serialization.isCompressionEnabled());
+    assertFalse(serialization.isCompressionEnabled());
     Configuration config = new Configuration();
     config.set(Configuration.COMPRESSION_ENABLED, "true");
     StorageSerialization s = new StorageSerialization(config);
-    Assert.assertTrue(s.isCompressionEnabled());
+    assertTrue(s.isCompressionEnabled());
   }
 
   @Test
   public void testSerializeKey() throws IOException, ClassNotFoundException {
     Integer l = 1;
     Object d = serialization.deserialize(serialization.serializeKey(l));
-    Assert.assertEquals(d, l);
+    assertEquals(d, l);
   }
 
   @Test
@@ -73,7 +64,7 @@ public class TestStorageSerialization {
 
     ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
     DataInputStream dis = new DataInputStream(bis);
-    Assert.assertEquals(serialization.deserialize(dis), l);
+    assertEquals(serialization.deserialize(dis), l);
   }
 
   @Test
@@ -87,7 +78,7 @@ public class TestStorageSerialization {
 
     ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
     DataInputStream dis = new DataInputStream(bis);
-    Assert.assertEquals(serialization.deserialize(dis), l);
+    assertEquals(serialization.deserialize(dis), l);
   }
 
   @Test(expectedExceptions = NullPointerException.class)
@@ -100,7 +91,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     Integer l = 1;
     Object deserialize = serialization.deserialize(serialization.serializeValue(l));
-    Assert.assertEquals(deserialize, l);
+    assertEquals(deserialize, l);
   }
 
   @Test
@@ -108,8 +99,8 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     Integer[] l = new Integer[]{1, 2};
     Object deserialize = serialization.deserialize(serialization.serializeValue(l));
-    Assert.assertEquals(deserialize.getClass(), int[].class);
-    Assert.assertEquals(deserialize, new int[]{1, 2});
+    assertEquals(deserialize.getClass(), int[].class);
+    assertEquals(deserialize, new int[]{1, 2});
   }
 
   @Test
@@ -117,8 +108,8 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     Integer[] l = new Integer[]{1, null, 2};
     Object deserialize = serialization.deserialize(serialization.serializeValue(l));
-    Assert.assertEquals(deserialize.getClass(), int[].class);
-    Assert.assertEquals(deserialize, new int[]{1, 0, 2});
+    assertEquals(deserialize.getClass(), int[].class);
+    assertEquals(deserialize, new int[]{1, 0, 2});
   }
 
   @Test
@@ -126,8 +117,8 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     Integer[][] l = new Integer[][]{{1}, {2}};
     Object deserialize = serialization.deserialize(serialization.serializeValue(l));
-    Assert.assertEquals(deserialize.getClass(), int[][].class);
-    Assert.assertEquals(deserialize, new int[][]{{1}, {2}});
+    assertEquals(deserialize.getClass(), int[][].class);
+    assertEquals(deserialize, new int[][]{{1}, {2}});
   }
 
   @Test
@@ -154,7 +145,7 @@ public class TestStorageSerialization {
     });
     Point p = new Point(42, 9);
     byte[] buf = serialization.serialize(p);
-    Assert.assertEquals(serialization.deserialize(buf), p);
+    assertEquals(serialization.deserialize(buf), p);
   }
 
   @Test
@@ -181,7 +172,7 @@ public class TestStorageSerialization {
     });
     Point[] p = new Point[]{new Point(42, 9)};
     byte[] buf = serialization.serialize(p);
-    Assert.assertEquals(serialization.deserialize(buf), p);
+    assertEquals(serialization.deserialize(buf), p);
   }
 
   @Test
@@ -205,7 +196,7 @@ public class TestStorageSerialization {
     });
     ImplementsA a = new ImplementsA(42);
     byte[] buf = serialization.serialize(a);
-    Assert.assertEquals(serialization.deserialize(buf), a);
+    assertEquals(serialization.deserialize(buf), a);
   }
 
   @Test
@@ -229,7 +220,7 @@ public class TestStorageSerialization {
     });
     ImplementsA a = new ImplementsA(42);
     byte[] buf = serialization.serialize(a);
-    Assert.assertEquals(serialization.deserialize(buf), a);
+    assertEquals(serialization.deserialize(buf), a);
   }
 
   @Test
@@ -246,8 +237,8 @@ public class TestStorageSerialization {
     for (byte val : vals) {
       byte[] buf = serialization.serialize(val);
       Object l2 = serialization.deserialize(buf);
-      Assert.assertTrue(l2.getClass() == Byte.class);
-      Assert.assertEquals(l2, val);
+      assertTrue(l2.getClass() == Byte.class);
+      assertEquals(l2, val);
     }
   }
 
@@ -267,8 +258,8 @@ public class TestStorageSerialization {
     for (int i : vals) {
       byte[] buf = serialization.serialize(i);
       Object l2 = serialization.deserialize(buf);
-      Assert.assertTrue(l2.getClass() == Integer.class);
-      Assert.assertEquals(l2, i);
+      assertTrue(l2.getClass() == Integer.class);
+      assertEquals(l2, i);
     }
   }
 
@@ -281,8 +272,8 @@ public class TestStorageSerialization {
     for (short i : vals) {
       byte[] buf = serialization.serialize(i);
       Object l2 = serialization.deserialize(buf);
-      Assert.assertTrue(l2.getClass() == Short.class);
-      Assert.assertEquals(l2, i);
+      assertTrue(l2.getClass() == Short.class);
+      assertEquals(l2, i);
     }
   }
 
@@ -293,8 +284,8 @@ public class TestStorageSerialization {
     for (double i : vals) {
       byte[] buf = serialization.serialize(i);
       Object l2 = serialization.deserialize(buf);
-      Assert.assertTrue(l2.getClass() == Double.class);
-      Assert.assertEquals(l2, i);
+      assertTrue(l2.getClass() == Double.class);
+      assertEquals(l2, i);
     }
   }
 
@@ -305,8 +296,8 @@ public class TestStorageSerialization {
     for (float i : vals) {
       byte[] buf = serialization.serialize(i);
       Object l2 = serialization.deserialize(buf);
-      Assert.assertTrue(l2.getClass() == Float.class);
-      Assert.assertEquals(l2, i);
+      assertTrue(l2.getClass() == Float.class);
+      assertEquals(l2, i);
     }
   }
 
@@ -317,8 +308,8 @@ public class TestStorageSerialization {
     for (char i : vals) {
       byte[] buf = serialization.serialize(i);
       Object l2 = serialization.deserialize(buf);
-      Assert.assertTrue(l2.getClass() == Character.class);
-      Assert.assertEquals(l2, i);
+      assertTrue(l2.getClass() == Character.class);
+      assertEquals(l2, i);
     }
   }
 
@@ -334,8 +325,8 @@ public class TestStorageSerialization {
     for (long i : vals) {
       byte[] buf = serialization.serialize(i);
       Object l2 = serialization.deserialize(buf);
-      Assert.assertTrue(l2.getClass() == Long.class);
-      Assert.assertEquals(l2, i);
+      assertTrue(l2.getClass() == Long.class);
+      assertEquals(l2, i);
     }
   }
 
@@ -344,13 +335,13 @@ public class TestStorageSerialization {
       throws IOException, ClassNotFoundException {
     byte[] buf = serialization.serialize(true);
     Object l2 = serialization.deserialize(buf);
-    Assert.assertTrue(l2.getClass() == Boolean.class);
-    Assert.assertEquals(l2, true);
+    assertTrue(l2.getClass() == Boolean.class);
+    assertEquals(l2, true);
 
     byte[] buf2 = serialization.serialize(false);
     Object l22 = serialization.deserialize(buf2);
-    Assert.assertTrue(l22.getClass() == Boolean.class);
-    Assert.assertEquals(l22, false);
+    assertTrue(l22.getClass() == Boolean.class);
+    assertEquals(l22, false);
   }
 
   @Test
@@ -358,7 +349,7 @@ public class TestStorageSerialization {
       throws IOException, ClassNotFoundException {
     byte[] buf = serialization.serialize("Abcd");
     String l2 = (String) serialization.deserialize(buf);
-    Assert.assertEquals(l2, "Abcd");
+    assertEquals(l2, "Abcd");
   }
 
   @Test
@@ -366,7 +357,7 @@ public class TestStorageSerialization {
       throws IOException, ClassNotFoundException {
     byte[] buf = serialization.serialize("");
     String l2 = (String) serialization.deserialize(buf);
-    Assert.assertEquals(l2, "");
+    assertEquals(l2, "");
   }
 
   @Test
@@ -378,7 +369,7 @@ public class TestStorageSerialization {
     }
     byte[] buf = serialization.serialize(bigString);
     String l2 = (String) serialization.deserialize(buf);
-    Assert.assertEquals(l2, bigString);
+    assertEquals(l2, bigString);
   }
 
   @Test
@@ -386,7 +377,7 @@ public class TestStorageSerialization {
       throws IOException, ClassNotFoundException {
     byte[] buf = serialization.serialize(String.class);
     Class l2 = (Class) serialization.deserialize(buf);
-    Assert.assertEquals(l2, String.class);
+    assertEquals(l2, String.class);
   }
 
   @Test
@@ -394,7 +385,7 @@ public class TestStorageSerialization {
       throws IOException, ClassNotFoundException {
     byte[] buf = serialization.serialize(long[].class);
     Class l2 = (Class) serialization.deserialize(buf);
-    Assert.assertEquals(l2, long[].class);
+    assertEquals(l2, long[].class);
   }
 
   @Test
@@ -403,7 +394,7 @@ public class TestStorageSerialization {
     String s = "Ciudad Bolíva";
     byte[] buf = serialization.serialize(s);
     Object l2 = serialization.deserialize(buf);
-    Assert.assertEquals(l2, s);
+    assertEquals(l2, s);
   }
 
   @Test
@@ -411,7 +402,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     String[] l = new String[]{"foo", "bar", ""};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    Assert.assertTrue(Arrays.equals(l, (String[]) deserialize));
+    assertTrue(Arrays.equals(l, (String[]) deserialize));
   }
 
   @Test
@@ -419,7 +410,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     Object[] l = new Object[]{"foo", 2, Boolean.TRUE};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    Assert.assertTrue(Arrays.equals(l, (Object[]) deserialize));
+    assertTrue(Arrays.equals(l, (Object[]) deserialize));
   }
 
   @Test
@@ -427,7 +418,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     boolean[] l = new boolean[]{true, false};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    Assert.assertTrue(Arrays.equals(l, (boolean[]) deserialize));
+    assertTrue(Arrays.equals(l, (boolean[]) deserialize));
   }
 
   @Test
@@ -435,7 +426,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     double[] l = new double[]{Math.PI, 1D};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    Assert.assertTrue(Arrays.equals(l, (double[]) deserialize));
+    assertTrue(Arrays.equals(l, (double[]) deserialize));
   }
 
   @Test
@@ -443,7 +434,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     float[] l = new float[]{1F, 1.234235F};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    Assert.assertTrue(Arrays.equals(l, (float[]) deserialize));
+    assertTrue(Arrays.equals(l, (float[]) deserialize));
   }
 
   @Test
@@ -451,7 +442,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     byte[] l = new byte[]{1, 34, -5};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    Assert.assertTrue(Arrays.equals(l, (byte[]) deserialize));
+    assertTrue(Arrays.equals(l, (byte[]) deserialize));
   }
 
   @Test
@@ -459,7 +450,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     short[] l = new short[]{1, 345, -5000};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    Assert.assertTrue(Arrays.equals(l, (short[]) deserialize));
+    assertTrue(Arrays.equals(l, (short[]) deserialize));
   }
 
   @Test
@@ -467,7 +458,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     char[] l = new char[]{'1', 'a', '&'};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    Assert.assertTrue(Arrays.equals(l, (char[]) deserialize));
+    assertTrue(Arrays.equals(l, (char[]) deserialize));
   }
 
   @Test
@@ -476,7 +467,7 @@ public class TestStorageSerialization {
     int[][] l = new int[][]{{3, 5}, {-1200, 29999}, {3, 100000}, {-43999, 100000}};
     for (int[] a : l) {
       Object deserialize = serialization.deserialize(serialization.serialize(a));
-      Assert.assertTrue(Arrays.equals(a, (int[]) deserialize));
+      assertTrue(Arrays.equals(a, (int[]) deserialize));
     }
   }
 
@@ -486,7 +477,7 @@ public class TestStorageSerialization {
     long[][] l = new long[][]{{3l, 5l}, {-1200l, 29999l}, {3l, 100000l}, {-43999l, 100000l}, {-123l, 12345678901234l}};
     for (long[] a : l) {
       Object deserialize = serialization.deserialize(serialization.serialize(a));
-      Assert.assertTrue(Arrays.equals(a, (long[]) deserialize));
+      assertTrue(Arrays.equals(a, (long[]) deserialize));
     }
   }
 
@@ -495,7 +486,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     double[] l = generateDoubleArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    Assert.assertTrue(Arrays.equals(l, (double[]) deserialize));
+    assertTrue(Arrays.equals(l, (double[]) deserialize));
   }
 
   @Test
@@ -503,7 +494,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     float[] l = generateFloatArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    Assert.assertTrue(Arrays.equals(l, (float[]) deserialize));
+    assertTrue(Arrays.equals(l, (float[]) deserialize));
   }
 
   @Test
@@ -511,7 +502,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     byte[] l = generateByteArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    Assert.assertTrue(Arrays.equals(l, (byte[]) deserialize));
+    assertTrue(Arrays.equals(l, (byte[]) deserialize));
   }
 
   @Test
@@ -519,7 +510,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     char[] l = generateCharArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    Assert.assertTrue(Arrays.equals(l, (char[]) deserialize));
+    assertTrue(Arrays.equals(l, (char[]) deserialize));
   }
 
   @Test
@@ -527,7 +518,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     short[] l = generateShortArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    Assert.assertTrue(Arrays.equals(l, (short[]) deserialize));
+    assertTrue(Arrays.equals(l, (short[]) deserialize));
   }
 
   @Test
@@ -535,7 +526,7 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     int[] l = generateIntArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    Assert.assertTrue(Arrays.equals(l, (int[]) deserialize));
+    assertTrue(Arrays.equals(l, (int[]) deserialize));
   }
 
   @Test
@@ -543,25 +534,25 @@ public class TestStorageSerialization {
       throws ClassNotFoundException, IOException {
     long[] l = generateLongArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    Assert.assertTrue(Arrays.equals(l, (long[]) deserialize));
+    assertTrue(Arrays.equals(l, (long[]) deserialize));
   }
 
   @Test
   public void testBigDecimal()
       throws IOException, ClassNotFoundException {
     BigDecimal d = new BigDecimal("445656.7889889895165654423236");
-    Assert.assertEquals(d, serialization.deserialize(serialization.serialize(d)));
+    assertEquals(d, serialization.deserialize(serialization.serialize(d)));
     d = new BigDecimal("-53534534534534445656.7889889895165654423236");
-    Assert.assertEquals(d, serialization.deserialize(serialization.serialize(d)));
+    assertEquals(d, serialization.deserialize(serialization.serialize(d)));
   }
 
   @Test
   public void testBigInteger()
       throws IOException, ClassNotFoundException {
     BigInteger d = new BigInteger("4456567889889895165654423236");
-    Assert.assertEquals(d, serialization.deserialize(serialization.serialize(d)));
+    assertEquals(d, serialization.deserialize(serialization.serialize(d)));
     d = new BigInteger("-535345345345344456567889889895165654423236");
-    Assert.assertEquals(d, serialization.deserialize(serialization.serialize(d)));
+    assertEquals(d, serialization.deserialize(serialization.serialize(d)));
   }
 
   @Test
@@ -571,8 +562,8 @@ public class TestStorageSerialization {
     d[0] = new int[]{1, 3};
     d[1] = new int[]{-3, 1};
     Object res = serialization.deserialize(serialization.serialize(d));
-    Assert.assertEquals(res.getClass(), int[][].class);
-    Assert.assertEquals(d, res);
+    assertEquals(res.getClass(), int[][].class);
+    assertEquals(d, res);
   }
 
   @Test
@@ -582,8 +573,8 @@ public class TestStorageSerialization {
     d[0] = new long[]{1, 3};
     d[1] = new long[]{-3, 1};
     Object res = serialization.deserialize(serialization.serialize(d));
-    Assert.assertEquals(res.getClass(), long[][].class);
-    Assert.assertEquals(d, res);
+    assertEquals(res.getClass(), long[][].class);
+    assertEquals(d, res);
   }
 
   // UTILITY

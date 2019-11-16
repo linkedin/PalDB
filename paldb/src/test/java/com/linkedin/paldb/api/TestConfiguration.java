@@ -14,16 +14,13 @@
 
 package com.linkedin.paldb.api;
 
-import java.awt.*;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.Arrays;
-import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import java.awt.*;
+import java.io.*;
+import java.util.Arrays;
+
+import static org.testng.Assert.*;
 
 
 public class TestConfiguration {
@@ -32,8 +29,8 @@ public class TestConfiguration {
   public void testConfiguration() {
     Configuration c = new Configuration();
     c.set("foo", "bar");
-    Assert.assertEquals(c.get("foo", null), "bar");
-    Assert.assertEquals(c.get("bar", "foo"), "foo");
+    assertEquals(c.get("foo", null), "bar");
+    assertEquals(c.get("bar", "foo"), "foo");
   }
 
   @Test
@@ -42,10 +39,10 @@ public class TestConfiguration {
     c.set("foo", "bar");
 
     Configuration r = new Configuration(c);
-    Assert.assertEquals(r.get("foo", null), "bar");
+    assertEquals(r.get("foo", null), "bar");
 
     c.set("foo", "");
-    Assert.assertEquals(r.get("foo", null), "bar");
+    assertEquals(r.get("foo", null), "bar");
   }
 
   @Test(expectedExceptions = UnsupportedOperationException.class)
@@ -59,7 +56,7 @@ public class TestConfiguration {
 
   @Test
   public void testEqualsEmpty() {
-    Assert.assertEquals(new Configuration(), new Configuration());
+    assertEquals(new Configuration(), new Configuration());
   }
 
   @Test
@@ -73,8 +70,8 @@ public class TestConfiguration {
     Configuration c3 = new Configuration();
     c3.set("foo", "notbar");
 
-    Assert.assertEquals(c1, c2);
-    Assert.assertNotEquals(c1, c3);
+    assertEquals(c1, c2);
+    assertNotEquals(c1, c3);
   }
 
   @Test
@@ -83,8 +80,8 @@ public class TestConfiguration {
     c.set("foo", "true");
     c.set("bar", "false");
 
-    Assert.assertTrue(c.getBoolean("foo"));
-    Assert.assertFalse(c.getBoolean("bar"));
+    assertTrue(c.getBoolean("foo"));
+    assertFalse(c.getBoolean("bar"));
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -97,8 +94,8 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "true");
 
-    Assert.assertTrue(c.getBoolean("foo", false));
-    Assert.assertTrue(c.getBoolean("bar", true));
+    assertTrue(c.getBoolean("foo", false));
+    assertTrue(c.getBoolean("bar", true));
   }
 
   @Test
@@ -106,7 +103,7 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "1.0");
 
-    Assert.assertEquals(c.getDouble("foo"), 1.0);
+    assertEquals(c.getDouble("foo"), 1.0);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -119,8 +116,8 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "1.0");
 
-    Assert.assertEquals(c.getDouble("foo", 2.0), 1.0);
-    Assert.assertEquals(c.getDouble("bar", 2.0), 2.0);
+    assertEquals(c.getDouble("foo", 2.0), 1.0);
+    assertEquals(c.getDouble("bar", 2.0), 2.0);
   }
 
   @Test
@@ -128,7 +125,7 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "1.0");
 
-    Assert.assertEquals(c.getFloat("foo"), 1f);
+    assertEquals(c.getFloat("foo"), 1f);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -141,8 +138,8 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "1.0");
 
-    Assert.assertEquals(c.getFloat("foo", 2f), 1f);
-    Assert.assertEquals(c.getFloat("bar", 2f), 2f);
+    assertEquals(c.getFloat("foo", 2f), 1f);
+    assertEquals(c.getFloat("bar", 2f), 2f);
   }
 
   @Test
@@ -150,7 +147,7 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    Assert.assertEquals(c.getInt("foo"), 1);
+    assertEquals(c.getInt("foo"), 1);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -163,8 +160,8 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    Assert.assertEquals(c.getInt("foo", 2), 1);
-    Assert.assertEquals(c.getInt("bar", 2), 2);
+    assertEquals(c.getInt("foo", 2), 1);
+    assertEquals(c.getInt("bar", 2), 2);
   }
 
   @Test
@@ -172,7 +169,7 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    Assert.assertEquals(c.getShort("foo"), (short) 1);
+    assertEquals(c.getShort("foo"), (short) 1);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -185,8 +182,8 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    Assert.assertEquals(c.getShort("foo", (short) 2), (short) 1);
-    Assert.assertEquals(c.getShort("bar", (short) 2), (short) 2);
+    assertEquals(c.getShort("foo", (short) 2), (short) 1);
+    assertEquals(c.getShort("bar", (short) 2), (short) 2);
   }
 
   @Test
@@ -194,7 +191,7 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    Assert.assertEquals(c.getLong("foo"), 1l);
+    assertEquals(c.getLong("foo"), 1l);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -207,8 +204,8 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    Assert.assertEquals(c.getLong("foo", 2l), 1l);
-    Assert.assertEquals(c.getLong("bar", 2l), 2l);
+    assertEquals(c.getLong("foo", 2l), 1l);
+    assertEquals(c.getLong("bar", 2l), 2l);
   }
 
   @Test
@@ -217,7 +214,7 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", Integer.class.getName());
 
-    Assert.assertEquals(c.getClass("foo"), Integer.class);
+    assertEquals(c.getClass("foo"), Integer.class);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -231,7 +228,7 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "foo,bar");
 
-    Assert.assertEquals(c.getList("foo"), Arrays.asList("foo", "bar"));
+    assertEquals(c.getList("foo"), Arrays.asList("foo", "bar"));
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -244,8 +241,8 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "foo,bar");
 
-    Assert.assertEquals(c.getList("foo", Arrays.asList("that")), Arrays.asList("foo", "bar"));
-    Assert.assertEquals(c.getList("bar", Arrays.asList("that")), Arrays.asList("that"));
+    assertEquals(c.getList("foo", Arrays.asList("that")), Arrays.asList("foo", "bar"));
+    assertEquals(c.getList("bar", Arrays.asList("that")), Arrays.asList("that"));
   }
 
   @Test
@@ -268,7 +265,7 @@ public class TestConfiguration {
     in.close();
     bis.close();
 
-    Assert.assertEquals(sc, c);
+    assertEquals(sc, c);
   }
 
   // UTILITY
