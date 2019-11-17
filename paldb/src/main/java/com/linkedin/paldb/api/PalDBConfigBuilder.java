@@ -51,60 +51,36 @@ public final class PalDBConfigBuilder {
     /**
      * <i>PalDB configuration property.</i>
      * <p>
-     * <code>cache.enabled</code> - LRU cache enabled [default: false]
-     * @param enabled flag
-     * @return this {@code CachemeerConfigBuilder} instance (for chaining)
-     */
-    public PalDBConfigBuilder withLRUCacheEnabled(boolean enabled) {
-        palDbConfiguration.set(Configuration.CACHE_ENABLED, String.valueOf(enabled));
-        return this;
-    }
-
-    /**
-     * <i>PalDB configuration property.</i>
-     * <p>
-     * <code>cache.bytes</code> - cache limit [default: Xmx - 100MB]
-     * @param bytes size in bytes
-     * @return this {@code CachemeerConfigBuilder} instance (for chaining)
-     */
-    public PalDBConfigBuilder withCacheSizeLimit(long bytes) {
-        palDbConfiguration.set(Configuration.CACHE_BYTES, String.valueOf(bytes));
-        return this;
-    }
-
-    /**
-     * <i>PalDB configuration property.</i>
-     * <p>
-     * <code>cache.initial.capacity</code> - cache initial capacity [default: 1000]
-     * @param size number of initial capacity
-     * @return this {@code CachemeerConfigBuilder} instance (for chaining)
-     */
-    public PalDBConfigBuilder withCacheInitialCapacity(int size) {
-        palDbConfiguration.set(Configuration.CACHE_INITIAL_CAPACITY, String.valueOf(size));
-        return this;
-    }
-
-    /**
-     * <i>PalDB configuration property.</i>
-     * <p>
-     * <code>cache.load.factor</code> - cache load factor [default: 0.75]
-     * @param loadFactor load factor value
-     * @return this {@code CachemeerConfigBuilder} instance (for chaining)
-     */
-    public PalDBConfigBuilder withCacheLoadFactor(double loadFactor) {
-        palDbConfiguration.set(Configuration.CACHE_LOAD_FACTOR, String.valueOf(loadFactor));
-        return this;
-    }
-
-    /**
-     * <i>PalDB configuration property.</i>
-     * <p>
      * <code>compression.enabled</code> - enable compression [default: false]
      * @param enabled flag
      * @return this {@code CachemeerConfigBuilder} instance (for chaining)
      */
     public PalDBConfigBuilder withEnableCompression(boolean enabled) {
         palDbConfiguration.set(Configuration.COMPRESSION_ENABLED, String.valueOf(enabled));
+        return this;
+    }
+
+    /**
+     * <i>PalDB configuration property.</i>
+     * <p>
+     * <code>compression.enabled</code> - enable bloom filter [default: true]
+     * @param enabled flag
+     * @return this {@code CachemeerConfigBuilder} instance (for chaining)
+     */
+    public PalDBConfigBuilder withEnableBloomFilter(boolean enabled) {
+        palDbConfiguration.set(Configuration.BLOOM_FILTER_ENABLED, String.valueOf(enabled));
+        return this;
+    }
+
+    /**
+     * <i>PalDB configuration property.</i>
+     * <p>
+     * <code>compression.enabled</code> - bloom filter error rate [default: 0.01]
+     * @param errorFactor value, e.g. 0.01 equals 1% error rate
+     * @return this {@code CachemeerConfigBuilder} instance (for chaining)
+     */
+    public PalDBConfigBuilder withBloomFilterErrorFactor(double errorFactor) {
+        palDbConfiguration.set(Configuration.BLOOM_FILTER_ERROR_FACTOR, String.valueOf(errorFactor));
         return this;
     }
 

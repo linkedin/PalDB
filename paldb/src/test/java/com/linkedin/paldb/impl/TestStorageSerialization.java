@@ -139,9 +139,10 @@ public class TestStorageSerialization {
       }
 
       @Override
-      public int getWeight(Point instance) {
-        return 0;
+      public Class<Point> serializedClass() {
+        return Point.class;
       }
+
     });
     Point p = new Point(42, 9);
     byte[] buf = serialization.serialize(p);
@@ -166,9 +167,10 @@ public class TestStorageSerialization {
       }
 
       @Override
-      public int getWeight(Point[] instance) {
-        return 0;
+      public Class<Point[]> serializedClass() {
+        return Point[].class;
       }
+
     });
     Point[] p = new Point[]{new Point(42, 9)};
     byte[] buf = serialization.serialize(p);
@@ -185,21 +187,22 @@ public class TestStorageSerialization {
       }
 
       @Override
+      public Class<ImplementsA> serializedClass() {
+        return ImplementsA.class;
+      }
+
+      @Override
       public void write(DataOutput dataOutput, ImplementsA input) throws IOException {
         dataOutput.writeInt(input.getVal());
       }
 
-      @Override
-      public int getWeight(ImplementsA instance) {
-        return 0;
-      }
     });
     ImplementsA a = new ImplementsA(42);
     byte[] buf = serialization.serialize(a);
     assertEquals(serialization.deserialize(buf), a);
   }
 
-  @Test
+  @Test(expectedExceptions = UnsupportedTypeException.class)
   public void testInheritedSerializer() throws Throwable {
     configuration.registerSerializer(new Serializer<A>() {
 
@@ -209,14 +212,15 @@ public class TestStorageSerialization {
       }
 
       @Override
+      public Class<A> serializedClass() {
+        return A.class;
+      }
+
+      @Override
       public void write(DataOutput dataOutput, A input) throws IOException {
         dataOutput.writeInt(input.getVal());
       }
 
-      @Override
-      public int getWeight(A instance) {
-        return 0;
-      }
     });
     ImplementsA a = new ImplementsA(42);
     byte[] buf = serialization.serialize(a);
@@ -642,7 +646,7 @@ public class TestStorageSerialization {
     return array;
   }
 
-  private static interface A {
+  private interface A {
 
     int getVal();
   }

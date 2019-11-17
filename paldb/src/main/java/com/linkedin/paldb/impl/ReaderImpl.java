@@ -31,14 +31,10 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
   private static final Logger log = LoggerFactory.getLogger(ReaderImpl.class);
   // Configuration
   private final Configuration config;
-  // Buffer
-  private final DataInputOutput dataInputOutput = new DataInputOutput();
   // Storage
   private final StorageReader storage;
   // Serialization
   private final StorageSerialization serialization;
-  // Cache
-  private final StorageCache<K,V> cache;
   // File
   private final File file;
   // Opened?
@@ -63,9 +59,6 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
       throw new UncheckedIOException(ex);
     }
     opened = true;
-
-    // Cache
-    cache = StorageCache.initCache(config);
   }
 
   @Override

@@ -150,27 +150,31 @@ public class StorageWriter {
     log.info("Number of keys: {}", keyCount);
     log.info("Number of values: {}", valueCount);
 
+    var bloomFilter = config.getBoolean(Configuration.BLOOM_FILTER_ENABLED) ?
+            new BloomFilter(keyCount, config.getDouble(Configuration.BLOOM_FILTER_ERROR_FACTOR, 0.01)) :
+            null;
+
+
     // Prepare files to merge
     List<File> filesToMerge = new ArrayList<>();
 
     try {
+      // Build index file
+      for (int i = 0; i < indexFiles.length; i++) {
+        if (indexFiles[i] != null) {
+          filesToMerge.add(buildIndex(i, bloomFilter));
+        }
+      }
 
       //Write metadata file
       File metadataFile = new File(tempFolder, "metadata.dat");
       metadataFile.deleteOnExit();
       try (FileOutputStream metadataOutputStream = new FileOutputStream(metadataFile);
            DataOutputStream metadataDataOutputStream = new DataOutputStream(metadataOutputStream)) {
-        writeMetadata(metadataDataOutputStream);
+        writeMetadata(metadataDataOutputStream, bloomFilter);
       }
 
-      filesToMerge.add(metadataFile);
-
-      // Build index file
-      for (int i = 0; i < indexFiles.length; i++) {
-        if (indexFiles[i] != null) {
-          filesToMerge.add(buildIndex(i));
-        }
-      }
+      filesToMerge.add(0, metadataFile);
 
       // Stats collisions
       log.info("Number of collisions: {}", collisions);
@@ -191,8 +195,7 @@ public class StorageWriter {
     }
   }
 
-  private void writeMetadata(DataOutputStream dataOutputStream)
-      throws IOException {
+  private void writeMetadata(DataOutputStream dataOutputStream, BloomFilter bloomFilter) throws IOException {
     //Write format version
     dataOutputStream.writeUTF(FormatVersion.getLatestVersion().name());
 
@@ -205,6 +208,19 @@ public class StorageWriter {
 
     //Write size (number of keys)
     dataOutputStream.writeInt(keyCount);
+
+    //write bloom filter bit size
+    dataOutputStream.writeInt(bloomFilter != null ? bloomFilter.bitSize() : 0);
+    //write bloom filter long array size
+    dataOutputStream.writeInt(bloomFilter != null ? bloomFilter.bits().length : 0);
+    //write bloom filter hash functions
+    dataOutputStream.writeInt(bloomFilter != null ? bloomFilter.hashFunctions() : 0);
+    //write bloom filter bits
+    if (bloomFilter != null) {
+      for (final long bit : bloomFilter.bits()) {
+        dataOutputStream.writeLong(bit);
+      }
+    }
 
     //Write the number of different key length
     dataOutputStream.writeInt(keyLengthCount);
@@ -244,21 +260,13 @@ public class StorageWriter {
       }
     }
 
-    //Write serializers
-    try {
-      Serializers.serialize(dataOutputStream, config.getSerializers());
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-
     //Write the position of the index and the data
     int indexOffset = dataOutputStream.size() + (Integer.SIZE / Byte.SIZE) + (Long.SIZE / Byte.SIZE);
     dataOutputStream.writeInt(indexOffset);
     dataOutputStream.writeLong(indexOffset + indexesLength);
   }
 
-  private File buildIndex(int keyLength)
-      throws IOException {
+  private File buildIndex(int keyLength, BloomFilter bloomFilter) throws IOException {
     long count = keyCounts[keyLength];
     int slots = (int) Math.round(count / loadFactor);
     int offsetLength = maxOffsetLengths[keyLength];
@@ -288,6 +296,9 @@ public class StorageWriter {
 
             // Hash
             long hash = hashUtils.hash(keyBuffer);
+            if (bloomFilter != null) {
+              bloomFilter.add(hash);
+            }
 
             boolean collision = false;
             for (int probe = 0; probe < count; probe++) {

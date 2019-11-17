@@ -54,7 +54,7 @@ public final class StorageSerialization {
    * @return key as byte array
    * @throws IOException if an io error occurs
    */
-  public byte[] serializeKey(Object key) throws IOException {
+  public <K> byte[] serializeKey(K key) throws IOException {
     if (key == null) {
       throw new NullPointerException();
     }
@@ -70,8 +70,7 @@ public final class StorageSerialization {
    * @param dataOutput data output
    * @throws IOException if an io error occurs
    */
-  public void serializeKey(Object key, DataOutput dataOutput)
-      throws IOException {
+  public void serializeKey(Object key, DataOutput dataOutput) throws IOException {
     serializeObject(key, dataOutput, false);
   }
 
@@ -82,8 +81,7 @@ public final class StorageSerialization {
    * @return value as byte array
    * @throws IOException if an io error occurs
    */
-  public byte[] serializeValue(Object value)
-      throws IOException {
+  public byte[] serializeValue(Object value) throws IOException {
 
     serializeObject(value, dataInputOutput.reset(), compression);
     return dataInputOutput.toByteArray();
@@ -96,8 +94,7 @@ public final class StorageSerialization {
    * @param dataOutput data output
    * @throws IOException if an io error occurs
    */
-  public void serializeValue(Object value, DataOutput dataOutput)
-      throws IOException {
+  public void serializeValue(Object value, DataOutput dataOutput) throws IOException {
     serializeObject(value, dataOutput, compression);
   }
 
@@ -106,15 +103,13 @@ public final class StorageSerialization {
    *
    * @param obj object to serialize
    * @param useCompression use compression
-   * @return serialized object in bytes
    * @throws IOException if an io error occurs
    */
-  private void serializeObject(Object obj, DataOutput dataOutput, boolean useCompression)
-      throws IOException {
+  private void serializeObject(Object obj, DataOutput dataOutput, boolean useCompression) throws IOException {
     //Cast to primitive arrays if necessary
     if (obj != null && obj.getClass().isArray()) {
       if (obj instanceof Integer[]) {
-        obj = (int[]) getPrimitiveArray((Object[]) obj);
+        obj = (int[]) getPrimitiveArray((Integer[]) obj);
       } else if (obj instanceof Boolean[]) {
         obj = (boolean[]) getPrimitiveArray((Object[]) obj);
       } else if (obj instanceof Byte[]) {
@@ -190,7 +185,7 @@ public final class StorageSerialization {
     return null;
   }
 
-  private static Object getPrimitiveArray(Object[] array) {
+  private static <T> Object getPrimitiveArray(T[] array) {
     Class arrayClass = array.getClass().getComponentType();
     if (!arrayClass.isPrimitive()) {
       Class primitiveClass = getPrimitiveType(arrayClass);
@@ -323,13 +318,11 @@ public final class StorageSerialization {
   final static int CUSTOM = 114;
   final static String EMPTY_STRING = "";
 
-  byte[] serialize(Object obj)
-      throws IOException {
+  byte[] serialize(Object obj) throws IOException {
     return serialize(obj, false);
   }
 
-  byte[] serialize(Object obj, boolean compress)
-      throws IOException {
+  byte[] serialize(Object obj, boolean compress) throws IOException {
     DataInputOutput ba = new DataInputOutput();
 
     serialize(ba, obj, compress);
@@ -337,19 +330,17 @@ public final class StorageSerialization {
     return ba.toByteArray();
   }
 
-  private void serialize(final DataOutput out, final Object obj)
-      throws IOException {
+  private void serialize(final DataOutput out, final Object obj) throws IOException {
     serialize(out, obj, false);
   }
 
-  private void serialize(final DataOutput out, final Object obj, boolean compress)
-      throws IOException {
+  private void serialize(final DataOutput out, final Object obj, boolean compress) throws IOException {
     final Class clazz = obj != null ? obj.getClass() : null;
 
     if (obj == null) {
       out.write(NULL);
     } else if (clazz == Boolean.class) {
-      if (((Boolean) obj).booleanValue()) {
+      if ((boolean) obj) {
         out.write(BOOLEAN_TRUE);
       } else {
         out.write(BOOLEAN_FALSE);
@@ -400,10 +391,11 @@ public final class StorageSerialization {
       serializeLongLongArray(out, (long[][]) obj, compress);
     } else {
       // Custom
-      Serializer serializer = serializers.getSerializer(obj.getClass());
+      var serializer = serializers.getSerializer(obj.getClass());
       if (serializer != null) {
-        int index = serializers.getIndex(obj.getClass());
-        out.write(CUSTOM + index);
+        var className = serializer.serializedClass().getName();
+        out.write(CUSTOM);
+        out.writeChars(className);
         serializer.write(out, obj);
       } else if (obj instanceof Object[]) {
         serializeObjectArray(out, (Object[]) obj);
@@ -413,8 +405,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeInt(final DataOutput out, final int val)
-      throws IOException {
+  private static void serializeInt(final DataOutput out, final int val) throws IOException {
     if (val == -1) {
       out.write(INTEGER_MINUS_1);
     } else if (val == 0) {
@@ -449,8 +440,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeDouble(final DataOutput out, final double val)
-      throws IOException {
+  private static void serializeDouble(final DataOutput out, final double val) throws IOException {
     if (val == -1d) {
       out.write(DOUBLE_MINUS_1);
     } else if (val == 0d) {
@@ -469,8 +459,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeFloat(final DataOutput out, final float val)
-      throws IOException {
+  private static void serializeFloat(final DataOutput out, final float val) throws IOException {
     if (val == -1f) {
       out.write(FLOAT_MINUS_1);
     } else if (val == 0f) {
@@ -489,8 +478,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeShort(final DataOutput out, final short val)
-      throws IOException {
+  private static void serializeShort(final DataOutput out, final short val) throws IOException {
     if (val == -1) {
       out.write(SHORT_MINUS_1);
     } else if (val == 0) {
@@ -506,8 +494,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeByte(final DataOutput out, final byte val)
-      throws IOException {
+  private static void serializeByte(final DataOutput out, final byte val) throws IOException {
     if (val == -1) {
       out.write(BYTE_MINUS_1);
     } else if (val == 0) {
@@ -520,8 +507,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeLong(final DataOutput out, final long val)
-      throws IOException {
+  private static void serializeLong(final DataOutput out, final long val) throws IOException {
     if (val == -1) {
       out.write(LONG_MINUS_1);
     } else if (val == 0) {
@@ -556,14 +542,12 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeChar(final DataOutput out, final char val)
-      throws IOException {
+  private static void serializeChar(final DataOutput out, final char val) throws IOException {
     out.write(CHAR);
     out.writeChar(val);
   }
 
-  private static void serializeString(final DataOutput out, final String val)
-      throws IOException {
+  private static void serializeString(final DataOutput out, final String val) throws IOException {
     if (val.length() == 0) {
       out.write(STRING_EMPTY);
     } else {
@@ -577,28 +561,24 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeBigInteger(final DataOutput out, final BigInteger val)
-      throws IOException {
+  private static void serializeBigInteger(final DataOutput out, final BigInteger val) throws IOException {
     out.write(BIGINTEGER);
     byte[] buf = val.toByteArray();
     serializeByteArray(out, buf, false);
   }
 
-  private static void serializeBigDecimal(final DataOutput out, final BigDecimal val)
-      throws IOException {
+  private static void serializeBigDecimal(final DataOutput out, final BigDecimal val) throws IOException {
     out.write(BIGDECIMAL);
     serializeByteArray(out, val.unscaledValue().toByteArray(), false);
     LongPacker.packInt(out, val.scale());
   }
 
-  private static void serializeClass(final DataOutput out, final Class val)
-      throws IOException {
+  private static void serializeClass(final DataOutput out, final Class val) throws IOException {
     out.write(CLASS);
     serializeString(out, val.getName());
   }
 
-  private static void serializeBooleanArray(final DataOutput out, final boolean[] val)
-      throws IOException {
+  private static void serializeBooleanArray(final DataOutput out, final boolean[] val) throws IOException {
     out.write(BOOLEAN_ARRAY);
     LongPacker.packInt(out, val.length);
     for (boolean s : val) {
@@ -606,8 +586,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeShortArray(final DataOutput out, final short[] val, boolean compress)
-      throws IOException {
+  private static void serializeShortArray(final DataOutput out, final short[] val, boolean compress) throws IOException {
     if (compress && val.length > 250) {
       out.write(SHORT_ARRAY_C);
       byte[] b = Snappy.compress(val);
@@ -622,8 +601,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeDoubleArray(final DataOutput out, final double[] val, boolean compress)
-      throws IOException {
+  private static void serializeDoubleArray(final DataOutput out, final double[] val, boolean compress) throws IOException {
     if (compress && val.length > 250) {
       out.write(DOUBLE_ARRAY_C);
       byte[] b = Snappy.compress(val);
@@ -638,8 +616,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeFloatArray(final DataOutput out, final float[] val, boolean compress)
-      throws IOException {
+  private static void serializeFloatArray(final DataOutput out, final float[] val, boolean compress) throws IOException {
     if (compress && val.length > 250) {
       out.write(FLOAT_ARRAY_C);
       byte[] b = Snappy.compress(val);
@@ -654,8 +631,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeCharArray(final DataOutput out, final char[] val, boolean compress)
-      throws IOException {
+  private static void serializeCharArray(final DataOutput out, final char[] val, boolean compress) throws IOException {
     if (compress && val.length > 250) {
       out.write(CHAR_ARRAY_C);
       byte[] b = Snappy.compress(val);
@@ -670,8 +646,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeIntArray(final DataOutput out, final int[] val, boolean compress)
-      throws IOException {
+  private static void serializeIntArray(final DataOutput out, final int[] val, boolean compress) throws IOException {
     int max = Integer.MIN_VALUE;
     int min = Integer.MAX_VALUE;
     for (int i : val) {
@@ -711,8 +686,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeIntIntArray(final DataOutput out, final int[][] val, boolean compress)
-      throws IOException {
+  private static void serializeIntIntArray(final DataOutput out, final int[][] val, boolean compress) throws IOException {
     out.write(INT_INT_ARRAY);
     LongPacker.packInt(out, val.length);
 
@@ -721,8 +695,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeLongArray(final DataOutput out, final long[] val, boolean compress)
-      throws IOException {
+  private static void serializeLongArray(final DataOutput out, final long[] val, boolean compress) throws IOException {
     long max = Long.MIN_VALUE;
     long min = Long.MAX_VALUE;
     for (long i : val) {
@@ -768,8 +741,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeLongLongArray(final DataOutput out, final long[][] val, boolean compress)
-      throws IOException {
+  private static void serializeLongLongArray(final DataOutput out, final long[][] val, boolean compress) throws IOException {
     out.write(LONG_LONG_ARRAY);
     LongPacker.packInt(out, val.length);
 
@@ -778,8 +750,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeByteArray(final DataOutput out, final byte[] val, boolean compress)
-      throws IOException {
+  private static void serializeByteArray(final DataOutput out, final byte[] val, boolean compress) throws IOException {
     if (compress && val.length > 250) {
       out.write(BYTE_ARRAY_C);
       byte[] b = Snappy.compress(val);
@@ -792,8 +763,7 @@ public final class StorageSerialization {
     }
   }
 
-  private static void serializeStringArray(final DataOutput out, final String[] val)
-      throws IOException {
+  private static void serializeStringArray(final DataOutput out, final String[] val) throws IOException {
     out.write(STRING_ARRAY);
     LongPacker.packInt(out, val.length);
     for (String s : val) {
@@ -801,8 +771,7 @@ public final class StorageSerialization {
     }
   }
 
-  private void serializeObjectArray(final DataOutput out, final Object[] val)
-      throws IOException {
+  private void serializeObjectArray(final DataOutput out, final Object[] val) throws IOException {
     out.write(ARRAY_OBJECT);
     LongPacker.packInt(out, val.length);
     for (Object o : val) {
@@ -810,8 +779,7 @@ public final class StorageSerialization {
     }
   }
 
-  public Object deserialize(byte[] buf)
-      throws ClassNotFoundException, IOException {
+  public Object deserialize(byte[] buf) throws ClassNotFoundException, IOException {
     DataInputOutput bs = new DataInputOutput(buf);
     Object ret = deserialize(bs);
     if (bs.available() != 0) {
@@ -821,14 +789,17 @@ public final class StorageSerialization {
     return ret;
   }
 
-  public Object deserialize(DataInput is)
-      throws IOException, ClassNotFoundException {
+  public Object deserialize(DataInput is) throws IOException, ClassNotFoundException {
     Object ret = null;
 
     final int head = is.readUnsignedByte();
 
     if (head >= CUSTOM) {
-      Serializer serializer = serializers.getSerializer(head - CUSTOM);
+      var className = is.readUTF();
+      Serializer serializer = serializers.getSerializer(className);
+      if (serializer == null) {
+        throw new ClassNotFoundException("Serializer not registered: " + className);
+      }
       ret = serializer.read(is);
     } else {
       switch (head) {
@@ -1101,16 +1072,13 @@ public final class StorageSerialization {
     return new String(b);
   }
 
-  private static Class deserializeClass(DataInput is)
-      throws IOException, ClassNotFoundException {
+  private static Class deserializeClass(DataInput is) throws IOException, ClassNotFoundException {
     is.readByte();
     String className = deserializeString(is);
-    Class cls = Class.forName(className);
-    return cls;
+    return Class.forName(className);
   }
 
-  private static short[] deserializeShortArray(DataInput is)
-      throws IOException {
+  private static short[] deserializeShortArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     short[] ret = new short[size];
     for (int i = 0; i < size; i++) {
@@ -1119,8 +1087,7 @@ public final class StorageSerialization {
     return ret;
   }
 
-  private static short[] deserializeShortCompressedArray(DataInput is)
-      throws IOException {
+  private static short[] deserializeShortCompressedArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     byte[] b = new byte[size];
     is.readFully(b);
@@ -1137,16 +1104,14 @@ public final class StorageSerialization {
     return ret;
   }
 
-  private static float[] deserializeFloatCompressedArray(DataInput is)
-      throws IOException {
+  private static float[] deserializeFloatCompressedArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     byte[] b = new byte[size];
     is.readFully(b);
     return Snappy.uncompressFloatArray(b);
   }
 
-  private static double[] deserializeDoubleArray(DataInput is)
-      throws IOException {
+  private static double[] deserializeDoubleArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     double[] ret = new double[size];
     for (int i = 0; i < size; i++) {
@@ -1155,16 +1120,14 @@ public final class StorageSerialization {
     return ret;
   }
 
-  private static double[] deserializeDoubleCompressedArray(DataInput is)
-      throws IOException {
+  private static double[] deserializeDoubleCompressedArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     byte[] b = new byte[size];
     is.readFully(b);
     return Snappy.uncompressDoubleArray(b);
   }
 
-  private static char[] deserializeCharArray(DataInput is)
-      throws IOException {
+  private static char[] deserializeCharArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     char[] ret = new char[size];
     for (int i = 0; i < size; i++) {
@@ -1173,16 +1136,14 @@ public final class StorageSerialization {
     return ret;
   }
 
-  private static char[] deserializeCharCompressedArray(DataInput is)
-      throws IOException {
+  private static char[] deserializeCharCompressedArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     byte[] b = new byte[size];
     is.readFully(b);
     return Snappy.uncompressCharArray(b);
   }
 
-  private static boolean[] deserializeBooleanArray(DataInput is)
-      throws IOException {
+  private static boolean[] deserializeBooleanArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     boolean[] ret = new boolean[size];
     for (int i = 0; i < size; i++) {
@@ -1191,8 +1152,7 @@ public final class StorageSerialization {
     return ret;
   }
 
-  private static String[] deserializeStringArray(DataInput is)
-      throws IOException {
+  private static String[] deserializeStringArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     String[] ret = new String[size];
     for (int i = 0; i < size; i++) {
@@ -1213,8 +1173,7 @@ public final class StorageSerialization {
 
   private static final byte[] EMPTY_BYTES = new byte[0];
 
-  private static byte[] deserializeByteArray(DataInput is)
-      throws IOException {
+  private static byte[] deserializeByteArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     if (size == 0) {
       return EMPTY_BYTES;
@@ -1224,8 +1183,7 @@ public final class StorageSerialization {
     return b;
   }
 
-  private static byte[] deserializeByteCompressedArray(DataInput is)
-      throws IOException {
+  private static byte[] deserializeByteCompressedArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     byte[] b = new byte[size];
     is.readFully(b);
@@ -1243,8 +1201,7 @@ public final class StorageSerialization {
     return s;
   }
 
-  private static long[] deserializeArrayLongL(DataInput is)
-      throws IOException {
+  private static long[] deserializeArrayLongL(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     long[] ret = new long[size];
     for (int i = 0; i < size; i++) {
@@ -1253,8 +1210,7 @@ public final class StorageSerialization {
     return ret;
   }
 
-  private static long[] deserializeArrayLongI(DataInput is)
-      throws IOException {
+  private static long[] deserializeArrayLongI(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     long[] ret = new long[size];
     for (int i = 0; i < size; i++) {
@@ -1263,8 +1219,7 @@ public final class StorageSerialization {
     return ret;
   }
 
-  private static long[] deserializeArrayLongS(DataInput is)
-      throws IOException {
+  private static long[] deserializeArrayLongS(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     long[] ret = new long[size];
     for (int i = 0; i < size; i++) {
@@ -1273,8 +1228,7 @@ public final class StorageSerialization {
     return ret;
   }
 
-  private static long[] deserializeArrayLongB(DataInput is)
-      throws IOException {
+  private static long[] deserializeArrayLongB(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     long[] ret = new long[size];
     for (int i = 0; i < size; i++) {
@@ -1286,16 +1240,14 @@ public final class StorageSerialization {
     return ret;
   }
 
-  private static long[] deserializeArrayLongCompressed(DataInput is)
-      throws IOException {
+  private static long[] deserializeArrayLongCompressed(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     byte[] b = new byte[size];
     is.readFully(b);
     return Snappy.uncompressLongArray(b);
   }
 
-  private static long[][] deserializeLongLongArray(DataInput is)
-      throws IOException {
+  private static long[][] deserializeLongLongArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     long[][] res = new long[size][];
     for (int i = 0; i < size; i++) {
@@ -1326,8 +1278,7 @@ public final class StorageSerialization {
     return res;
   }
 
-  private static int[][] deserializeIntIntArray(DataInput is)
-      throws IOException {
+  private static int[][] deserializeIntIntArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     int[][] res = new int[size][];
     for (int i = 0; i < size; i++) {
@@ -1355,8 +1306,7 @@ public final class StorageSerialization {
     return res;
   }
 
-  private static int[] deserializeArrayIntI(DataInput is)
-      throws IOException {
+  private static int[] deserializeArrayIntI(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     int[] ret = new int[size];
     for (int i = 0; i < size; i++) {
@@ -1365,8 +1315,7 @@ public final class StorageSerialization {
     return ret;
   }
 
-  private static int[] deserializeArrayIntS(DataInput is)
-      throws IOException {
+  private static int[] deserializeArrayIntS(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     int[] ret = new int[size];
     for (int i = 0; i < size; i++) {
@@ -1375,8 +1324,7 @@ public final class StorageSerialization {
     return ret;
   }
 
-  private static int[] deserializeArrayIntB(DataInput is)
-      throws IOException {
+  private static int[] deserializeArrayIntB(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     int[] ret = new int[size];
     for (int i = 0; i < size; i++) {
@@ -1388,8 +1336,7 @@ public final class StorageSerialization {
     return ret;
   }
 
-  private static int[] deserializeArrayIntPack(DataInput is)
-      throws IOException {
+  private static int[] deserializeArrayIntPack(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     if (size < 0) {
       throw new EOFException();
@@ -1402,16 +1349,14 @@ public final class StorageSerialization {
     return ret;
   }
 
-  private static int[] deserializeArrayIntCompressed(DataInput is)
-      throws IOException {
+  private static int[] deserializeArrayIntCompressed(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     byte[] b = new byte[size];
     is.readFully(b);
     return Snappy.uncompressIntArray(b);
   }
 
-  private static long[] deserializeArrayLongPack(DataInput is)
-      throws IOException {
+  private static long[] deserializeArrayLongPack(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
     if (size < 0) {
       throw new EOFException();

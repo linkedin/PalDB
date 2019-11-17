@@ -14,21 +14,14 @@
 
 package com.linkedin.paldb;
 
-import com.linkedin.paldb.api.Configuration;
-import com.linkedin.paldb.api.PalDB;
-import com.linkedin.paldb.api.StoreReader;
-import com.linkedin.paldb.api.StoreWriter;
+import com.linkedin.paldb.api.*;
 import com.linkedin.paldb.impl.GenerateTestData;
-import com.linkedin.paldb.utils.DirectoryUtils;
-import com.linkedin.paldb.utils.NanoBench;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import com.linkedin.paldb.utils.*;
 import org.apache.commons.lang.RandomStringUtils;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
+
+import java.io.File;
+import java.util.*;
 
 
 public class TestReadThroughput {
@@ -50,7 +43,7 @@ public class TestReadThroughput {
   @Test
   public void testReadThroughput() {
 
-    List<Measure> measures = new ArrayList<Measure>();
+    List<Measure> measures = new ArrayList<>();
     int max = 10000000;
     for (int i = 100; i <= max; i *= 10) {
       Measure m = measure(i, 0, 0, false);
@@ -78,68 +71,68 @@ public class TestReadThroughput {
   // UTILITY
 
   private Measure measure(int keysCount, int valueLength, double cacheSizeRatio, final boolean frequentReads) {
-
+    // Write store
+    File storeFile = new File(TEST_FOLDER, "paldb" + keysCount + "-" + valueLength + ".store");
     // Generate keys
     long seed = 4242;
     final Integer[] keys = GenerateTestData.generateRandomIntKeys(keysCount, Integer.MAX_VALUE, seed);
-
-    // Write store
-    File storeFile = new File(TEST_FOLDER, "paldb" + keysCount + "-" + valueLength + ".store");
-    StoreWriter writer = PalDB.createWriter(storeFile, new Configuration());
-    for (Integer key : keys) {
-      if (valueLength == 0) {
-        writer.put(key.toString(), Boolean.TRUE);
-      } else {
-        writer.put(key.toString(), RandomStringUtils.randomAlphabetic(valueLength));
-      }
-    }
-    writer.close();
-
+    Configuration config = PalDB.newConfiguration();
     // Get reader
     long cacheSize = 0;
-    Configuration config = PalDB.newConfiguration();
     if (cacheSizeRatio > 0) {
       cacheSize = (long) (storeFile.length() * cacheSizeRatio);
-      config.set(Configuration.CACHE_ENABLED, "true");
-      config.set(Configuration.CACHE_BYTES, String.valueOf(cacheSize));
+      config.set(Configuration.BLOOM_FILTER_ENABLED, "true");
     } else {
-      config.set(Configuration.CACHE_ENABLED, "false");
+      config.set(Configuration.BLOOM_FILTER_ENABLED, "false");
     }
-    final StoreReader reader = PalDB.createReader(storeFile, config);
 
-    // Measure
-    NanoBench nanoBench = NanoBench.create();
-    nanoBench.cpuOnly().warmUps(5).measurements(20).measure("Measure %d reads for %d keys with cache", new Runnable() {
-      @Override
-      public void run() {
+
+    try (StoreWriter<String,String> writer = PalDB.createWriter(storeFile, config)) {
+      for (Integer key : keys) {
+        if (valueLength == 0) {
+          writer.put(key.toString(), Boolean.TRUE.toString());
+        } else {
+          writer.put(key.toString(), RandomStringUtils.randomAlphabetic(valueLength));
+        }
+      }
+    }
+
+    int[] counter = new int[]{0, 0};
+    try (StoreReader<String,String> reader = PalDB.createReader(storeFile, config)) {
+      // Measure
+      NanoBench nanoBench = NanoBench.create();
+      nanoBench.cpuOnly().warmUps(5).measurements(20).measure("Measure %d reads for %d keys with cache", () -> {
         Random r = new Random();
         int length = keys.length;
         for (int i = 0; i < READS; i++) {
-          int index;
+          counter[1]++;
+          /*int index;
           if (i % 2 == 0 && frequentReads) {
             index = r.nextInt(length / 10);
           } else {
             index = r.nextInt(length);
           }
-          Integer key = keys[index];
-          reader.get(key.toString());
+          Integer key = keys[index];*/
+
+          int key = r.nextInt(Integer.MAX_VALUE);
+          var value = reader.get(Integer.toString(key));
+          if (value != null) {
+            counter[0]++;
+          }
         }
-      }
-    });
+      });
 
-    // Close
-    reader.close();
-
-    // Return measure
-    double rps = READS * nanoBench.getTps();
-    return new Measure(storeFile.length(), rps, valueLength, cacheSize, keys.length);
+      // Return measure
+      double rps = READS * nanoBench.getTps();
+      return new Measure(storeFile.length(), rps, counter[0], counter[1], keys.length);
+    }
   }
 
   private void report(String title, List<Measure> measures) {
     System.out.println(title + "\n\n");
-    System.out.println("FILE LENGTH;KEYS;RPS");
+    System.out.println("FILE LENGTH;KEYS;RPS;VALUE LENGTH;TOTAL READS");
     for (Measure m : measures) {
-      System.out.println(m.fileSize + ";" + m.keys + ";" + m.rps);
+      System.out.println(m.fileSize + ";" + m.keys + ";" + m.rps + ";" + m.valueLength + ";" + m.cacheSize);
     }
   }
 

@@ -39,8 +39,7 @@ public interface Serializer<K> extends Serializable {
    * @param input instance
    * @throws IOException if an io error occurs
    */
-  void write(DataOutput dataOutput, K input)
-      throws IOException;
+  void write(DataOutput dataOutput, K input) throws IOException;
 
   /**
    * Reads the data input and creates the instance.
@@ -49,15 +48,7 @@ public interface Serializer<K> extends Serializable {
    * @return new instance of type <code>K</code>.
    * @throws IOException if an io error occurs
    */
-  K read(DataInput dataInput)
-      throws IOException;
+  K read(DataInput dataInput) throws IOException;
 
-  /**
-   * Returns the estimate number of bytes used to hold <code>instance</code> in memory.
-   * <p>
-   * This information is used by the cache so it can manages its memory usage.
-   * @param instance instance to get weight for
-   * @return the number of bytes the object uses in memory
-   */
-  int getWeight(K instance);
+  Class<K> serializedClass();
 }

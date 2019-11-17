@@ -59,8 +59,9 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   // Buffers
   private final ThreadLocal<ThreadContext> context;
 
-  StorageReader(Configuration configuration, File file)
-      throws IOException {
+  private final BloomFilter bloomFilter;
+
+  StorageReader(Configuration configuration, File file) throws IOException {
     // File path
     // Configuration
     if (!file.exists()) {
@@ -83,8 +84,11 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
     // Offset of the index in the channel
     int indexOffset;
-    try (FileInputStream inputStream = new FileInputStream(file);
-         DataInputStream dataInputStream = new DataInputStream(new BufferedInputStream(inputStream))) {
+    int bloomFilterBitSize = 0;
+    int bloomFilterHashFunctions = 0;
+
+        try (FileInputStream inputStream = new FileInputStream(file);
+             DataInputStream dataInputStream = new DataInputStream(new BufferedInputStream(inputStream))) {
       int ignoredBytes = -2;
 
       //Byte mark
@@ -116,6 +120,24 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
       //Metadata counters
       keyCount = dataInputStream.readInt();
+
+      //read bloom filter bit size
+      bloomFilterBitSize = dataInputStream.readInt();
+      //read bloom filter long array size
+      int bloomFilterLength = dataInputStream.readInt();
+      //read bloom filter hash functions
+      bloomFilterHashFunctions = dataInputStream.readInt();
+      if (bloomFilterLength > 0) {
+        //read bloom filter long array
+        long[] bits = new long[bloomFilterLength];
+        for (int i = 0; i < bloomFilterLength; i++) {
+          bits[i] = dataInputStream.readLong();
+        }
+        bloomFilter = new BloomFilter(bloomFilterHashFunctions, bloomFilterBitSize, bits);
+      } else {
+        bloomFilter = null;
+      }
+
       // Number of different key length
       final int keyLengthCount = dataInputStream.readInt();
       // Max key length
@@ -141,13 +163,6 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
         mSlotSize = Math.max(mSlotSize, slotSizes[keyLength]);
       }
       maxSlotSize = mSlotSize;
-
-      //Read serializers
-      try {
-        Serializers.deserialize(dataInputStream, configuration.getSerializers());
-      } catch (Exception e) {
-        throw new RuntimeException();
-      }
 
       //Read index and data offset
       indexOffset = dataInputStream.readInt() + ignoredBytes;
@@ -186,6 +201,8 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
       }
       statMsg.append("  Index size: ").append(integerFormat.format((dataOffset - indexOffset) / (1024.0 * 1024.0))).append(" Mb\n");
       statMsg.append("  Data size: ").append(integerFormat.format((fileSize - dataOffset) / (1024.0 * 1024.0))).append(" Mb\n");
+      statMsg.append("  Bloom filter size: ").append(integerFormat.format((bloomFilterBitSize / 8.0) / (1024.0 * 1024.0))).append(" Mb\n");
+      statMsg.append("  Bloom filter hashes: ").append(bloomFilterHashFunctions).append("\n");
       log.debug(statMsg.toString());
     }
   }
@@ -220,13 +237,18 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     if (keyLength >= slots.length || keyCounts[keyLength] == 0) {
       return null;
     }
+
+    var ctx = context.get();
+    long hash = ctx.hash(key);
+    if (bloomFilter != null && !bloomFilter.mightContain(hash, ctx.random)) {
+      return null;
+    }
+
     int numSlots = slots[keyLength];
     int slotSize = slotSizes[keyLength];
     int ixOffset = indexOffsets[keyLength];
     long dtOffset = dataOffsets[keyLength];
 
-    var ctx = context.get();
-    long hash = ctx.hash(key);
 
     for (int probe = 0; probe < numSlots; probe++) {
       int slot = (int) ((hash + probe) % numSlots);
@@ -256,6 +278,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   private static final class ThreadContext {
 
     private final HashUtils.Murmur3A hash = new HashUtils.Murmur3A(42);
+    private final Random random = new Random();
     private final MappedByteBuffer indexBuffer;
     private final MappedByteBuffer[] dataBuffers;
     private final DataInputOutput sizeBuffer = new DataInputOutput(new byte[5]);

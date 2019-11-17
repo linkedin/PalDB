@@ -47,14 +47,14 @@ public class TestStoreReader {
 
   @SafeVarargs
   private <V> StoreReader<Integer, V> readerForMany(V... values) {
-    Configuration configuration = new Configuration();
+    var configuration = new Configuration();
     configuration.registerSerializer(new PointSerializer());
     try (StoreWriter<Integer, V> writer = PalDB.createWriter(storeFile, configuration)) {
       for (int i = 0; i < values.length; i++) {
         writer.put(i, values[i]);
       }
     }
-    return PalDB.createReader(storeFile, PalDBConfigBuilder.create().build());
+    return PalDB.createReader(storeFile, configuration);
   }
 
   private <V> StoreReader<Integer, V> readerFor(V value) {
@@ -488,15 +488,16 @@ public class TestStoreReader {
     }
 
     @Override
+    public Class<Point> serializedClass() {
+      return Point.class;
+    }
+
+    @Override
     public void write(DataOutput output, Point input)
         throws IOException {
       output.writeInt(input.x);
       output.writeInt(input.y);
     }
 
-    @Override
-    public int getWeight(Point instance) {
-      return 8;
-    }
   }
 }

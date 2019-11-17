@@ -14,10 +14,9 @@
 
 package com.linkedin.paldb.impl;
 
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
 import org.apache.commons.lang.RandomStringUtils;
+
+import java.util.*;
 
 
 /**
@@ -53,7 +52,7 @@ public class GenerateTestData {
 
   public static Integer[] generateRandomIntKeys(int count, int range, long seed) {
     Random random = new Random(seed);
-    Set<Integer> set = new HashSet<Integer>(count);
+    Set<Integer> set = new HashSet<>(count);
     while (set.size() < count) {
       set.add(random.nextInt(range));
     }

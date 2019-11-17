@@ -15,11 +15,8 @@
 package com.linkedin.paldb.api;
 
 import com.linkedin.paldb.impl.Serializers;
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 
 
 /**
@@ -40,7 +37,7 @@ import java.util.Map;
  * -Dpaldb.mmap.data.enabled=false). All property names should be prefixed
  * with <em>paldb</em>.
  */
-public class Configuration implements Serializable {
+public class Configuration {
 
   // Buffer segment size
   public static final String MMAP_SEGMENT_SIZE = "mmap.segment.size";
@@ -48,16 +45,12 @@ public class Configuration implements Serializable {
   public static final String MMAP_DATA_ENABLED = "mmap.data.enabled";
   // Load factor
   public static final String LOAD_FACTOR = "load.factor";
-  // Cache enabled
-  public static final String CACHE_ENABLED = "cache.enabled";
-  // Cache limit (in bytes)
-  public static final String CACHE_BYTES = "cache.bytes";
-  // Cache initial capacity
-  public static final String CACHE_INITIAL_CAPACITY = "cache.initial.capacity";
-  // Cache load factor
-  public static final String CACHE_LOAD_FACTOR = "cache.load.factor";
   // Enable compression
   public static final String COMPRESSION_ENABLED = "compression.enabled";
+  //Enable bloom filter
+  public static final String BLOOM_FILTER_ENABLED = "bloom.filter.enabled";
+  //Bloom filter error rate
+  public static final String BLOOM_FILTER_ERROR_FACTOR = "bloom.filter.error.factor";
 
   // Property map
   private final Map<String, String> properties = new HashMap<>();
@@ -76,14 +69,9 @@ public class Configuration implements Serializable {
     putWithSystemPropertyDefault(MMAP_SEGMENT_SIZE, "1073741824");
     putWithSystemPropertyDefault(MMAP_DATA_ENABLED, "true");
     putWithSystemPropertyDefault(LOAD_FACTOR, "0.75");
-    putWithSystemPropertyDefault(CACHE_ENABLED, "false");
-    putWithSystemPropertyDefault(CACHE_INITIAL_CAPACITY, "1000");
-    putWithSystemPropertyDefault(CACHE_LOAD_FACTOR, "0.75");
     putWithSystemPropertyDefault(COMPRESSION_ENABLED, "false");
-
-    //Default cache size: (Xmx - 100mo);
-    long cacheMemory = Math.max(0, Runtime.getRuntime().maxMemory() - (100 * 1024 * 1024));
-    putWithSystemPropertyDefault(CACHE_BYTES, String.valueOf(cacheMemory));
+    putWithSystemPropertyDefault(BLOOM_FILTER_ENABLED, "false");
+    putWithSystemPropertyDefault(BLOOM_FILTER_ERROR_FACTOR, "0.01");
 
     //Serializers
     serializers = new Serializers();
@@ -395,18 +383,8 @@ public class Configuration implements Serializable {
    *
    * @param serializer serializer to register
    */
-  public void registerSerializer(Serializer serializer) {
+  public <T> void registerSerializer(Serializer<T> serializer) {
     serializers.registerSerializer(serializer);
-  }
-
-  /**
-   * Gets the serializer for the given class or null if not found.
-   *
-   * @param cls object class
-   * @return serializer or null if not found
-   */
-  public <T> Serializer<T> getSerializer(Class<T> cls) {
-    return serializers.getSerializer(cls);
   }
 
   public Serializers getSerializers() {

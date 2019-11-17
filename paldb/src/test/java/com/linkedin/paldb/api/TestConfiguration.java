@@ -18,8 +18,9 @@ import org.testng.annotations.Test;
 
 import java.awt.*;
 import java.io.*;
-import java.util.Arrays;
+import java.util.*;
 
+import static java.util.Collections.singletonList;
 import static org.testng.Assert.*;
 
 
@@ -191,7 +192,7 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    assertEquals(c.getLong("foo"), 1l);
+    assertEquals(c.getLong("foo"), 1L);
   }
 
   @Test(expectedExceptions = IllegalArgumentException.class)
@@ -204,8 +205,8 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    assertEquals(c.getLong("foo", 2l), 1l);
-    assertEquals(c.getLong("bar", 2l), 2l);
+    assertEquals(c.getLong("foo", 2L), 1L);
+    assertEquals(c.getLong("bar", 2L), 2L);
   }
 
   @Test
@@ -241,31 +242,8 @@ public class TestConfiguration {
     Configuration c = new Configuration();
     c.set("foo", "foo,bar");
 
-    assertEquals(c.getList("foo", Arrays.asList("that")), Arrays.asList("foo", "bar"));
-    assertEquals(c.getList("bar", Arrays.asList("that")), Arrays.asList("that"));
-  }
-
-  @Test
-  public void testSerialization()
-      throws Throwable {
-    Configuration c = new Configuration();
-    c.set("foo", "bar");
-    c.registerSerializer(new PointSerializer());
-
-    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    ObjectOutputStream out = new ObjectOutputStream(bos);
-    out.writeObject(c);
-    out.close();
-    bos.close();
-
-    byte[] bytes = bos.toByteArray();
-    ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-    ObjectInputStream in = new ObjectInputStream(bis);
-    Configuration sc = (Configuration) in.readObject();
-    in.close();
-    bis.close();
-
-    assertEquals(sc, c);
+    assertEquals(c.getList("foo", singletonList("that")), Arrays.asList("foo", "bar"));
+    assertEquals(c.getList("bar", singletonList("that")), singletonList("that"));
   }
 
   // UTILITY
@@ -278,13 +256,14 @@ public class TestConfiguration {
     }
 
     @Override
+    public Class<Point> serializedClass() {
+      return Point.class;
+    }
+
+    @Override
     public void write(DataOutput output, Point input) {
 
     }
 
-    @Override
-    public int getWeight(Point instance) {
-      return 0;
-    }
   }
 }

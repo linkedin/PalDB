@@ -233,7 +233,7 @@ public class TestStore {
     testKeyLength(key2, 2);
 
     //Write
-    writeStore(storeFile, new Object[]{key1, key2}, new Object[]{1, 6});
+    writeStore(storeFile, new Integer[]{key1, key2}, new Integer[]{1, 6});
 
     //Read
     try (StoreReader<Integer, Integer> reader = PalDB.createReader(storeFile, new Configuration())) {
@@ -257,7 +257,7 @@ public class TestStore {
     testKeyLength(key2, 3);
 
     //Write
-    writeStore(storeFile, new Object[]{key1, key2}, new Object[]{1, 6});
+    writeStore(storeFile, new Integer[]{key1, key2}, new Integer[]{1, 6});
 
     //Read
     try (StoreReader<Integer,Integer> reader = PalDB.createReader(storeFile, new Configuration())) {
@@ -283,7 +283,7 @@ public class TestStore {
     testKeyLength(key2, 3);
 
     //Write
-    writeStore(storeFile, new Object[]{key1, key2}, new Object[]{1, 6});
+    writeStore(storeFile, new Integer[]{key1, key2}, new Integer[]{1, 6});
 
     //Read
     try (StoreReader<Integer,Integer> reader = PalDB.createReader(storeFile, new Configuration())) {
@@ -330,8 +330,8 @@ public class TestStore {
 
   @Test
   public void testDataSizeOnTwoBuffers() throws IOException {
-    Object[] keys = new Object[]{1, 2, 3};
-    Object[] values = new Object[]{GenerateTestData.generateStringData(100), GenerateTestData
+    Integer[] keys = new Integer[]{1, 2, 3};
+    String[] values = new String[]{GenerateTestData.generateStringData(100), GenerateTestData
         .generateStringData(10000), GenerateTestData.generateStringData(100)};
 
     StorageSerialization serialization = new StorageSerialization(new Configuration());
@@ -549,8 +549,8 @@ public class TestStore {
     }
   }
 
-  private void writeStore(File location, Object[] keys, Object[] values) {
-    try (StoreWriter<Object,Object> writer = PalDB.createWriter(location, new Configuration())) {
+  private <K,V> void writeStore(File location, K[] keys, V[] values) {
+    try (StoreWriter<K,V> writer = PalDB.createWriter(location, new Configuration())) {
       writer.putAll(keys, values);
     }
   }

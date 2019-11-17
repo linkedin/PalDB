@@ -15,7 +15,6 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.Serializer;
-import com.linkedin.paldb.utils.DataInputOutput;
 import org.testng.annotations.*;
 
 import java.awt.*;
@@ -26,100 +25,58 @@ import static org.testng.Assert.*;
 
 public class TestSerializers {
 
-  private Serializers _serializers;
+  private Serializers serializers;
 
   @BeforeMethod
   public void setUp() {
-    _serializers = new Serializers();
+    serializers = new Serializers();
   }
 
   @Test
   public void testRegister() {
     ColorSerializer i = new ColorSerializer();
-    _serializers.registerSerializer(i);
-    assertSame(_serializers.getSerializer(Color.class), i);
-    assertEquals(_serializers.getIndex(Color.class), 0);
+    serializers.registerSerializer(i);
+    assertSame(serializers.getSerializer(Color.class), i);
   }
 
   @Test
   public void testRegisterTwice() {
     ColorSerializer i1 = new ColorSerializer();
     ColorSerializer i2 = new ColorSerializer();
-    _serializers.registerSerializer(i1);
-    _serializers.registerSerializer(i2);
-    assertSame(_serializers.getSerializer(Color.class), i1);
+    serializers.registerSerializer(i1);
+    serializers.registerSerializer(i2);
+    assertSame(serializers.getSerializer(Color.class), i1);
   }
 
   @Test
   public void testRegisterTwo() {
     ColorSerializer i = new ColorSerializer();
     PointSerializer f = new PointSerializer();
-    _serializers.registerSerializer(i);
-    _serializers.registerSerializer(f);
-    assertSame(_serializers.getSerializer(Color.class), i);
-    assertEquals(_serializers.getIndex(Color.class), 0);
-    assertSame(_serializers.getSerializer(Point.class), f);
-    assertEquals(_serializers.getIndex(Point.class), 1);
+    serializers.registerSerializer(i);
+    serializers.registerSerializer(f);
+    assertSame(serializers.getSerializer(Color.class), i);
+    assertSame(serializers.getSerializer(Point.class), f);
   }
 
   @Test
   public void testGetSerializer() {
     ColorSerializer i = new ColorSerializer();
-    _serializers.registerSerializer(i);
-    assertNull(_serializers.getSerializer(Point.class));
-    assertNotNull(_serializers.getSerializer(Color.class));
+    serializers.registerSerializer(i);
+    assertNull(serializers.getSerializer(Point.class));
+    assertNotNull(serializers.getSerializer(Color.class));
   }
 
   @Test
-  public void testGetIndex() {
-    ColorSerializer i = new ColorSerializer();
-    _serializers.registerSerializer(i);
-    assertEquals(_serializers.getIndex(Color.class), 0);
+  public void testSerialize() {
+    serializers.registerSerializer(new ColorSerializer());
+    assertNotNull(serializers.getSerializer(Color.class));
   }
 
   @Test
-  public void testGetByIndex() {
-    ColorSerializer i = new ColorSerializer();
-    _serializers.registerSerializer(i);
-    assertSame(_serializers.getSerializer(0), i);
-  }
-
-  @Test(expectedExceptions = IllegalArgumentException.class)
-  public void testGetByIndexMissing() {
-    _serializers.getSerializer(0);
-  }
-
-  @Test(expectedExceptions = RuntimeException.class)
-  public void testMissingType() {
-    MissingTypeSerializer i = new MissingTypeSerializer();
-    _serializers.registerSerializer(i);
-  }
-
-  @Test(expectedExceptions = RuntimeException.class)
-  public void testObjectType() {
-    ObjectTypeSerializer i = new ObjectTypeSerializer();
-    _serializers.registerSerializer(i);
-  }
-
-  @Test
-  public void testSerialize() throws Throwable {
-    _serializers.registerSerializer(new ColorSerializer());
-    DataInputOutput dio = new DataInputOutput();
-    Serializers.serialize(dio, _serializers);
-    byte[] bytes = dio.toByteArray();
-    dio = new DataInputOutput(bytes);
-    _serializers.clear();
-    Serializers.deserialize(dio, _serializers);
-    assertNotNull(_serializers.getSerializer(Color.class));
-    assertEquals(_serializers.getIndex(Color.class), 0);
-    assertNotNull(_serializers.getSerializer(0));
-  }
-
-  @Test
-  public void testInterfaceType() throws Throwable {
+  public void testInterfaceType() {
     SerializerWithInterface i = new SerializerWithInterface();
-    _serializers.registerSerializer(i);
-    assertSame(_serializers.getSerializer(AnInterface.class), i);
+    serializers.registerSerializer(i);
+    assertSame(serializers.getSerializer(AnInterface.class), i);
   }
 
   // HELPER
@@ -132,14 +89,15 @@ public class TestSerializers {
     }
 
     @Override
+    public Class<Color> serializedClass() {
+      return Color.class;
+    }
+
+    @Override
     public void write(DataOutput output, Color input) {
 
     }
 
-    @Override
-    public int getWeight(Color instance) {
-      return 0;
-    }
   }
 
   public static class PointSerializer implements Serializer<Point> {
@@ -150,53 +108,18 @@ public class TestSerializers {
     }
 
     @Override
+    public Class<Point> serializedClass() {
+      return Point.class;
+    }
+
+    @Override
     public void write(DataOutput output, Point input) {
 
     }
 
-    @Override
-    public int getWeight(Point instance) {
-      return 0;
-    }
   }
 
-  public static class MissingTypeSerializer implements Serializer {
-
-    @Override
-    public Object read(DataInput input) {
-      return null;
-    }
-
-    @Override
-    public void write(DataOutput output, Object input) {
-
-    }
-
-    @Override
-    public int getWeight(Object instance) {
-      return 0;
-    }
-  }
-
-  public static class ObjectTypeSerializer implements Serializer<Object> {
-
-    @Override
-    public Object read(DataInput input) {
-      return null;
-    }
-
-    @Override
-    public void write(DataOutput output, Object input) {
-
-    }
-
-    @Override
-    public int getWeight(Object instance) {
-      return 0;
-    }
-  }
-
-  public static interface AnInterface {
+  public interface AnInterface {
 
   }
 
@@ -212,13 +135,14 @@ public class TestSerializers {
     }
 
     @Override
+    public Class<AnInterface> serializedClass() {
+      return AnInterface.class;
+    }
+
+    @Override
     public void write(DataOutput output, AnInterface input) {
 
     }
 
-    @Override
-    public int getWeight(AnInterface instance) {
-      return 0;
-    }
   }
 }
