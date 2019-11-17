@@ -14,27 +14,26 @@
 
 package com.linkedin.paldb.utils;
 
+import org.apache.commons.codec.digest.MurmurHash3;
+
 import java.util.zip.Checksum;
 
 
 /**
  * Hashing utility.
  */
-public class HashUtils {
+public final class HashUtils {
 
-  // Hash implementation
-  private final Murmur3A hash = new Murmur3A(42);
+  private HashUtils() { }
 
-  /**
+    /**
    * Returns the positive hash for the given <code>bytes</code>.
    *
    * @param bytes bytes to hash
    * @return hash
    */
-  public int hash(byte[] bytes) {
-    hash.reset();
-    hash.update(bytes);
-    return hash.getIntValue() & 0x7fffffff;
+  public static long hash(byte[] bytes) {
+    return MurmurHash3.hash32(bytes) & 0x7fffffff;
   }
 
   /**

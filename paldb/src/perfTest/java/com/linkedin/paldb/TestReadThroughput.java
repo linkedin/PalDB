@@ -57,10 +57,24 @@ public class TestReadThroughput {
   @Test
   public void testReadThroughputWithCache() {
 
-    List<Measure> measures = new ArrayList<Measure>();
+    List<Measure> measures = new ArrayList<>();
     int max = 10000000;
     for (int i = 100; i <= max; i *= 10) {
-      Measure m = measure(i, 0, 0.2, false);
+      Measure m = measure(i, 0, 0.05, false);
+
+      measures.add(m);
+    }
+
+    report("READ THROUGHPUT WITH CACHE (Set int -> boolean)", measures);
+  }
+
+  @Test
+  public void testReadThroughputWithCacheRandomFinds() {
+
+    List<Measure> measures = new ArrayList<>();
+    int max = 10000000;
+    for (int i = 100; i <= max; i *= 10) {
+      Measure m = measure(i, 0, 0.05, true);
 
       measures.add(m);
     }
@@ -70,22 +84,20 @@ public class TestReadThroughput {
 
   // UTILITY
 
-  private Measure measure(int keysCount, int valueLength, double cacheSizeRatio, final boolean frequentReads) {
+  private Measure measure(int keysCount, int valueLength, double errorRate, final boolean randomReads) {
     // Write store
     File storeFile = new File(TEST_FOLDER, "paldb" + keysCount + "-" + valueLength + ".store");
     // Generate keys
     long seed = 4242;
     final Integer[] keys = GenerateTestData.generateRandomIntKeys(keysCount, Integer.MAX_VALUE, seed);
-    Configuration config = PalDB.newConfiguration();
-    // Get reader
-    long cacheSize = 0;
-    if (cacheSizeRatio > 0) {
-      cacheSize = (long) (storeFile.length() * cacheSizeRatio);
-      config.set(Configuration.BLOOM_FILTER_ENABLED, "true");
-    } else {
-      config.set(Configuration.BLOOM_FILTER_ENABLED, "false");
+
+    var configBuilder = PalDBConfigBuilder.create();
+    if (errorRate > 0) {
+      configBuilder.withEnableBloomFilter(true)
+              .withBloomFilterErrorFactor(errorRate);
     }
 
+    var config = configBuilder.build();
 
     try (StoreWriter<String,String> writer = PalDB.createWriter(storeFile, config)) {
       for (Integer key : keys) {
@@ -102,19 +114,16 @@ public class TestReadThroughput {
       // Measure
       NanoBench nanoBench = NanoBench.create();
       nanoBench.cpuOnly().warmUps(5).measurements(20).measure("Measure %d reads for %d keys with cache", () -> {
-        Random r = new Random();
+        Random r = new Random(42);
         int length = keys.length;
         for (int i = 0; i < READS; i++) {
           counter[1]++;
-          /*int index;
-          if (i % 2 == 0 && frequentReads) {
-            index = r.nextInt(length / 10);
+          int key;
+          if (randomReads) {
+            key = r.nextInt(Integer.MAX_VALUE);
           } else {
-            index = r.nextInt(length);
+            key = keys[r.nextInt(length)];
           }
-          Integer key = keys[index];*/
-
-          int key = r.nextInt(Integer.MAX_VALUE);
           var value = reader.get(Integer.toString(key));
           if (value != null) {
             counter[0]++;
@@ -130,7 +139,7 @@ public class TestReadThroughput {
 
   private void report(String title, List<Measure> measures) {
     System.out.println(title + "\n\n");
-    System.out.println("FILE LENGTH;KEYS;RPS;VALUE LENGTH;TOTAL READS");
+    System.out.println("FILE LENGTH;KEYS;RPS;VALUES FOUND;TOTAL READS");
     for (Measure m : measures) {
       System.out.println(m.fileSize + ";" + m.keys + ";" + m.rps + ";" + m.valueLength + ";" + m.cacheSize);
     }

@@ -12,14 +12,15 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 */
 
-package com.linkedin.paldb.api;
+package com.linkedin.paldb.api.errors;
+
+import com.linkedin.paldb.api.StoreReader;
 
 /**
  * Exception returned when a type isn't supported
  *
  * @see StoreReader
  */
-@SuppressWarnings("serial")
 public class UnsupportedTypeException extends RuntimeException {
 
   public UnsupportedTypeException(Object obj) {

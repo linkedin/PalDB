@@ -15,6 +15,7 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
+import com.linkedin.paldb.api.errors.UnsupportedTypeException;
 import org.testng.Assert;
 import org.testng.annotations.*;
 

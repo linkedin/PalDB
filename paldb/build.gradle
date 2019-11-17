@@ -41,6 +41,8 @@ perfTest {
 dependencies {
   compile 'org.xerial.snappy:snappy-java:1.1.7.3'
   compile 'org.slf4j:slf4j-api:1.7.28'
+  compile 'commons-codec:commons-codec:1.13'
+
 
   testCompile 'org.testng:testng:7.0.0'
   testCompile 'commons-lang:commons-lang:2.6'

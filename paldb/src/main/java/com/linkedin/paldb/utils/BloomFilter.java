@@ -1,5 +1,7 @@
 package com.linkedin.paldb.utils;
 
+import org.apache.commons.codec.digest.MurmurHash3;
+
 import java.util.*;
 
 import static java.lang.Math.log;
@@ -9,7 +11,6 @@ public class BloomFilter {
   private final long[] bits;
   private final int hashFunctions; // Number of hash functions
   private static final double LN2 = 0.6931471805599453; // ln(2)
-  private final Random random = new Random();
   private final int sizeInBits;
 
   public BloomFilter(int elements, int sizeInBits) {
@@ -31,12 +32,18 @@ public class BloomFilter {
   }
 
   public void add(long hash) {
-    random.setSeed(hash);
-
     for (int i = 0; i < hashFunctions; i++) {
-      int value = Math.abs(random.nextInt() % sizeInBits);
+      int value = Math.abs(MurmurHash3.hash32(hash, i) % sizeInBits);
       setBit(value);
     }
+  }
+
+  public boolean mightContain(long hash) {
+    for (int i = 0; i < hashFunctions; i++) {
+      int value = Math.abs(MurmurHash3.hash32(hash, i) % sizeInBits);
+      if (!getBit(value)) return false;
+    }
+    return true;
   }
 
   public long[] bits() {
@@ -53,16 +60,6 @@ public class BloomFilter {
     int flagIndex = position / BITS_IN_LONG;
     int bitIndexInFlag = position % BITS_IN_LONG;
     return ((bits[flagIndex] >> bitIndexInFlag) & 1L) == 1;
-  }
-
-  public boolean mightContain(long hash, Random random) {
-    random.setSeed(hash);
-
-    for (int i = 0; i < hashFunctions; i++) {
-      int value = Math.abs(random.nextInt() % sizeInBits);
-      if (!getBit(value)) return false;
-    }
-    return true;
   }
 
   public void clear() {

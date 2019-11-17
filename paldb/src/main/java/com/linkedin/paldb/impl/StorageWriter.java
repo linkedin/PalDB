@@ -15,6 +15,7 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.Configuration;
+import com.linkedin.paldb.api.errors.*;
 import com.linkedin.paldb.utils.*;
 import org.slf4j.*;
 
@@ -59,8 +60,6 @@ public class StorageWriter {
   // Number of collisions
   private int collisions;
 
-  private HashUtils hashUtils;
-
   StorageWriter(Configuration configuration, OutputStream stream) {
     config = configuration;
     loadFactor = config.getDouble(Configuration.LOAD_FACTOR);
@@ -82,8 +81,7 @@ public class StorageWriter {
     dataLengths = new long[0];
     maxOffsetLengths = new int[0];
     keyCounts = new int[0];
-    hashUtils = new HashUtils();
-  }
+   }
 
   public void put(byte[] key, byte[] value)
       throws IOException {
@@ -295,7 +293,7 @@ public class StorageWriter {
             long offset = LongPacker.unpackLong(tempIndexStream);
 
             // Hash
-            long hash = hashUtils.hash(keyBuffer);
+            long hash = HashUtils.hash(keyBuffer);
             if (bloomFilter != null) {
               bloomFilter.add(hash);
             }
@@ -318,8 +316,8 @@ public class StorageWriter {
                 collision = true;
                 // Check for duplicates
                 if (Arrays.equals(keyBuffer, Arrays.copyOf(slotBuffer, keyLength))) {
-                  throw new RuntimeException(
-                          String.format("A duplicate key has been found for for key bytes %s", Arrays.toString(keyBuffer)));
+                  throw new DuplicateKeyException(
+                          String.format("A duplicate key has been found for key bytes %s", Arrays.toString(keyBuffer)));
                 }
               }
             }
@@ -360,7 +358,7 @@ public class StorageWriter {
     log.info("Usable free space on the system is {} Mb",
         new DecimalFormat("#,##0.0").format(usableSpace / (1024 * 1024)));
     if (totalSize / (double) usableSpace >= 0.66) {
-      throw new RuntimeException("Aborting because there isn't enough free disk space");
+      throw new OutOfDiskSpace("Aborting because there isn't enough free disk space");
     }
   }
 

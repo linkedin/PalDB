@@ -129,15 +129,13 @@ Write parameters:
 
 + `load.factor`,  index load factor (double) [default: 0.75]
 + `compression.enabled`, enable compression (boolean) [default: false]
++ `bloom.filter.enabled`, enable bloom filter (boolean) [default: false]
++ `bloom.filter.error.factor`, bloom filter error rate  (double) [default: 0.01]
 
 Read parameters:
 
 + `mmap.data.enabled`, enable memory mapping for data (boolean) [default: true]
 + `mmap.segment.size`, memory map segment size (bytes) [default: 1GB]
-+ `cache.enabled`, LRU cache enabled (boolean) [default: false]
-+ `cache.bytes`, cache limit (bytes) [default: Xmx - 100MB]
-+ `cache.initial.capacity`, cache initial capacity (int) [default: 1000]
-+ `cache.load.factor`, cache load factor (double) [default: 0.75]
 
 Configuration values are passed at init time. Example using fluent builder:
 ```java
@@ -145,11 +143,8 @@ var config = PalDBConfigBuilder.create()
                 .withMemoryMapSegmentSize(512 * 1024 * 1024)
                 .withMemoryMapDataEnabled(false)
                 .withIndexLoadFactor(0.75)
-                .withLRUCacheEnabled(true)
-                .withCacheSizeLimit(10_000)
-                .withCacheInitialCapacity(1000)
-                .withCacheLoadFactor(0.5)
                 .withEnableCompression(true)
+                .withEnableBloomFilter(true)
                 .build();
 StoreReader<String,String> reader = PalDB.createReader(new File("store.paldb"), config);
 ```
@@ -157,7 +152,7 @@ StoreReader<String,String> reader = PalDB.createReader(new File("store.paldb"), 
 A few tips on how configuration can affect performance:
 
 + Disabling memory mapping will significantly reduce performance as disk seeks will be performed instead.
-+ Enabling the cache makes sense when the value size is large and there's a significant cost in deserialization. Otherwise, the cache adds an overhead. The cache is also useful when memory mapping is disabled.
++ Enabling the bloom filter makes sense when you expect to miss finding some values. It will greatly increase read performance in this case.
 + Compression can be enabled when the store size is a concern and the values are large (e.g. a sparse matrix). By default, PalDB already uses a compact serialization. Snappy is used for compression.
 
 Custom serializer
@@ -180,20 +175,20 @@ public class PointSerializer implements Serializer<Point> {
     output.writeInt(point.x);
     output.writeInt(point.y);
   }
-
+  
   @Override
-  public int getWeight(Point instance) {
-    return 8;
+  public Class<Point> serializedClass() {
+    return Point.class;
   }
 }
 ```
 
-The `write` method serializes the instance to the `DataOutput`. The `read` method deserializes from `DataInput` and creates new object instances. The `getWeight` method returns the estimated memory used by an instance in bytes. The latter is used by the cache to evaluate the amount of memory it's currently using.
+The `write` method serializes the instance to the `DataOutput`. The `read` method deserializes from `DataInput` and creates new object instances.
 
 Serializer implementation should be registered using the `Configuration`:
 
 ```java
-Configuration configuration = PalDB.newConfiguration();
+var configuration = PalDB.newConfiguration();
 configuration.registerSerializer(new PointSerializer());
 ```
 
@@ -210,7 +205,7 @@ Limitations
 -----------
 + PalDB is optimal in replacing the usage of large in-memory data storage but still use memory (off-heap, yet much less) to do its job. Disabling memory mapping and relying on seeks is possible but is not what PalDB has been optimized for.
 + The size of the index is limited to 2GB. There's no limitation in the data size however.
-+ PalDB is not thread-safe at the moment so synchronization should be done externally if multi-threaded.
++ PalDB reader is thread-safe and writer is not thread-safe at the moment so synchronization should be done externally if multi-threaded.
 
 Contributions
 -----------
@@ -220,4 +215,5 @@ Any helpful feedback is more than welcome. This includes feature requests, bug r
 Copyright & License
 -------------------
 
+PalDB © 2019 Linas Naginionis. Licensed under the terms of the Apache License, Version 2.0.
 PalDB © 2015 LinkedIn Corp. Licensed under the terms of the Apache License, Version 2.0.

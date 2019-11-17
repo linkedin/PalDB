@@ -238,12 +238,12 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
       return null;
     }
 
-    var ctx = context.get();
-    long hash = ctx.hash(key);
-    if (bloomFilter != null && !bloomFilter.mightContain(hash, ctx.random)) {
-      return null;
+    long hash = HashUtils.hash(key);
+    if (bloomFilter != null && !bloomFilter.mightContain(hash)) {
+        return null;
     }
 
+    var ctx = context.get();
     int numSlots = slots[keyLength];
     int slotSize = slotSizes[keyLength];
     int ixOffset = indexOffsets[keyLength];
@@ -276,9 +276,6 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   }
 
   private static final class ThreadContext {
-
-    private final HashUtils.Murmur3A hash = new HashUtils.Murmur3A(42);
-    private final Random random = new Random();
     private final MappedByteBuffer indexBuffer;
     private final MappedByteBuffer[] dataBuffers;
     private final DataInputOutput sizeBuffer = new DataInputOutput(new byte[5]);
@@ -292,12 +289,6 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
       this.indexBuffer = indexBuffer;
       this.dataBuffers = dataBuffers;
       this.slotBuffer = slotBuffer;
-    }
-
-    public int hash(byte[] bytes) {
-      hash.reset();
-      hash.update(bytes);
-      return hash.getIntValue() & 0x7fffffff;
     }
   }
 
