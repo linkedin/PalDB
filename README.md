@@ -101,7 +101,7 @@ No, like a hashtable PalDB stores have no order.
 Build
 -----
 
-PalDB requires Java 11+ and gradle. The target Java version is 11.
+PalDB requires Java 13+ and gradle. The target Java version is 13.
 
 ```bash
 gradle build

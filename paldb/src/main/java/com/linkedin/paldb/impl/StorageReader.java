@@ -21,6 +21,7 @@ import org.slf4j.*;
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.FileChannel;
+import java.nio.charset.MalformedInputException;
 import java.text.*;
 import java.util.*;
 
@@ -57,9 +58,9 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   // Use MMap for data?
   private final boolean mMapData;
   // Buffers
-  private final ThreadLocal<ThreadContext> context;
-
   private final BloomFilter bloomFilter;
+  private final MappedByteBuffer indexBuffer;
+  private final MappedByteBuffer[] dataBuffers;
 
   StorageReader(Configuration configuration, File file) throws IOException {
     // File path
@@ -180,12 +181,8 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
     //Check if data size fits in memory map limit
     mMapData = configuration.getBoolean(Configuration.MMAP_DATA_ENABLED);
-    context = mMapData ?
-            ThreadLocal.withInitial(() -> new ThreadContext(
-                    initIndexBuffer(channel, indexOffset),
-                    initDataBuffers(channel),
-                    new byte[maxSlotSize])) :
-            ThreadLocal.withInitial(() -> new ThreadContext(initIndexBuffer(channel, indexOffset), new byte[maxSlotSize]));
+    indexBuffer = initIndexBuffer(channel, indexOffset);
+    dataBuffers = initDataBuffers(channel);
 
     //logging
     if (log.isDebugEnabled()) {
@@ -242,24 +239,22 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
         return null;
     }
 
-    var ctx = context.get();
     int numSlots = slots[keyLength];
     int slotSize = slotSizes[keyLength];
     int ixOffset = indexOffsets[keyLength];
     long dtOffset = dataOffsets[keyLength];
     long hash = HashUtils.hash(key);
-
+    var slotBuffer = new byte[slotSize];
     for (int probe = 0; probe < numSlots; probe++) {
       int slot = (int) ((hash + probe) % numSlots);
-      ctx.indexBuffer.position(ixOffset + slot * slotSize);
-      ctx.indexBuffer.get(ctx.slotBuffer, 0, slotSize);
-
-      long offset = LongPacker.unpackLong(ctx.slotBuffer, keyLength);
+      indexBuffer.get(ixOffset + slot * slotSize, slotBuffer, 0, slotSize);
+      long offset = LongPacker.unpackLong(slotBuffer, keyLength);
       if (offset == 0L) {
+        log.info("Got offset 0, returning...");
         return null;
       }
-      if (isKey(ctx.slotBuffer, key)) {
-        return mMapData ? getMMapBytes(dtOffset + offset, ctx) : getDiskBytes(dtOffset + offset);
+      if (isKey(slotBuffer, key)) {
+        return mMapData ? getMMapBytes(dtOffset + offset) : getDiskBytes(dtOffset + offset);
       }
     }
     return null;
@@ -274,79 +269,82 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     return true;
   }
 
-  private static final class ThreadContext {
-    private final MappedByteBuffer indexBuffer;
-    private final MappedByteBuffer[] dataBuffers;
-    private final DataInputOutput sizeBuffer = new DataInputOutput(new byte[5]);
-    private final byte[] slotBuffer;
-
-    private ThreadContext(MappedByteBuffer indexBuffer, byte[] slotBuffer) {
-      this(indexBuffer, null, slotBuffer);
-    }
-
-    private ThreadContext(MappedByteBuffer indexBuffer, MappedByteBuffer[] dataBuffers, byte[] slotBuffer) {
-      this.indexBuffer = indexBuffer;
-      this.dataBuffers = dataBuffers;
-      this.slotBuffer = slotBuffer;
-    }
-  }
-
   //Close the reader channel
   public void close() throws IOException {
     channel.close();
     mappedFile.close();
-    context.remove();
   }
 
   public int getKeyCount() {
     return keyCount;
   }
 
-  //Read the data at the given offset, the data can be spread over multiple data buffers
-  private byte[] getMMapBytes(long offset, ThreadContext ctx) throws IOException {
-    //Read the first 4 bytes to get the size of the data
-    ByteBuffer buf = getDataBuffer(offset, ctx);
-    int maxLen = (int) Math.min(5, dataSize - offset);
+  private int remaining(ByteBuffer buffer, int pos) {
+    return buffer.limit() - pos;
+  }
 
-    int size;
-    if (buf.remaining() >= maxLen) {
+  //Read the data at the given offset, the data can be spread over multiple data buffers
+  private byte[] getMMapBytes(long offset) throws IOException {
+    var buf = dataBuffers[(int) (offset / segmentSize)];
+    var pos = (int) (offset % segmentSize);
+
+    int maxLen = (int) Math.min(5, dataSize - offset);
+    //Read the first 4 bytes to get the size of the data
+    int size = -1;
+    if (remaining(buf, pos) >= maxLen) {
       //Continuous read
-      int pos = buf.position();
-      size = LongPacker.unpackInt(buf);
+      int oldPos = pos;
+
+      //unpack int
+      for (int i = 0, result = 0; i < 32; i += 7) {
+        int b = buf.get(pos++) & 0xffff;
+        result |= (b & 0x7F) << i;
+        if ((b & 0x80) == 0) {
+          size = result;
+          break;
+        }
+      }
+      if (size == -1) throw new MalformedInputException(Integer.BYTES);
 
       // Used in case of data is spread over multiple buffers
-      offset += buf.position() - pos;
+      offset += pos - oldPos;
     } else {
       //The size of the data is spread over multiple buffers
       int len = maxLen;
       int off = 0;
-      ctx.sizeBuffer.reset();
-      while (len > 0) {
-        buf = getDataBuffer(offset + off, ctx);
-        int count = Math.min(len, buf.remaining());
-        buf.get(ctx.sizeBuffer.getBuf(), off, count);
-        off += count;
-        len -= count;
+
+      try (var sizeBuffer = new DataInputOutput(new byte[5])) {
+        while (len > 0) {
+          buf = dataBuffers[(int) ( (offset + off) / segmentSize)];
+          pos =  (int) ( (offset + off) % segmentSize);
+          int count = Math.min(len, remaining(buf, pos));
+          buf.get(pos, sizeBuffer.getBuf(), off, count);
+          off += count;
+          len -= count;
+        }
+        size = LongPacker.unpackInt(sizeBuffer);
+        offset += sizeBuffer.getPos();
+
+        buf = dataBuffers[(int) (offset / segmentSize)];
+        pos =  (int) (offset % segmentSize);
       }
-      size = LongPacker.unpackInt(ctx.sizeBuffer);
-      offset += ctx.sizeBuffer.getPos();
-      buf = getDataBuffer(offset, ctx);
     }
 
     //Create output bytes
     byte[] res = new byte[size];
 
     //Check if the data is one buffer
-    if (buf.remaining() >= size) {
+    if (remaining(buf, pos) >= size) {
       //Continuous read
-      buf.get(res, 0, size);
+      buf.get(pos, res, 0, size);
     } else {
       int len = size;
       int off = 0;
       while (len > 0) {
-        buf = getDataBuffer(offset, ctx);
-        int count = Math.min(len, buf.remaining());
-        buf.get(res, off, count);
+        buf = dataBuffers[(int) (offset / segmentSize)];
+        pos =  (int) (offset % segmentSize);
+        int count = Math.min(len, remaining(buf, pos));
+        buf.get(pos, res, off, count);
         offset += count;
         off += count;
         len -= count;
@@ -373,13 +371,6 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     }
 
     return res;
-  }
-
-  //Return the data buffer for the given position
-  private ByteBuffer getDataBuffer(long index, ThreadContext ctx) {
-    ByteBuffer buf = ctx.dataBuffers[(int) (index / segmentSize)];
-    buf.position((int) (index % segmentSize));
-    return buf;
   }
 
   private String formatCreatedAt(long createdAt) {
@@ -437,12 +428,9 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     @Override
     public FastEntry next() {
       try {
-        var ctx = context.get();
-        ctx.indexBuffer.position(currentIndexOffset);
-
         long offset = 0;
         while (offset == 0) {
-          ctx.indexBuffer.get(currentSlotBuffer);
+          indexBuffer.get(currentIndexOffset, currentSlotBuffer);
           offset = LongPacker.unpackLong(currentSlotBuffer, currentKeyLength);
           currentIndexOffset += currentSlotBuffer.length;
         }
@@ -452,7 +440,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
         if (withValue) {
           long valueOffset = currentDataOffset + offset;
-          value = mMapData ? getMMapBytes(valueOffset, ctx) : getDiskBytes(valueOffset);
+          value = mMapData ? getMMapBytes(valueOffset) : getDiskBytes(valueOffset);
         }
 
         entry.set(key, value);

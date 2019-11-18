@@ -209,7 +209,7 @@ public class TestStore {
   @Test
   public void testByteMarkOneKey() throws IOException {
     try (FileOutputStream fos = new FileOutputStream(storeFile);
-         StoreWriter<Integer,String> writer = PalDB.createWriter(fos, new Configuration());) {
+         StoreWriter<Integer,String> writer = PalDB.createWriter(fos, new Configuration())) {
       fos.write(12345);
       fos.write(FormatVersion.getPrefixBytes()[0]);
       fos.write(3456);
@@ -349,7 +349,7 @@ public class TestStore {
     configuration.set(Configuration.MMAP_SEGMENT_SIZE, String.valueOf(byteSize + sizeSize + 3));
     try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile, configuration)) {
       for (int i = 0; i < keys.length; i++) {
-        assertEquals(reader.get((Integer) keys[i], null), values[i]);
+        assertEquals(reader.get(keys[i], null), values[i]);
       }
     }
   }

@@ -21,8 +21,11 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.testng.annotations.*;
 
 import java.io.*;
-import java.nio.file.*;
+import java.nio.file.Files;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 
 public class TestReadThroughput {
@@ -55,7 +58,7 @@ public class TestReadThroughput {
     List<Measure> measures = new ArrayList<>();
     int max = 10000000;
     for (int i = 100; i <= max; i *= 10) {
-      Measure m = measure(i, 0, 0, false);
+      Measure m = measure(i, 0, 0, false, 1);
 
       measures.add(m);
     }
@@ -64,17 +67,31 @@ public class TestReadThroughput {
   }
 
   @Test
+  public void testReadThroughputMultiThread() {
+
+    List<Measure> measures = new ArrayList<>();
+    int max = 10000000;
+    for (int i = 100; i <= max; i *= 10) {
+      Measure m = measure(i, 0, 0, false, 4);
+
+      measures.add(m);
+    }
+
+    report("READ THROUGHPUT MULTI THREAD (Set int -> boolean)", measures);
+  }
+
+  @Test
   public void testReadThroughputWithCache() {
 
     List<Measure> measures = new ArrayList<>();
     int max = 10000000;
     for (int i = 100; i <= max; i *= 10) {
-      Measure m = measure(i, 0, 0.05, false);
+      Measure m = measure(i, 0, 0.05, false, 1);
 
       measures.add(m);
     }
 
-    report("READ THROUGHPUT WITH CACHE (Set int -> boolean)", measures);
+    report("READ THROUGHPUT WITH BLOOM FILTER (Set int -> boolean)", measures);
   }
 
   @Test
@@ -83,17 +100,31 @@ public class TestReadThroughput {
     List<Measure> measures = new ArrayList<>();
     int max = 10000000;
     for (int i = 100; i <= max; i *= 10) {
-      Measure m = measure(i, 0, 0.01, true);
+      Measure m = measure(i, 0, 0.01, true, 1);
 
       measures.add(m);
     }
 
-    report("READ THROUGHPUT WITH CACHE (Set int -> boolean)", measures);
+    report("READ THROUGHPUT WITH BLOOM FILTER RANDOM FINDS (Set int -> boolean)", measures);
+  }
+
+  @Test
+  public void testReadThroughputWithCacheRandomFindsMultipleThreads() {
+
+    List<Measure> measures = new ArrayList<>();
+    int max = 10000000;
+    for (int i = 100; i <= max; i *= 10) {
+      Measure m = measure(i, 0, 0.01, true, 4);
+
+      measures.add(m);
+    }
+
+    report("READ THROUGHPUT WITH BLOOM FILTER RANDOM FINDS MULTITHREADED (Set int -> boolean)", measures);
   }
 
   // UTILITY
 
-  private Measure measure(int keysCount, int valueLength, double errorRate, final boolean randomReads) {
+  private Measure measure(int keysCount, int valueLength, double errorRate, boolean randomReads, int noOfThreads) {
     // Write store
     File storeFile = new File(testFolder, "paldb" + keysCount + "-" + valueLength + ".store");
     // Generate keys
@@ -118,36 +149,52 @@ public class TestReadThroughput {
       }
     }
 
-    int[] counter = new int[]{0, 0};
+    var totalCount = new AtomicInteger(0);
+    var findCount = new AtomicInteger(0);
     try (StoreReader<String,String> reader = PalDB.createReader(storeFile, config)) {
       // Measure
       NanoBench nanoBench = NanoBench.create();
       nanoBench.cpuOnly().warmUps(5).measurements(20).measure("Measure %d reads for %d keys with cache", () -> {
-        Random r = new Random(42);
-        int length = keys.length;
-        for (int i = 0; i < READS; i++) {
-          counter[1]++;
-          int key;
-          if (randomReads) {
-            key = r.nextInt(Integer.MAX_VALUE);
-          } else {
-            key = keys[r.nextInt(length)];
-          }
-          var value = reader.get(Integer.toString(key));
-          if (value != null) {
-            counter[0]++;
+        if (noOfThreads < 2) {
+          doWork(randomReads, keys, totalCount, findCount, reader);
+        } else {
+          var forkJoinPool = new ForkJoinPool(noOfThreads);
+          try {
+            forkJoinPool.submit(() -> IntStream.range(0, noOfThreads).parallel()
+                            .forEach(i -> doWork(randomReads, keys, totalCount, findCount, reader))
+            ).join();
+          } finally {
+            forkJoinPool.shutdown();
           }
         }
       });
 
       // Return measure
-      double rps = READS * nanoBench.getTps();
-      return new Measure(storeFile.length(), rps, counter[0], counter[1], keys.length);
+      double rps = READS * noOfThreads * nanoBench.getTps();
+      return new Measure(storeFile.length(), rps, findCount.get(), totalCount.get(), keys.length);
+    }
+  }
+
+  private void doWork(boolean randomReads, Integer[] keys, AtomicInteger totalCount, AtomicInteger findCount, StoreReader<String, String> reader) {
+    Random r = new Random(42);
+    int length = keys.length;
+    for (int j = 0; j < READS; j++) {
+      totalCount.incrementAndGet();
+      int key;
+      if (randomReads) {
+        key = r.nextInt(Integer.MAX_VALUE);
+      } else {
+        key = keys[r.nextInt(length)];
+      }
+      var value = reader.get(Integer.toString(key));
+      if (value != null) {
+        findCount.incrementAndGet();
+      }
     }
   }
 
   private void report(String title, List<Measure> measures) {
-    System.out.println(title + "\n\n");
+    System.out.println(title);
     System.out.println("FILE LENGTH;\tKEYS;\tRPS;\tVALUES FOUND;\tTOTAL READS");
     for (Measure m : measures) {
       System.out.println(m.fileSize + ";\t" + m.keys + ";\t" + m.rps + ";\t" + m.valueLength + ";\t" + m.cacheSize);
