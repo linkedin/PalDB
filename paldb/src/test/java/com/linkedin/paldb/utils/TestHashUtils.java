@@ -14,19 +14,27 @@
 
 package com.linkedin.paldb.utils;
 
-import org.testng.Assert;
+import org.apache.commons.codec.digest.MurmurHash3;
 import org.testng.annotations.Test;
+
+import static org.testng.Assert.*;
 
 
 public class TestHashUtils {
 
   @Test
   public void testHashEquals() {
-    Assert.assertEquals(HashUtils.hash("foo".getBytes()), HashUtils.hash("foo".getBytes()));
+    assertEquals(HashUtils.hash("foo".getBytes()), HashUtils.hash("foo".getBytes()));
   }
 
   @Test
   public void testEmpty() {
-    Assert.assertTrue(HashUtils.hash(new byte[0]) > 0);
+    assertTrue(HashUtils.hash(new byte[0]) > 0);
+  }
+
+  @Test
+  public void testSameHash() {
+    var bytes = "foo".getBytes();
+    assertEquals(HashUtils.hash(bytes, 42), MurmurHash3.hash32(bytes, bytes.length, 42));
   }
 }

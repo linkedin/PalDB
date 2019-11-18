@@ -238,8 +238,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
       return null;
     }
 
-    long hash = HashUtils.hash(key);
-    if (bloomFilter != null && !bloomFilter.mightContain(hash)) {
+    if (bloomFilter != null && !bloomFilter.mightContain(key)) {
         return null;
     }
 
@@ -248,7 +247,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     int slotSize = slotSizes[keyLength];
     int ixOffset = indexOffsets[keyLength];
     long dtOffset = dataOffsets[keyLength];
-
+    long hash = HashUtils.hash(key);
 
     for (int probe = 0; probe < numSlots; probe++) {
       int slot = (int) ((hash + probe) % numSlots);

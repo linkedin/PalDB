@@ -295,7 +295,7 @@ public class StorageWriter {
             // Hash
             long hash = HashUtils.hash(keyBuffer);
             if (bloomFilter != null) {
-              bloomFilter.add(hash);
+              bloomFilter.add(keyBuffer);
             }
 
             boolean collision = false;

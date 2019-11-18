@@ -42,9 +42,9 @@ public class BloomFilterTest {
     @Test
     void should_provide_hashcode() {
         var sut1 = new BloomFilter(10_000, 0.01);
-        sut1.add(HashUtils.hash("test".getBytes()));
+        sut1.add("test".getBytes());
         var sut1_1 = new BloomFilter(10_000, 0.01);
-        sut1_1.add(HashUtils.hash("test".getBytes()));
+        sut1_1.add("test".getBytes());
 
         assertEquals(sut1.hashCode(), sut1_1.hashCode());
     }
@@ -52,10 +52,10 @@ public class BloomFilterTest {
     @Test
     void should_test_multi_thread_get() {
         var sut1 = new BloomFilter(10_000, 0.01);
-        sut1.add(HashUtils.hash("test".getBytes()));
+        sut1.add("test".getBytes());
 
         var futures = IntStream.range(0, 1000)
-                .mapToObj(i -> CompletableFuture.runAsync(() -> assertTrue(sut1.mightContain(HashUtils.hash("test".getBytes())))))
+                .mapToObj(i -> CompletableFuture.runAsync(() -> assertTrue(sut1.mightContain("test".getBytes()))))
                 .collect(Collectors.toList());
 
         futures.forEach(CompletableFuture::join);
@@ -67,21 +67,27 @@ public class BloomFilterTest {
                 "Creating a Set and filling it together with our filter...");
         filter.clear();
         Set<Long> inside = new HashSet<>((int)(elements / 0.75));
+        var bytes = new byte[10];
         while(inside.size() < elements) {
-            long v = prng.nextLong();
+            var v = Math.abs(prng.nextLong());
+            var pos = LongPacker.packLong(bytes, v);
+            var valueBytes = Arrays.copyOf(bytes, pos);
+
             inside.add(v);
-            filter.add(v);
-            assertTrue(filter.mightContain(v), "There should be no false negative: " + v);
+            filter.add(valueBytes);
+            assertTrue(filter.mightContain(valueBytes), "There should be no false negative: " + v);
         }
 
         // testing
         int found = 0, total = 0;
         double rate = 0;
         while (total < elements) {
-            long v = prng.nextLong();
+            var v = Math.abs(prng.nextLong());
             if (inside.contains(v)) continue;
+            var pos = LongPacker.packLong(bytes, v);
+            var valueBytes = Arrays.copyOf(bytes, pos);
             total++;
-            found += filter.mightContain(v) ? 1 : 0;
+            found += filter.mightContain(valueBytes) ? 1 : 0;
 
             rate = (float) found / total;
             if (total % 1000 == 0 || total == elements) {
@@ -101,10 +107,15 @@ public class BloomFilterTest {
     @Test
     void insertion() {
         System.out.println("Testing insertion speed...");
-
+        var bytes = new byte[10];
         filter.clear();
         long start = bean.getCurrentThreadCpuTime();
-        for(int i=0; i<elements; i++) filter.add(prng.nextInt());
+        for(int i=0; i<elements; i++) {
+            var v = Math.abs(prng.nextLong());
+            var pos = LongPacker.packLong(bytes, v);
+            var valueBytes = Arrays.copyOf(bytes, pos);
+            filter.add(valueBytes);
+        }
         long end = bean.getCurrentThreadCpuTime();
         long time = end - start;
 
@@ -120,13 +131,23 @@ public class BloomFilterTest {
     @Test
     void query() {
         System.out.println("Testing query speed...");
-
+        var bytes = new byte[10];
         filter.clear();
-        for(int i=0; i<elements; i++) filter.add(prng.nextLong());
+        for(int i=0; i<elements; i++) {
+            var v = Math.abs(prng.nextLong());
+            var pos = LongPacker.packLong(bytes, v);
+            var valueBytes = Arrays.copyOf(bytes, pos);
+            filter.add(valueBytes);
+        }
 
         boolean xor = true; // Make sure our result isn’t optimized out
         long start = bean.getCurrentThreadCpuTime();
-        for(int i=0; i<elements; i++) xor ^= filter.mightContain(prng.nextLong());
+        for(int i=0; i<elements; i++) {
+            var v = Math.abs(prng.nextLong());
+            var pos = LongPacker.packLong(bytes, v);
+            var valueBytes = Arrays.copyOf(bytes, pos);
+            xor ^= filter.mightContain(valueBytes);
+        }
         long end = bean.getCurrentThreadCpuTime();
         long time = end - start;
 

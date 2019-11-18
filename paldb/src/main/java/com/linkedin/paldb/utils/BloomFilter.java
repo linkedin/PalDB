@@ -1,8 +1,6 @@
 package com.linkedin.paldb.utils;
 
-import org.apache.commons.codec.digest.MurmurHash3;
-
-import java.util.*;
+import java.util.Arrays;
 
 import static java.lang.Math.log;
 
@@ -31,16 +29,16 @@ public class BloomFilter {
     this.hashFunctions = hashFunctions;
   }
 
-  public void add(long hash) {
+  public void add(byte[] bytes) {
     for (int i = 0; i < hashFunctions; i++) {
-      int value = Math.abs(MurmurHash3.hash32(hash, i) % sizeInBits);
+      int value = Math.abs(HashUtils.hash(bytes, i) % sizeInBits);
       setBit(value);
     }
   }
 
-  public boolean mightContain(long hash) {
+  public boolean mightContain(byte[] bytes) {
     for (int i = 0; i < hashFunctions; i++) {
-      int value = Math.abs(MurmurHash3.hash32(hash, i) % sizeInBits);
+      int value = Math.abs(HashUtils.hash(bytes, i) % sizeInBits);
       if (!getBit(value)) return false;
     }
     return true;

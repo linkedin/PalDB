@@ -14,9 +14,8 @@
 
 package com.linkedin.paldb.utils;
 
-import org.apache.commons.codec.digest.MurmurHash3;
-
-import java.util.zip.Checksum;
+import java.lang.invoke.*;
+import java.nio.ByteOrder;
 
 
 /**
@@ -26,133 +25,116 @@ public final class HashUtils {
 
   private HashUtils() { }
 
-    /**
+  /**
    * Returns the positive hash for the given <code>bytes</code>.
    *
    * @param bytes bytes to hash
    * @return hash
    */
   public static long hash(byte[] bytes) {
-    return MurmurHash3.hash32(bytes) & 0x7fffffff;
+    return hash32(bytes) & 0x7fffffff;
+  }
+
+  public static int hash(byte[] bytes, int seed) {
+    return hash32(bytes, bytes.length, seed);
+  }
+
+  // Constants for 32 bit variant
+  private static final int C1_32 = 0xcc9e2d51;
+  private static final int C2_32 = 0x1b873593;
+  private static final int R1_32 = 15;
+  private static final int R2_32 = 13;
+  private static final int M_32 = 5;
+  private static final int N_32 = 0xe6546b64;
+
+  public static final int DEFAULT_SEED = 104729;
+
+  //** MurMur3 **
+  /**
+   * Generates 32 bit hash from byte array with the default seed.
+   *
+   * @param data - input byte array
+   * @return 32 bit hash
+   */
+  public static int hash32(final byte[] data) {
+    return hash32(data, 0, data.length, DEFAULT_SEED);
   }
 
   /**
-   * Hash implementation, inspired from java-common.
+   * Generates 32 bit hash from byte array with the given length and seed.
    *
-   * Originally developed for greenrobot by Markus Junginger.
+   * @param data   - input byte array
+   * @param length - length of array
+   * @param seed   - seed. (default 0)
+   * @return 32 bit hash
    */
-  public static class Murmur3A implements Checksum {
+  public static int hash32(final byte[] data, final int length, final int seed) {
+    return hash32(data, 0, length, seed);
+  }
 
-    private static final int C1 = 0xcc9e2d51;
-    private static final int C2 = 0x1b873593;
+  private static final VarHandle INT_HANDLE = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.LITTLE_ENDIAN);
 
-    private final int seed;
+  private static int getIntLE(byte[] array, int offset) {
+    return (int)INT_HANDLE.get(array, offset);
+  }
 
-    private int h1;
-    private int length;
+  /**
+   * Generates 32 bit hash from byte array with the given length, offset and seed.
+   *
+   * @param data   - input byte array
+   * @param offset - offset of data
+   * @param length - length of array
+   * @param seed   - seed. (default 0)
+   * @return 32 bit hash
+   */
+  public static int hash32(final byte[] data, final int offset, final int length, final int seed) {
+    int hash = seed;
+    final int nblocks = length >> 2;
 
-    private int partialK1;
-    private int partialK1Pos;
-
-    public Murmur3A(int seed) {
-      this.seed = seed;
-      h1 = seed;
+    // body
+    for (int i = 0; i < nblocks; i++) {
+      final int i_4 = i << 2;
+      final int k = getIntLE(data, offset + i_4);
+      hash = mix32(k, hash);
     }
 
-    @Override
-    public void update(int b) {
-      switch (partialK1Pos) {
-        case 0:
-          partialK1 = 0xff & b;
-          partialK1Pos = 1;
-          break;
-        case 1:
-          partialK1 |= (0xff & b) << 8;
-          partialK1Pos = 2;
-          break;
-        case 2:
-          partialK1 |= (0xff & b) << 16;
-          partialK1Pos = 3;
-          break;
-        case 3:
-          partialK1 |= (0xff & b) << 24;
-          applyK1(partialK1);
-          partialK1Pos = 0;
-          break;
-      }
-      length++;
+    // tail
+    final int idx = nblocks << 2;
+    int k1 = 0;
+    switch (length - idx) {
+      case 3:
+        k1 ^= data[offset + idx + 2] << 16;
+      case 2:
+        k1 ^= data[offset + idx + 1] << 8;
+      case 1:
+        k1 ^= data[offset + idx];
+
+        // mix functions
+        k1 *= C1_32;
+        k1 = Integer.rotateLeft(k1, R1_32);
+        k1 *= C2_32;
+        hash ^= k1;
     }
 
-    @Override
-    public void update(byte[] b, int off, int len) {
-      while (partialK1Pos != 0 && len > 0) {
-        update(b[off]);
-        off++;
-        len--;
-      }
+    return fmix32(length, hash);
+  }
 
-      int remainder = len & 3;
-      int stop = off + len - remainder;
-      for (int i = off; i < stop; i += 4) {
-        int k1 = getIntLE(b, i);
-        applyK1(k1);
-      }
-      length += stop - off;
+  private static int mix32(int k, int hash) {
+    k *= C1_32;
+    k = Integer.rotateLeft(k, R1_32);
+    k *= C2_32;
+    hash ^= k;
+    return Integer.rotateLeft(hash, R2_32) * M_32 + N_32;
+  }
 
-      for (int i = 0; i < remainder; i++) {
-        update(b[stop + i]);
-      }
-    }
+  private static int fmix32(final int length, int hash) {
+    hash ^= length;
+    hash ^= (hash >>> 16);
+    hash *= 0x85ebca6b;
+    hash ^= (hash >>> 13);
+    hash *= 0xc2b2ae35;
+    hash ^= (hash >>> 16);
 
-    public void update(byte[] b) {
-      update(b, 0, b.length);
-    }
-
-    private void applyK1(int k1) {
-      k1 *= C1;
-      k1 = (k1 << 15) | (k1 >>> 17);  // ROTL32(k1,15);
-      k1 *= C2;
-
-      h1 ^= k1;
-      h1 = (h1 << 13) | (h1 >>> 19);  // ROTL32(h1,13);
-      h1 = h1 * 5 + 0xe6546b64;
-    }
-
-    @Override
-    public long getValue() {
-      return 0xFFFFFFFFL & getIntValue();
-    }
-
-    public int getIntValue() {
-      int finished = h1;
-      if (partialK1Pos > 0) {
-        int k1 = partialK1 * C1;
-        k1 = (k1 << 15) | (k1 >>> 17);  // ROTL32(k1,15);
-        k1 *= C2;
-        finished ^= k1;
-      }
-      finished ^= length;
-
-      // fmix
-      finished ^= finished >>> 16;
-      finished *= 0x85ebca6b;
-      finished ^= finished >>> 13;
-      finished *= 0xc2b2ae35;
-      finished ^= finished >>> 16;
-
-      return finished;
-    }
-
-    @Override
-    public void reset() {
-      h1 = seed;
-      length = 0;
-      partialK1Pos = 0;
-    }
-
-    private int getIntLE(byte[] bytes, int index) {
-      return (bytes[index] & 0xff) | ((bytes[index + 1] & 0xff) << 8) |
-          ((bytes[index + 2] & 0xff) << 16) | (bytes[index + 3] << 24);
-    }
+    return hash;
   }
 }

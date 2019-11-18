@@ -20,24 +20,33 @@ import com.linkedin.paldb.utils.*;
 import org.apache.commons.lang.RandomStringUtils;
 import org.testng.annotations.*;
 
-import java.io.File;
+import java.io.*;
+import java.nio.file.*;
 import java.util.*;
 
 
 public class TestReadThroughput {
 
-  private File TEST_FOLDER = new File("testreadthroughput");
-  private final int READS = 500000;
+  private File testFolder = createTempDir();
+  private static final int READS = 500000;
 
   @BeforeMethod
   public void setUp() {
-    DirectoryUtils.deleteDirectory(TEST_FOLDER);
-    TEST_FOLDER.mkdir();
+    DirectoryUtils.deleteDirectory(testFolder);
+    testFolder.mkdir();
   }
 
   @AfterMethod
   public void cleanUp() {
-    DirectoryUtils.deleteDirectory(TEST_FOLDER);
+    DirectoryUtils.deleteDirectory(testFolder);
+  }
+
+  private static File createTempDir() {
+    try {
+      return Files.createTempDirectory("testreadthroughput").toFile();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   @Test
@@ -74,7 +83,7 @@ public class TestReadThroughput {
     List<Measure> measures = new ArrayList<>();
     int max = 10000000;
     for (int i = 100; i <= max; i *= 10) {
-      Measure m = measure(i, 0, 0.05, true);
+      Measure m = measure(i, 0, 0.01, true);
 
       measures.add(m);
     }
@@ -86,7 +95,7 @@ public class TestReadThroughput {
 
   private Measure measure(int keysCount, int valueLength, double errorRate, final boolean randomReads) {
     // Write store
-    File storeFile = new File(TEST_FOLDER, "paldb" + keysCount + "-" + valueLength + ".store");
+    File storeFile = new File(testFolder, "paldb" + keysCount + "-" + valueLength + ".store");
     // Generate keys
     long seed = 4242;
     final Integer[] keys = GenerateTestData.generateRandomIntKeys(keysCount, Integer.MAX_VALUE, seed);
@@ -139,9 +148,9 @@ public class TestReadThroughput {
 
   private void report(String title, List<Measure> measures) {
     System.out.println(title + "\n\n");
-    System.out.println("FILE LENGTH;KEYS;RPS;VALUES FOUND;TOTAL READS");
+    System.out.println("FILE LENGTH;\tKEYS;\tRPS;\tVALUES FOUND;\tTOTAL READS");
     for (Measure m : measures) {
-      System.out.println(m.fileSize + ";" + m.keys + ";" + m.rps + ";" + m.valueLength + ";" + m.cacheSize);
+      System.out.println(m.fileSize + ";\t" + m.keys + ";\t" + m.rps + ";\t" + m.valueLength + ";\t" + m.cacheSize);
     }
   }
 
