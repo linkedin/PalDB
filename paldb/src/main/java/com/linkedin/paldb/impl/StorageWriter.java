@@ -293,7 +293,7 @@ public class StorageWriter {
             long offset = LongPacker.unpackLong(tempIndexStream);
 
             // Hash
-            long hash = HashUtils.hash(keyBuffer);
+            long hash = Murmur3.hash(keyBuffer);
             if (bloomFilter != null) {
               bloomFilter.add(keyBuffer);
             }

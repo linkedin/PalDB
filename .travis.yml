@@ -5,8 +5,6 @@ dist: trusty
 
 matrix:
   include:
-    - jdk: openjdk11
-    - jdk: openjdk12
     - jdk: openjdk13
 
 script:

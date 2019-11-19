@@ -20,21 +20,21 @@ import org.testng.annotations.Test;
 import static org.testng.Assert.*;
 
 
-public class TestHashUtils {
+public class TestMurmur3 {
 
   @Test
   public void testHashEquals() {
-    assertEquals(HashUtils.hash("foo".getBytes()), HashUtils.hash("foo".getBytes()));
+    assertEquals(Murmur3.hash("foo".getBytes()), Murmur3.hash("foo".getBytes()));
   }
 
   @Test
   public void testEmpty() {
-    assertTrue(HashUtils.hash(new byte[0]) > 0);
+    assertTrue(Murmur3.hash(new byte[0]) > 0);
   }
 
   @Test
   public void testSameHash() {
     var bytes = "foo".getBytes();
-    assertEquals(HashUtils.hash(bytes, 42), MurmurHash3.hash32(bytes, bytes.length, 42));
+    assertEquals(Murmur3.hash(bytes, 42), MurmurHash3.hash32(bytes, bytes.length, 42));
   }
 }

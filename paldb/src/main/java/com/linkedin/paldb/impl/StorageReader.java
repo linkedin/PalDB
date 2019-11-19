@@ -23,6 +23,7 @@ import java.nio.*;
 import java.nio.channels.FileChannel;
 import java.nio.charset.MalformedInputException;
 import java.text.*;
+import java.time.Instant;
 import java.util.*;
 
 
@@ -51,7 +52,6 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   private final long[] dataOffsets;
   // Data size
   private final long dataSize;
-  private final int maxSlotSize;
   // FileChannel
   private final RandomAccessFile mappedFile;
   private final FileChannel channel;
@@ -163,8 +163,6 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
         mSlotSize = Math.max(mSlotSize, slotSizes[keyLength]);
       }
-      maxSlotSize = mSlotSize;
-
       //Read index and data offset
       indexOffset = dataInputStream.readInt() + ignoredBytes;
       dataOffset = dataInputStream.readLong() + ignoredBytes;
@@ -243,14 +241,13 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     int slotSize = slotSizes[keyLength];
     int ixOffset = indexOffsets[keyLength];
     long dtOffset = dataOffsets[keyLength];
-    long hash = HashUtils.hash(key);
+    long hash = Murmur3.hash(key);
     var slotBuffer = new byte[slotSize];
     for (int probe = 0; probe < numSlots; probe++) {
       int slot = (int) ((hash + probe) % numSlots);
       indexBuffer.get(ixOffset + slot * slotSize, slotBuffer, 0, slotSize);
       long offset = LongPacker.unpackLong(slotBuffer, keyLength);
       if (offset == 0L) {
-        log.info("Got offset 0, returning...");
         return null;
       }
       if (isKey(slotBuffer, key)) {
@@ -261,12 +258,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   }
 
   private boolean isKey(byte[] slotBuffer, byte[] key) {
-    for (int i = 0; i < key.length; i++) {
-      if (slotBuffer[i] != key[i]) {
-        return false;
-      }
-    }
-    return true;
+    return Arrays.compare(slotBuffer, 0, key.length, key, 0, key.length) == 0;
   }
 
   //Close the reader channel
@@ -279,7 +271,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     return keyCount;
   }
 
-  private int remaining(ByteBuffer buffer, int pos) {
+  private static int remaining(ByteBuffer buffer, int pos) {
     return buffer.limit() - pos;
   }
 
@@ -355,8 +347,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   }
 
   //Get data from disk
-  private synchronized byte[] getDiskBytes(long offset)
-      throws IOException {
+  private synchronized byte[] getDiskBytes(long offset) throws IOException {
     mappedFile.seek(dataOffset + offset);
 
     //Get size of data
@@ -374,10 +365,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   }
 
   private String formatCreatedAt(long createdAt) {
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd G 'at' HH:mm:ss z");
-    Calendar cl = Calendar.getInstance();
-    cl.setTimeInMillis(createdAt);
-    return sdf.format(cl.getTime());
+    return Instant.ofEpochMilli(createdAt).toString();
   }
 
   @Override

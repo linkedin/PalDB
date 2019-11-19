@@ -137,7 +137,8 @@ public class TestReadThroughput {
               .withBloomFilterErrorFactor(errorRate);
     }
 
-    var config = configBuilder.build();
+    var config = configBuilder
+            .build();
 
     try (StoreWriter<String,String> writer = PalDB.createWriter(storeFile, config)) {
       for (Integer key : keys) {

@@ -205,7 +205,7 @@ Limitations
 -----------
 + PalDB is optimal in replacing the usage of large in-memory data storage but still use memory (off-heap, yet much less) to do its job. Disabling memory mapping and relying on seeks is possible but is not what PalDB has been optimized for.
 + The size of the index is limited to 2GB. There's no limitation in the data size however.
-+ PalDB reader is thread-safe and writer is not thread-safe at the moment so synchronization should be done externally if multi-threaded.
++ PalDB reader is thread-safe but writer is not thread-safe at the moment so synchronization should be done externally if multi-threaded.
 
 Contributions
 -----------

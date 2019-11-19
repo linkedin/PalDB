@@ -21,9 +21,9 @@ import java.nio.ByteOrder;
 /**
  * Hashing utility.
  */
-public final class HashUtils {
+public final class Murmur3 {
 
-  private HashUtils() { }
+  private Murmur3() { }
 
   /**
    * Returns the positive hash for the given <code>bytes</code>.
