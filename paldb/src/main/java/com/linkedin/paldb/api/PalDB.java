@@ -34,6 +34,8 @@ public interface PalDB {
    * The file must exists.
    *
    * @param file a PalDB store file
+   * @param <K> key type
+   * @param <V> value type
    * @return a store reader
    */
   static <K,V> StoreReader<K,V> createReader(File file) {
@@ -47,6 +49,8 @@ public interface PalDB {
    *
    * @param file a PalDB store file
    * @param config configuration
+   * @param <K> key type
+   * @param <V> value type
    * @return a store reader
    */
   static <K,V> StoreReader<K,V> createReader(File file, Configuration config) {
@@ -61,6 +65,8 @@ public interface PalDB {
    *
    * @param stream an input stream on a PalDB store file
    * @param config configuration
+   * @param <K> key type
+   * @param <V> value type
    * @return a store reader
    */
   static <K,V> StoreReader<K,V> createReader(InputStream stream, Configuration config) {
@@ -73,6 +79,8 @@ public interface PalDB {
    * The parent folder is created if missing.
    *
    * @param file location of the output file
+   * @param <K> key type
+   * @param <V> value type
    * @return a store writer
    */
   static <K,V> StoreWriter<K,V> createWriter(File file) {
@@ -86,6 +94,8 @@ public interface PalDB {
    *
    * @param file location of the output file
    * @param config configuration
+   * @param <K> key type
+   * @param <V> value type
    * @return a store writer
    */
   static <K,V> StoreWriter<K,V> createWriter(File file, Configuration config) {
@@ -100,6 +110,8 @@ public interface PalDB {
    *
    * @param stream output stream
    * @param config configuration
+   * @param <K> key type
+   * @param <V> value type
    * @return a store writer
    */
   static <K,V> StoreWriter<K,V> createWriter(OutputStream stream, Configuration config) {

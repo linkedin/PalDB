@@ -40,6 +40,7 @@ public final class Serializers {
    * Registers the serializer.
    *
    * @param serializer serializer
+   * @param <T> serialized class type
    */
   public synchronized <T> void registerSerializer(Serializer<T> serializer) {
     var className = serializer.serializedClass().getName();

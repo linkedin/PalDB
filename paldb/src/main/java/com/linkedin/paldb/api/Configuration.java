@@ -382,6 +382,7 @@ public class Configuration {
    * The class for with the serializer is being registered is directly extracted from the class definition.
    *
    * @param serializer serializer to register
+   * @param <T> serializer type
    */
   public <T> void registerSerializer(Serializer<T> serializer) {
     serializers.registerSerializer(serializer);

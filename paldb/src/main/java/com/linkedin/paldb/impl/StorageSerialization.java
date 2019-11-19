@@ -52,6 +52,7 @@ public final class StorageSerialization {
    * Serializes the key object and returns it as a byte array.
    *
    * @param key key to serialize
+   * @param <K> key type
    * @return key as byte array
    * @throws IOException if an io error occurs
    */

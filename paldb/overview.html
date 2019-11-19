@@ -2,7 +2,7 @@
 <p>
 PalDB is an embeddable persistent write-once key-value store.
 </p>
-<h2>Code samples</h2>
+<h1>Code samples</h1>
 
 How to write a store:
 <pre>
@@ -23,20 +23,17 @@ reader.close();
 How to iterate on a store:
 <pre>
 StoreReader reader = PalDB.createReader(new File("store.paldb"));
-Iterable<Map.Entry<String, String>> iterable = reader.iterable();
-for (Map.Entry<String, String> entry : iterable) {
+Iterable&lt;Map.Entry&lt;String, String&gt;&gt; iterable = reader.iterable();
+for (Map.Entry&lt;String, String&gt; entry : iterable) {
   String key = entry.getKey();
   String value = entry.getValue();
 }
 reader.close();
 </pre>
 
-<hr/>
 <h2>API Changes</h2>
-<p>
 <ul>
   <li>(April 2015) Initial API</li>
 </ul>
-</p>
 </body>
 

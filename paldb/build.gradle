@@ -68,6 +68,7 @@ jacocoTestReport {
 if (project.hasProperty('release')) {
 
   signing {
+    useGpgCmd()
     sign configurations.archives
   }
 
