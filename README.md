@@ -1,8 +1,8 @@
 PalDB
 ==========
 
-[![Build Status](https://travis-ci.org/linkedin/PalDB.svg?branch=master)](https://travis-ci.org/linkedin/PalDB)
-[![Coverage Status](https://coveralls.io/repos/linkedin/PalDB/badge.svg?branch=master&service=github)](https://coveralls.io/github/linkedin/PalDB?branch=master)
+[![Build Status](https://travis-ci.org/soundvibe/PalDB.svg)](https://travis-ci.org/soundvibe/PalDB)
+[![codecov](https://codecov.io/gh/soundvibe/PalDB/branch/java11/graph/badge.svg)](https://codecov.io/gh/soundvibe/PalDB)
 
 PalDB is an embeddable write-once key-value store written in Java.
 
@@ -42,29 +42,26 @@ API documentation can be found [here](http://linkedin.github.com/PalDB/doc/javad
 
 How to write a store
 ```java
-StoreWriter writer = PalDB.createWriter(new File("store.paldb"));
-writer.put("foo", "bar");
-writer.put(1213, new int[] {1, 2, 3});
-writer.close();
+try (var writer = PalDB.<Integer,String>createWriter(new File("store.paldb"))) {
+    writer.put(1213, "foo");
+}
 ```
 
 How to read a store
 ```java
-StoreReader reader = PalDB.createReader(new File("store.paldb"));
-String val1 = reader.get("foo");
-int[] val2 = reader.get(1213);
-reader.close();
+try (var reader = PalDB.<Integer,String>createReader(new File("store.paldb"))) {
+    String val = reader.get(1213);
+}
 ```
 
 How to iterate on a store
 ```java
-StoreReader reader = PalDB.createReader(new File("store.paldb"));
-Iterable<Map.Entry<String, String>> iterable = reader.iterable();
-for (Map.Entry<String, String> entry : iterable) {
-  String key = entry.getKey();
-  String value = entry.getValue();
+try (var reader = PalDB.<Integer,String>createReader(new File("store.paldb"))) {
+    for (var entry : reader) {
+      Integer key = entry.getKey();
+      String value = entry.getValue();
+    }
 }
-reader.close();
 ```
 
 For Scala examples, see [here](https://gist.github.com/mbastian/9b9b49a4b96333da33ec) and [here](https://gist.github.com/mbastian/440a706f5e863bb65622).
@@ -75,14 +72,14 @@ Use it
 PalDB is available on Maven Central, hence just add the following dependency:
 ```
 <dependency>
-    <groupId>com.linkedin.paldb</groupId>
+    <groupId>net.soundvibe</groupId>
     <artifactId>paldb</artifactId>
-    <version>1.2.0</version>
+    <version>2.0.0</version>
 </dependency>
 ```
 Scala SBT
 ```
-libraryDependencies += "com.linkedin.paldb" % "paldb" % "1.2.0"
+libraryDependencies += "net.soundvibe" % "paldb" % "2.0.0"
 ```
 
 
@@ -104,26 +101,26 @@ No, like a hashtable PalDB stores have no order.
 Build
 -----
 
-PalDB requires Java 6+ and gradle. The target Java version is 6.
+PalDB requires Java 13+ and maven. The target Java version is 13.
 
 ```bash
-gradle build
+mvn build
 ```
 
 Performance tests are run separately from the build
 ```bash
-gradle perfTest
+mvn clean test -Dtag=performance
 ```
 
 Test
 ----
 
-We use the TestNG framework for our unit tests. You can run them via the `gradle clean test` command.
+We use the JUnit framework for our unit tests. You can run them via the `mvn clean test` command.
 
 Coverage
 --------
 
-Coverage is run using JaCoCo. You can run a report via `gradle jacocoTestReport`. The report will be generated in `paldb/build/reports/jacoco/test/html/`.
+Coverage is run using JaCoCo. You can run a report via `mvn jacoco:report`. The report will be generated in `paldb/build/reports/jacoco/test/html/`.
 
 Advanced configuration
 ----------------------
@@ -132,27 +129,30 @@ Write parameters:
 
 + `load.factor`,  index load factor (double) [default: 0.75]
 + `compression.enabled`, enable compression (boolean) [default: false]
++ `bloom.filter.enabled`, enable bloom filter (boolean) [default: false]
++ `bloom.filter.error.factor`, bloom filter error rate  (double) [default: 0.01]
 
 Read parameters:
 
 + `mmap.data.enabled`, enable memory mapping for data (boolean) [default: true]
 + `mmap.segment.size`, memory map segment size (bytes) [default: 1GB]
-+ `cache.enabled`, LRU cache enabled (boolean) [default: false]
-+ `cache.bytes`, cache limit (bytes) [default: Xmx - 100MB]
-+ `cache.initial.capacity`, cache initial capacity (int) [default: 1000]
-+ `cache.load.factor`, cache load factor (double) [default: 0.75]
 
-Configuration values are passed at init time. Example:
+Configuration values are passed at init time. Example using fluent builder:
 ```java
-Configuration config = PalDB.newConfiguration();
-config.set(Configuration.CACHE_ENABLED, "true");
-StoreReader reader = PalDB.createReader(new File("store.paldb"), config);
+var config = PalDBConfigBuilder.create()
+                .withMemoryMapSegmentSize(512 * 1024 * 1024)
+                .withMemoryMapDataEnabled(false)
+                .withIndexLoadFactor(0.75)
+                .withEnableCompression(true)
+                .withEnableBloomFilter(true)
+                .build();
+StoreReader<String,String> reader = PalDB.createReader(new File("store.paldb"), config);
 ```
 
 A few tips on how configuration can affect performance:
 
 + Disabling memory mapping will significantly reduce performance as disk seeks will be performed instead.
-+ Enabling the cache makes sense when the value size is large and there's a significant cost in deserialization. Otherwise, the cache adds an overhead. The cache is also useful when memory mapping is disabled.
++ Enabling the bloom filter makes sense when you expect to miss finding some values. It will greatly increase read performance in this case.
 + Compression can be enabled when the store size is a concern and the values are large (e.g. a sparse matrix). By default, PalDB already uses a compact serialization. Snappy is used for compression.
 
 Custom serializer
@@ -175,20 +175,20 @@ public class PointSerializer implements Serializer<Point> {
     output.writeInt(point.x);
     output.writeInt(point.y);
   }
-
+  
   @Override
-  public int getWeight(Point instance) {
-    return 8;
+  public Class<Point> serializedClass() {
+    return Point.class;
   }
 }
 ```
 
-The `write` method serializes the instance to the `DataOutput`. The `read` method deserializes from `DataInput` and creates new object instances. The `getWeight` method returns the estimated memory used by an instance in bytes. The latter is used by the cache to evaluate the amount of memory it's currently using.
+The `write` method serializes the instance to the `DataOutput`. The `read` method deserializes from `DataInput` and creates new object instances.
 
 Serializer implementation should be registered using the `Configuration`:
 
 ```java
-Configuration configuration = PalDB.newConfiguration();
+var configuration = PalDB.newConfiguration();
 configuration.registerSerializer(new PointSerializer());
 ```
 
@@ -205,7 +205,7 @@ Limitations
 -----------
 + PalDB is optimal in replacing the usage of large in-memory data storage but still use memory (off-heap, yet much less) to do its job. Disabling memory mapping and relying on seeks is possible but is not what PalDB has been optimized for.
 + The size of the index is limited to 2GB. There's no limitation in the data size however.
-+ PalDB is not thread-safe at the moment so synchronization should be done externally if multi-threaded.
++ PalDB reader is thread-safe but writer is not thread-safe at the moment so synchronization should be done externally if multi-threaded.
 
 Contributions
 -----------
@@ -215,4 +215,5 @@ Any helpful feedback is more than welcome. This includes feature requests, bug r
 Copyright & License
 -------------------
 
+PalDB © 2019 Linas Naginionis. Licensed under the terms of the Apache License, Version 2.0.
 PalDB © 2015 LinkedIn Corp. Licensed under the terms of the Apache License, Version 2.0.
