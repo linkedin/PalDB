@@ -24,6 +24,7 @@ public class DirectoryUtils {
   public static long folderSize(File directory) {
     long length = 0;
     for (File file : directory.listFiles()) {
+      if (file == null) break;
       if (file.isFile()) {
         length += file.length();
       } else {

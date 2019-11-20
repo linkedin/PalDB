@@ -59,8 +59,8 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   private final boolean mMapData;
   // Buffers
   private final BloomFilter bloomFilter;
-  private final MappedByteBuffer indexBuffer;
-  private final MappedByteBuffer[] dataBuffers;
+  private MappedByteBuffer indexBuffer;
+  private MappedByteBuffer[] dataBuffers;
 
   StorageReader(Configuration configuration, File file) throws IOException {
     // File path
@@ -265,6 +265,9 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   public void close() throws IOException {
     channel.close();
     mappedFile.close();
+    indexBuffer = null;
+    dataBuffers = null;
+    System.gc(); //need to call gc because otherwise memory mapped file buffers won't close. See: https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4715154
   }
 
   public int getKeyCount() {

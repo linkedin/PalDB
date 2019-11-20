@@ -130,8 +130,7 @@ public class StorageWriter {
     keyCounts[keyLength]++;
   }
 
-  public void close()
-      throws IOException {
+  public void close() throws IOException {
     // Close the data and index streams
     for (DataOutputStream dos : dataStreams) {
       if (dos != null) {
@@ -155,7 +154,6 @@ public class StorageWriter {
 
     // Prepare files to merge
     List<File> filesToMerge = new ArrayList<>();
-
     try {
       // Build index file
       for (int i = 0; i < indexFiles.length; i++) {
@@ -189,6 +187,7 @@ public class StorageWriter {
       mergeFiles(filesToMerge, outputStream);
     } finally {
       outputStream.close();
+      System.gc(); //need to clear index memory mapped buffer
       cleanup(filesToMerge);
     }
   }
@@ -363,8 +362,7 @@ public class StorageWriter {
   }
 
   //Merge files to the provided fileChannel
-  private void mergeFiles(List<File> inputFiles, OutputStream outputStream)
-      throws IOException {
+  private void mergeFiles(List<File> inputFiles, OutputStream outputStream) throws IOException {
     long startTime = System.nanoTime();
 
     //Merge files
@@ -424,8 +422,7 @@ public class StorageWriter {
   }
 
   //Get the index stream for the specified keyLength, create it if needed
-  private DataOutputStream getIndexStream(int keyLength)
-      throws IOException {
+  private DataOutputStream getIndexStream(int keyLength) throws IOException {
     // Resize array if necessary
     if (indexStreams.length <= keyLength) {
       indexStreams = Arrays.copyOf(indexStreams, keyLength + 1);
