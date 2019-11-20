@@ -3,10 +3,12 @@ Change Log
 
 Version 2.0.0
 --------------------------
-- Bumped minimal java version to 11
+- Bumped minimal java version to java 13
 - StoreReader and StoreWriter implement AutoCloseable
 - New config builder
 - Reader and writer use generics
+- Reader is now fully thread-safe
+- Bloom filters could be used for better performance
 
 
 Version 1.2.0 *(June 26th 2016)*

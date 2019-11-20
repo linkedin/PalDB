@@ -1,7 +1,7 @@
 PalDB
 ==========
 
-[![Build Status](https://travis-ci.org/soundvibe/PalDB.svg?branch=java11)](https://travis-ci.org/soundvibe/PalDB)
+[![Build Status](https://travis-ci.org/soundvibe/PalDB.svg)](https://travis-ci.org/soundvibe/PalDB)
 [![codecov](https://codecov.io/gh/soundvibe/PalDB/branch/java11/graph/badge.svg)](https://codecov.io/gh/soundvibe/PalDB)
 
 PalDB is an embeddable write-once key-value store written in Java.
@@ -72,14 +72,14 @@ Use it
 PalDB is available on Maven Central, hence just add the following dependency:
 ```
 <dependency>
-    <groupId>net.soundvibe.paldb</groupId>
+    <groupId>net.soundvibe</groupId>
     <artifactId>paldb</artifactId>
     <version>2.0.0</version>
 </dependency>
 ```
 Scala SBT
 ```
-libraryDependencies += "net.soundvibe.paldb" % "paldb" % "2.0.0"
+libraryDependencies += "net.soundvibe" % "paldb" % "2.0.0"
 ```
 
 
@@ -101,26 +101,26 @@ No, like a hashtable PalDB stores have no order.
 Build
 -----
 
-PalDB requires Java 13+ and gradle. The target Java version is 13.
+PalDB requires Java 13+ and maven. The target Java version is 13.
 
 ```bash
-gradle build
+mvn build
 ```
 
 Performance tests are run separately from the build
 ```bash
-gradle perfTest
+mvn clean test -Dtag=performance
 ```
 
 Test
 ----
 
-We use the TestNG framework for our unit tests. You can run them via the `gradle clean test` command.
+We use the JUnit framework for our unit tests. You can run them via the `mvn clean test` command.
 
 Coverage
 --------
 
-Coverage is run using JaCoCo. You can run a report via `gradle jacocoTestReport`. The report will be generated in `paldb/build/reports/jacoco/test/html/`.
+Coverage is run using JaCoCo. You can run a report via `mvn jacoco:report`. The report will be generated in `paldb/build/reports/jacoco/test/html/`.
 
 Advanced configuration
 ----------------------
