@@ -1,8 +1,8 @@
 PalDB
 ==========
-
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.soundvibe/paldb/badge.svg)](https://maven-badges.herokuapp.com/maven-central/net.soundvibe/paldb)
 [![Build Status](https://travis-ci.org/soundvibe/PalDB.svg)](https://travis-ci.org/soundvibe/PalDB)
-[![codecov](https://codecov.io/gh/soundvibe/PalDB/branch/java11/graph/badge.svg)](https://codecov.io/gh/soundvibe/PalDB)
+[![codecov](https://codecov.io/gh/soundvibe/PalDB/branch/master/graph/badge.svg)](https://codecov.io/gh/soundvibe/PalDB)
 
 PalDB is an embeddable write-once key-value store written in Java.
 
@@ -11,7 +11,7 @@ What is PalDB?
 
 PalDB is an embeddable persistent key-value store with very fast read performance and compact store size. PalDB stores are single binary files written once and ready to be used in applications.
 
-PalDB's JAR is only 110K and has a single dependency (snappy, which isn't mandatory). It's also very easy to use with just a few configuration parameters.
+PalDB's JAR is only 65K and has a single dependency (snappy, which isn't mandatory). It's also very easy to use with just a few configuration parameters.
 
 Performance
 -----------
@@ -74,12 +74,12 @@ PalDB is available on Maven Central, hence just add the following dependency:
 <dependency>
     <groupId>net.soundvibe</groupId>
     <artifactId>paldb</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
 </dependency>
 ```
 Scala SBT
 ```
-libraryDependencies += "net.soundvibe" % "paldb" % "2.0.0"
+libraryDependencies += "net.soundvibe" % "paldb" % "2.0.1"
 ```
 
 

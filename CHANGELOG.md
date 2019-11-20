@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+Version 2.0.1
+--------------------------
+- Fixed memory mapped files leak when closing the file
+
 Version 2.0.0
 --------------------------
 - Bumped minimal java version to java 13

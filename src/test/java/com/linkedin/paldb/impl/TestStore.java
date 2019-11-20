@@ -16,6 +16,7 @@ package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
 import com.linkedin.paldb.api.errors.DuplicateKeyException;
+import com.linkedin.paldb.performance.utils.DirectoryUtils;
 import com.linkedin.paldb.utils.*;
 import org.junit.jupiter.api.*;
 
@@ -466,6 +467,36 @@ public class TestStore {
 
     assertTrue(keysSet.isEmpty());
     assertTrue(valuesSet.isEmpty());
+  }
+
+  @Test
+  void should_read_file_close_file_and_delete_it() throws IOException {
+    Integer[] keys = GenerateTestData.generateIntKeys(100);
+    String[] values = GenerateTestData.generateStringData(keys.length, 12);
+
+    //Write
+    writeStore(storeFile, keys, values);
+
+    try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile, new Configuration())) {
+      assertNotNull(reader.get(0));
+    }
+
+    Files.delete(storeFile.toPath());
+    assertFalse(Files.exists(storeFile.toPath()));
+    assertEquals(0L, DirectoryUtils.folderSize(tempDir.toFile()));
+  }
+
+  @Test
+  void should_write_file_close_file_and_delete_it() throws IOException {
+    Integer[] keys = GenerateTestData.generateIntKeys(100);
+    String[] values = GenerateTestData.generateStringData(keys.length, 12);
+
+    //Write
+    writeStore(storeFile, keys, values);
+
+    Files.delete(storeFile.toPath());
+    assertFalse(Files.exists(storeFile.toPath()));
+    assertEquals(0L, DirectoryUtils.folderSize(tempDir.toFile()));
   }
 
   // UTILITY
