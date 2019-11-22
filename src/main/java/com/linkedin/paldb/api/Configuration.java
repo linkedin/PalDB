@@ -414,7 +414,7 @@ public class Configuration {
 
   @Override
   public int hashCode() {
-    int result = properties != null ? properties.hashCode() : 0;
+    int result = properties.hashCode();
     result = 31 * result + (serializers != null ? serializers.hashCode() : 0);
     return result;
   }

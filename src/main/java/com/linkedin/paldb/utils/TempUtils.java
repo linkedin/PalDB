@@ -15,6 +15,7 @@
 package com.linkedin.paldb.utils;
 
 import java.io.*;
+import java.nio.file.Files;
 
 
 /**
@@ -34,18 +35,11 @@ public final class TempUtils {
    * @return temporary folder
    */
   public static File createTempDir(String prefix) {
-    File baseDir = new File(System.getProperty("java.io.tmpdir"));
-    String baseName = prefix + System.currentTimeMillis() + "-";
-
-    for (int counter = 0; counter < 10000; counter++) {
-      File tempDir = new File(baseDir, baseName + counter);
-      if (tempDir.mkdir()) {
-        return tempDir;
-      }
+    try {
+      return Files.createTempDirectory(prefix).toFile();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
-    throw new IllegalStateException(
-        "Failed to create directory within " + 10000 + " attempts (tried " + baseName + "0 to " + baseName + (10000 - 1)
-            + ')');
   }
   
   /**
@@ -56,8 +50,7 @@ public final class TempUtils {
    * @return temporary file
    * @throws IOException if an IO error occurs
    */
-  public static File copyIntoTempFile(String fileName, InputStream inputStream)
-      throws IOException {
+  public static File copyIntoTempFile(String fileName, InputStream inputStream) throws IOException {
     File destFile = File.createTempFile(fileName, null);
     destFile.deleteOnExit();
     try (BufferedInputStream bufferedStream = inputStream instanceof BufferedInputStream ? (BufferedInputStream) inputStream

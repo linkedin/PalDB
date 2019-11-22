@@ -19,6 +19,8 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.invoke.*;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 
 
@@ -52,11 +54,6 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
     pos = 0;
     count = 0;
     return this;
-  }
-
-  public void resetForReading() {
-    count = pos;
-    pos = 0;
   }
 
   public DataInputOutput reset(byte[] b) {
@@ -126,15 +123,19 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
 
   @Override
   public int readInt() {
-    return (((buf[pos++] & 0xff) << 24) | ((buf[pos++] & 0xff) << 16) | ((buf[pos++] & 0xff) << 8) | (
-        (buf[pos++] & 0xff) << 0));
+    int result = (int)INT_HANDLE.get(buf, pos);
+    pos += Integer.BYTES;
+    return result;
   }
+
+  private static final VarHandle INT_HANDLE = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
+  private static final VarHandle LONG_HANDLE = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
 
   @Override
   public long readLong() {
-    return (((long) (buf[pos++] & 0xff) << 56) | ((long) (buf[pos++] & 0xff) << 48) | ((long) (buf[pos++] & 0xff) << 40)
-        | ((long) (buf[pos++] & 0xff) << 32) | ((long) (buf[pos++] & 0xff) << 24) | ((long) (buf[pos++] & 0xff) << 16)
-        | ((long) (buf[pos++] & 0xff) << 8) | ((long) (buf[pos++] & 0xff) << 0));
+    long result = (long)LONG_HANDLE.get(buf, pos);
+    pos += Long.BYTES;
+    return result;
   }
 
   @Override
@@ -220,23 +221,15 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
   @Override
   public void writeInt(int v) {
     ensureAvail(4);
-    buf[pos++] = (byte) (0xff & (v >> 24));
-    buf[pos++] = (byte) (0xff & (v >> 16));
-    buf[pos++] = (byte) (0xff & (v >> 8));
-    buf[pos++] = (byte) (0xff & (v >> 0));
+    INT_HANDLE.set(buf, pos, v);
+    pos += Integer.BYTES;
   }
 
   @Override
   public void writeLong(long v) {
     ensureAvail(8);
-    buf[pos++] = (byte) (0xff & (v >> 56));
-    buf[pos++] = (byte) (0xff & (v >> 48));
-    buf[pos++] = (byte) (0xff & (v >> 40));
-    buf[pos++] = (byte) (0xff & (v >> 32));
-    buf[pos++] = (byte) (0xff & (v >> 24));
-    buf[pos++] = (byte) (0xff & (v >> 16));
-    buf[pos++] = (byte) (0xff & (v >> 8));
-    buf[pos++] = (byte) (0xff & (v >> 0));
+    LONG_HANDLE.set(buf, pos, v);
+    pos += Long.BYTES;
   }
 
   @Override

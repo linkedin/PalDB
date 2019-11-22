@@ -75,7 +75,10 @@ public class TestConfiguration {
     c3.set("foo", "notbar");
 
     assertEquals(c1, c2);
+    assertEquals(c1, c1);
+    assertNotEquals(c1, "any value");
     assertNotEquals(c1, c3);
+    assertEquals(c1.hashCode(), c2.hashCode());
   }
 
   @Test

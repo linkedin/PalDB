@@ -5,7 +5,6 @@ import java.util.Arrays;
 import static java.lang.Math.log;
 
 public class BloomFilter {
-  private static final int BITS_IN_LONG = 64;
   private final long[] bits;
   private final int hashFunctions; // Number of hash functions
   private static final double LN2 = 0.6931471805599453; // ln(2)
@@ -14,13 +13,13 @@ public class BloomFilter {
   public BloomFilter(long elements, int sizeInBits) {
     this.sizeInBits = sizeInBits;
     this.hashFunctions = Math.max(1, (int) Math.round(LN2 * sizeInBits / elements));
-    this.bits = new long[Math.max(1, (int) Math.ceil((double) sizeInBits / BITS_IN_LONG))];
+    this.bits = new long[Math.max(1, (int) Math.ceil((double) sizeInBits / Long.SIZE))];
   }
 
   public BloomFilter(long expectedElements, double errorRate) {
-    this.sizeInBits = Math.max(BITS_IN_LONG, (int) Math.ceil( (-1 * expectedElements * log(errorRate)) / (LN2 * LN2)));
+    this.sizeInBits = Math.max(Long.SIZE, (int) Math.ceil( (-1 * expectedElements * log(errorRate)) / (LN2 * LN2)));
     this.hashFunctions = Math.max(1, (int) Math.round(((double) sizeInBits / expectedElements) * LN2));
-    this.bits = new long[Math.max(1, (int) Math.ceil((double) sizeInBits / BITS_IN_LONG))];
+    this.bits = new long[Math.max(1, (int) Math.ceil((double) sizeInBits / Long.SIZE))];
   }
 
   public BloomFilter(int hashFunctions, int bitSize, long[] bits) {
@@ -49,14 +48,14 @@ public class BloomFilter {
   }
 
   private void setBit(int position) {
-    int flagIndex = position / BITS_IN_LONG;
-    int bitIndexInFlag = position % BITS_IN_LONG;
+    int flagIndex = position / Long.SIZE;
+    int bitIndexInFlag = position % Long.SIZE;
     bits[flagIndex] |= (1L << bitIndexInFlag);
   }
 
   private boolean getBit(int position) {
-    int flagIndex = position / BITS_IN_LONG;
-    int bitIndexInFlag = position % BITS_IN_LONG;
+    int flagIndex = position / Long.SIZE;
+    int bitIndexInFlag = position % Long.SIZE;
     return ((bits[flagIndex] >> bitIndexInFlag) & 1L) == 1;
   }
 

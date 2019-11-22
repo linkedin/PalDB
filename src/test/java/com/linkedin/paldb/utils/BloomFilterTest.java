@@ -64,6 +64,20 @@ public class BloomFilterTest {
     }
 
     @Test
+    void should_be_equal() {
+        var bits = new long[Math.max(1, (int) Math.ceil((double) 6235225 / Long.SIZE))];
+        var sut1 = new BloomFilter(4, 6235225, bits);
+        var sut2 = new BloomFilter(4, 6235225, bits);
+
+        for (int i = 0; i < 100; i++) {
+            sut1.add((i + "foo").getBytes());
+            sut2.add((i + "foo").getBytes());
+        }
+
+        assertEquals(sut1, sut2);
+    }
+
+    @Test
     void correctness() {
         System.out.println("Testing correctness.\n"+
                 "Creating a Set and filling it together with our filter...");

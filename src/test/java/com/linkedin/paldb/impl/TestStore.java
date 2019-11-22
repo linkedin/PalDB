@@ -317,12 +317,12 @@ public class TestStore {
     StorageSerialization serialization = new StorageSerialization(new Configuration());
     int byteSize = serialization.serialize(values[0]).length + serialization.serialize(values[1]).length;
 
-    //Write
-    writeStore(storeFile, keys, values);
-
-    //Read
     Configuration configuration = new Configuration();
     configuration.set(Configuration.MMAP_SEGMENT_SIZE, String.valueOf(byteSize - 100));
+    //Write
+    writeStore(storeFile, keys, values, configuration);
+
+    //Read
     try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile, configuration)) {
       for (int i = 0; i < keys.length; i++) {
         assertEquals(reader.get((Integer) keys[i], null), values[i]);
@@ -332,19 +332,17 @@ public class TestStore {
 
   @Test
   public void testIndexOnManyIndexBuffers() throws IOException {
+    Configuration configuration = new Configuration();
+    configuration.set(Configuration.MMAP_SEGMENT_SIZE, String.valueOf(32));
+
     var keys = new String[]{GenerateTestData.generateStringData(100), GenerateTestData
             .generateStringData(10000), GenerateTestData.generateStringData(100)};
     var values = new Integer[]{1, 2, 3};
 
-    StorageSerialization serialization = new StorageSerialization(new Configuration());
-    int byteSize = serialization.serialize(keys[0]).length + serialization.serialize(keys[1]).length;
-
     //Write
-    writeStore(storeFile, keys, values);
+    writeStore(storeFile, keys, values, configuration);
 
     //Read
-    Configuration configuration = new Configuration();
-    configuration.set(Configuration.MMAP_SEGMENT_SIZE, String.valueOf(32));
     try (StoreReader<String, Integer> reader = PalDB.createReader(storeFile, configuration)) {
       for (int i = 0; i < keys.length; i++) {
         assertEquals(reader.get(keys[i], null), values[i]);
@@ -356,21 +354,20 @@ public class TestStore {
   public void testDataSizeOnTwoBuffers() throws IOException {
     Integer[] keys = new Integer[]{1, 2, 3};
     String[] values = new String[]{GenerateTestData.generateStringData(100), GenerateTestData
-        .generateStringData(10000), GenerateTestData.generateStringData(100)};
+            .generateStringData(10000), GenerateTestData.generateStringData(100)};
 
     StorageSerialization serialization = new StorageSerialization(new Configuration());
     byte[] b1 = serialization.serialize(values[0]);
     byte[] b2 = serialization.serialize(values[1]);
     int byteSize = b1.length + b2.length;
     int sizeSize =
-        LongPacker.packInt(new DataInputOutput(), b1.length) + LongPacker.packInt(new DataInputOutput(), b2.length);
-
-    //Write
-    writeStore(storeFile, keys, values);
-
-    //Read
+            LongPacker.packInt(new DataInputOutput(), b1.length) + LongPacker.packInt(new DataInputOutput(), b2.length);
     Configuration configuration = new Configuration();
     configuration.set(Configuration.MMAP_SEGMENT_SIZE, String.valueOf(byteSize + sizeSize + 3));
+
+    //Write
+    writeStore(storeFile, keys, values, configuration);
+    //Read
     try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile, configuration)) {
       for (int i = 0; i < keys.length; i++) {
         assertEquals(reader.get(keys[i], null), values[i]);
@@ -645,7 +642,11 @@ public class TestStore {
   }
 
   private <K,V> void writeStore(File location, K[] keys, V[] values) {
-    try (StoreWriter<K,V> writer = PalDB.createWriter(location, new Configuration())) {
+    writeStore(location, keys, values, new Configuration());
+  }
+
+  private <K,V> void writeStore(File location, K[] keys, V[] values, Configuration configuration) {
+    try (StoreWriter<K,V> writer = PalDB.createWriter(location, configuration)) {
       writer.putAll(keys, values);
     }
   }
