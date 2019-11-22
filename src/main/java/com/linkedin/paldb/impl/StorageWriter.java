@@ -20,7 +20,7 @@ import com.linkedin.paldb.utils.*;
 import org.slf4j.*;
 
 import java.io.*;
-import java.nio.MappedByteBuffer;
+import java.nio.*;
 import java.nio.channels.FileChannel;
 import java.text.DecimalFormat;
 import java.util.*;
@@ -53,12 +53,14 @@ public class StorageWriter {
   // Max offset length
   private int[] maxOffsetLengths;
   // Number of keys
-  private int keyCount;
-  private int[] keyCounts;
+  private long keyCount;
+  private long[] keyCounts;
   // Number of values
-  private int valueCount;
+  private long valueCount;
   // Number of collisions
   private int collisions;
+
+  private final long segmentSize;
 
   StorageWriter(Configuration configuration, OutputStream stream) {
     config = configuration;
@@ -80,11 +82,11 @@ public class StorageWriter {
     lastValuesLength = new int[0];
     dataLengths = new long[0];
     maxOffsetLengths = new int[0];
-    keyCounts = new int[0];
+    keyCounts = new long[0];
+    segmentSize = config.getLong(Configuration.MMAP_SEGMENT_SIZE);
    }
 
-  public void put(byte[] key, byte[] value)
-      throws IOException {
+  public void put(byte[] key, byte[] value) throws IOException {
     int keyLength = key.length;
 
     //Get the Output stream for that keyLength, each key length has its own file
@@ -104,8 +106,8 @@ public class StorageWriter {
     }
 
     // Write offset and record max offset length
-    int offsetLength = LongPacker.packLong(indexStream, dataLength);
-    maxOffsetLengths[keyLength] = Math.max(offsetLength, maxOffsetLengths[keyLength]);
+    int offsetDataLength = LongPacker.packLong(indexStream, dataLength);
+    maxOffsetLengths[keyLength] = Math.max(offsetDataLength, maxOffsetLengths[keyLength]);
 
     // Write if data is not the same
     if (!sameValue) {
@@ -137,7 +139,8 @@ public class StorageWriter {
         dos.close();
       }
     }
-    for (DataOutputStream dos : indexStreams) {
+
+    for (var dos : indexStreams) {
       if (dos != null) {
         dos.close();
       }
@@ -165,9 +168,9 @@ public class StorageWriter {
       //Write metadata file
       File metadataFile = new File(tempFolder, "metadata.dat");
       metadataFile.deleteOnExit();
-      try (FileOutputStream metadataOutputStream = new FileOutputStream(metadataFile);
-           DataOutputStream metadataDataOutputStream = new DataOutputStream(metadataOutputStream)) {
-        writeMetadata(metadataDataOutputStream, bloomFilter);
+
+      try (var metadataOutputStream = new RandomAccessFile(metadataFile, "rw")) {
+        writeMetadata(metadataOutputStream, bloomFilter);
       }
 
       filesToMerge.add(0, metadataFile);
@@ -192,7 +195,7 @@ public class StorageWriter {
     }
   }
 
-  private void writeMetadata(DataOutputStream dataOutputStream, BloomFilter bloomFilter) throws IOException {
+  private void writeMetadata(RandomAccessFile dataOutputStream, BloomFilter bloomFilter) throws IOException {
     //Write format version
     dataOutputStream.writeUTF(FormatVersion.getLatestVersion().name());
 
@@ -204,7 +207,7 @@ public class StorageWriter {
     int maxKeyLength = keyCounts.length - 1;
 
     //Write size (number of keys)
-    dataOutputStream.writeInt(keyCount);
+    dataOutputStream.writeLong(keyCount);
 
     //write bloom filter bit size
     dataOutputStream.writeInt(bloomFilter != null ? bloomFilter.bitSize() : 0);
@@ -233,18 +236,18 @@ public class StorageWriter {
         dataOutputStream.writeInt(i);
 
         // Write key count
-        dataOutputStream.writeInt(keyCounts[i]);
+        dataOutputStream.writeLong(keyCounts[i]);
 
         // Write slot count
-        int slots = (int) Math.round(keyCounts[i] / loadFactor);
-        dataOutputStream.writeInt(slots);
+        long slots = Math.round(keyCounts[i] / loadFactor);
+        dataOutputStream.writeLong(slots);
 
         // Write slot size
         int offsetLength = maxOffsetLengths[i];
         dataOutputStream.writeInt(i + offsetLength);
 
         // Write index offset
-        dataOutputStream.writeInt((int) indexesLength);
+        dataOutputStream.writeLong(indexesLength);
 
         // Increment index length
         indexesLength += (i + offsetLength) * slots;
@@ -258,24 +261,104 @@ public class StorageWriter {
     }
 
     //Write the position of the index and the data
-    int indexOffset = dataOutputStream.size() + (Integer.SIZE / Byte.SIZE) + (Long.SIZE / Byte.SIZE);
-    dataOutputStream.writeInt(indexOffset);
+    long indexOffset = dataOutputStream.getFilePointer() + (Long.SIZE / Byte.SIZE) + (Long.SIZE / Byte.SIZE);
+    dataOutputStream.writeLong(indexOffset);
+    //data offset
     dataOutputStream.writeLong(indexOffset + indexesLength);
+  }
+
+  private MappedByteBuffer[] initIndexBuffers(FileChannel channel, long indexSize) {
+    int bufIdx = 0;
+    int bufArraySize = (int) (indexSize / segmentSize) + ((indexSize % segmentSize != 0) ? 1 : 0);
+    var result = new MappedByteBuffer[bufArraySize];
+    try {
+      for (long offset = 0; offset < indexSize; offset += segmentSize) {
+        long remainingFileSize = indexSize - offset;
+        long thisSegmentSize = Math.min(segmentSize, remainingFileSize);
+        result[bufIdx++] = channel.map(FileChannel.MapMode.READ_WRITE, offset, thisSegmentSize);
+      }
+      return result;
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  private void getFromIndexBuffer(MappedByteBuffer[] indexBuffers, long offset, byte[] slotBuffer, int slotSize) {
+    int bufferIndex = (int) (offset / segmentSize);
+    var buf = indexBuffers[bufferIndex];
+    var pos = (int) (offset % segmentSize);
+
+    int remaining = remaining(buf, pos);
+    if (remaining < slotSize) {
+      int splitOffset = 0;
+      buf.get(pos, slotBuffer, 0, remaining);
+      buf = indexBuffers[++bufferIndex];
+      int bytesLeft = slotSize - remaining;
+      splitOffset += remaining;
+      remaining = remaining(buf, 0);
+
+      while (remaining < bytesLeft) {
+        buf.get(0, slotBuffer, splitOffset, remaining);
+        buf = indexBuffers[++bufferIndex];
+        splitOffset += remaining;
+        bytesLeft -= remaining;
+        remaining = remaining(buf, 0);
+      }
+
+      if (remaining > 0 && bytesLeft > 0) {
+        buf.get(0, slotBuffer, splitOffset, bytesLeft);
+      }
+    } else {
+      buf.get(pos, slotBuffer, 0, slotSize);
+    }
+  }
+
+  private void putIntoIndexBuffer(MappedByteBuffer[] indexBuffers, long offset, byte[] slotBuffer, int slotSize) {
+    int bufferIndex = (int) (offset / segmentSize);
+    var buf = indexBuffers[bufferIndex];
+    var pos = (int) (offset % segmentSize);
+
+    int remaining = remaining(buf, pos);
+    if (remaining < slotSize) {
+      int splitOffset = 0;
+      buf.put(pos, slotBuffer, 0, remaining);
+      buf = indexBuffers[++bufferIndex];
+      int bytesLeft = slotSize - remaining;
+      splitOffset += remaining;
+      remaining = remaining(buf, 0);
+
+      while (remaining < bytesLeft) {
+        buf.put(0, slotBuffer, splitOffset, remaining);
+        buf = indexBuffers[++bufferIndex];
+        splitOffset += remaining;
+        bytesLeft -= remaining;
+        remaining = remaining(buf, 0);
+      }
+
+      if (remaining > 0 && bytesLeft > 0) {
+        buf.put(0, slotBuffer, splitOffset, bytesLeft);
+      }
+    } else {
+      buf.put(pos, slotBuffer, 0, slotSize);
+    }
+  }
+
+  private static int remaining(ByteBuffer buffer, int pos) {
+    return buffer.limit() - pos;
   }
 
   private File buildIndex(int keyLength, BloomFilter bloomFilter) throws IOException {
     long count = keyCounts[keyLength];
-    int slots = (int) Math.round(count / loadFactor);
+    long numSlots = Math.round(count / loadFactor);
     int offsetLength = maxOffsetLengths[keyLength];
     int slotSize = keyLength + offsetLength;
 
     // Init index
     File indexFile = new File(tempFolder, "index" + keyLength + ".dat");
     try (RandomAccessFile indexAccessFile = new RandomAccessFile(indexFile, "rw")) {
-      indexAccessFile.setLength((long) slots * slotSize);
+      indexAccessFile.setLength(numSlots * slotSize);
       try (FileChannel indexChannel = indexAccessFile.getChannel()) {
-        MappedByteBuffer byteBuffer = indexChannel.map(FileChannel.MapMode.READ_WRITE, 0, indexAccessFile.length());
-
+        var indexBuffers = initIndexBuffers(indexChannel, indexAccessFile.length());
       // Init reading stream
         File tempIndexFile = indexFiles[keyLength];
         try (DataInputStream tempIndexStream = new DataInputStream(new BufferedInputStream(new FileInputStream(tempIndexFile)))) {
@@ -284,12 +367,12 @@ public class StorageWriter {
           byte[] offsetBuffer = new byte[offsetLength];
 
           // Read all keys
-          for (int i = 0; i < count; i++) {
+          for (long i = 0; i < count; i++) {
             // Read key
             tempIndexStream.readFully(keyBuffer);
 
             // Read offset
-            long offset = LongPacker.unpackLong(tempIndexStream);
+            long offsetData = LongPacker.unpackLong(tempIndexStream);
 
             // Hash
             long hash = Murmur3.hash(keyBuffer);
@@ -298,18 +381,15 @@ public class StorageWriter {
             }
 
             boolean collision = false;
-            for (int probe = 0; probe < count; probe++) {
-              int slot = (int) ((hash + probe) % slots);
-              byteBuffer.position(slot * slotSize);
-              byteBuffer.get(slotBuffer);
-
+            for (long probe = 0; probe < count; probe++) {
+              long slot = ((hash + probe) % numSlots);
+              getFromIndexBuffer(indexBuffers, slot * slotSize, slotBuffer, slotSize);
               long found = LongPacker.unpackLong(slotBuffer, keyLength);
               if (found == 0) {
                 // The spot is empty use it
-                byteBuffer.position(slot * slotSize);
-                byteBuffer.put(keyBuffer);
-                int pos = LongPacker.packLong(offsetBuffer, offset);
-                byteBuffer.put(offsetBuffer, 0, pos);
+                putIntoIndexBuffer(indexBuffers, slot * slotSize, keyBuffer, keyBuffer.length);
+                int pos = LongPacker.packLong(offsetBuffer, offsetData);
+                putIntoIndexBuffer(indexBuffers, (slot * slotSize) + keyBuffer.length, offsetBuffer, pos);
                 break;
               } else {
                 collision = true;
@@ -332,6 +412,7 @@ public class StorageWriter {
           log.info("Built index file {} \n{}", indexFile.getName(), msg);
 
         } finally {
+          indexBuffers = null;
           if (tempIndexFile.delete()) {
             log.info("Temporary index file {} has been deleted", tempIndexFile.getName());
           }
@@ -439,11 +520,9 @@ public class StorageWriter {
     if (dos == null) {
       File file = new File(tempFolder, "temp_index" + keyLength + ".dat");
       file.deleteOnExit();
-      indexFiles[keyLength] = file;
-
       dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
+      indexFiles[keyLength] = file;
       indexStreams[keyLength] = dos;
-
       dataLengths[keyLength]++;
     }
     return dos;
@@ -451,8 +530,8 @@ public class StorageWriter {
 
   private int getNumKeyCount() {
     int res = 0;
-    for (final int count : keyCounts) {
-      if (count != 0) {
+    for (final long count : keyCounts) {
+      if (count != 0L) {
         res++;
       }
     }

@@ -331,6 +331,28 @@ public class TestStore {
   }
 
   @Test
+  public void testIndexOnManyIndexBuffers() throws IOException {
+    var keys = new String[]{GenerateTestData.generateStringData(100), GenerateTestData
+            .generateStringData(10000), GenerateTestData.generateStringData(100)};
+    var values = new Integer[]{1, 2, 3};
+
+    StorageSerialization serialization = new StorageSerialization(new Configuration());
+    int byteSize = serialization.serialize(keys[0]).length + serialization.serialize(keys[1]).length;
+
+    //Write
+    writeStore(storeFile, keys, values);
+
+    //Read
+    Configuration configuration = new Configuration();
+    configuration.set(Configuration.MMAP_SEGMENT_SIZE, String.valueOf(32));
+    try (StoreReader<String, Integer> reader = PalDB.createReader(storeFile, configuration)) {
+      for (int i = 0; i < keys.length; i++) {
+        assertEquals(reader.get(keys[i], null), values[i]);
+      }
+    }
+  }
+
+  @Test
   public void testDataSizeOnTwoBuffers() throws IOException {
     Integer[] keys = new Integer[]{1, 2, 3};
     String[] values = new String[]{GenerateTestData.generateStringData(100), GenerateTestData
@@ -497,6 +519,30 @@ public class TestStore {
     Files.delete(storeFile.toPath());
     assertFalse(Files.exists(storeFile.toPath()));
     assertEquals(0L, DirectoryUtils.folderSize(tempDir.toFile()));
+  }
+
+  private static final byte[] EMPTY_VALUE = new byte[0];
+
+  @Test
+  @Disabled
+  void should_add_more_than_int_max_size_keys() {
+    long keysCount = (long) Integer.MAX_VALUE + 100L;
+    var from = System.currentTimeMillis();
+    try (StoreWriter<Long,byte[]> writer = PalDB.createWriter(storeFile, new Configuration())) {
+      System.out.println(String.format("Adding %d keys...", keysCount));
+      for (long i = 0; i < keysCount; i++) {
+        writer.put(i, EMPTY_VALUE);
+      }
+    }
+    System.out.println(String.format("%d keys were added successfully in %d ms", keysCount, System.currentTimeMillis() - from));
+
+    from = System.currentTimeMillis();
+    try (StoreReader<Long,byte[]> reader = PalDB.createReader(storeFile, new Configuration())) {
+      for (long i = 0; i < keysCount; i++) {
+        assertArrayEquals(EMPTY_VALUE, reader.get(i));
+      }
+    }
+    System.out.println(String.format("%d keys were read in %d ms", keysCount, System.currentTimeMillis() - from));
   }
 
   // UTILITY

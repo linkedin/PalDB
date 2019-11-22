@@ -11,13 +11,13 @@ public class BloomFilter {
   private static final double LN2 = 0.6931471805599453; // ln(2)
   private final int sizeInBits;
 
-  public BloomFilter(int elements, int sizeInBits) {
+  public BloomFilter(long elements, int sizeInBits) {
     this.sizeInBits = sizeInBits;
     this.hashFunctions = Math.max(1, (int) Math.round(LN2 * sizeInBits / elements));
     this.bits = new long[Math.max(1, (int) Math.ceil((double) sizeInBits / BITS_IN_LONG))];
   }
 
-  public BloomFilter(int expectedElements, double errorRate) {
+  public BloomFilter(long expectedElements, double errorRate) {
     this.sizeInBits = Math.max(BITS_IN_LONG, (int) Math.ceil( (-1 * expectedElements * log(errorRate)) / (LN2 * LN2)));
     this.hashFunctions = Math.max(1, (int) Math.round(((double) sizeInBits / expectedElements) * LN2));
     this.bits = new long[Math.max(1, (int) Math.ceil((double) sizeInBits / BITS_IN_LONG))];
