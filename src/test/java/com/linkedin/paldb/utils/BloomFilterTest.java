@@ -11,7 +11,7 @@ import java.util.stream.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 
-public class BloomFilterTest {
+class BloomFilterTest {
 
     private int elements =  1_000_000;
     private int bitsize  = 10_000_000;

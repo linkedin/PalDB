@@ -29,19 +29,20 @@ import java.util.stream.IntStream;
 
 @Disabled
 @Tag("performance")
-public class TestReadThroughput {
+class TestReadThroughput {
 
   private File testFolder = createTempDir();
   private static final int READS = 500000;
 
+  @SuppressWarnings("ResultOfMethodCallIgnored")
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     DirectoryUtils.deleteDirectory(testFolder);
     testFolder.mkdir();
   }
 
   @AfterEach
-  public void cleanUp() {
+  void cleanUp() {
     DirectoryUtils.deleteDirectory(testFolder);
   }
 
@@ -54,7 +55,7 @@ public class TestReadThroughput {
   }
 
   @Test
-  public void testReadThroughput() {
+  void testReadThroughput() {
 
     List<Measure> measures = new ArrayList<>();
     int max = 10000000;
@@ -68,7 +69,7 @@ public class TestReadThroughput {
   }
 
   @Test
-  public void testReadThroughputMultiThread() {
+  void testReadThroughputMultiThread() {
 
     List<Measure> measures = new ArrayList<>();
     int max = 10000000;
@@ -82,7 +83,7 @@ public class TestReadThroughput {
   }
 
   @Test
-  public void testReadThroughputWithCache() {
+  void testReadThroughputWithCache() {
 
     List<Measure> measures = new ArrayList<>();
     int max = 10000000;
@@ -96,7 +97,7 @@ public class TestReadThroughput {
   }
 
   @Test
-  public void testReadThroughputWithCacheRandomFinds() {
+  void testReadThroughputWithCacheRandomFinds() {
 
     List<Measure> measures = new ArrayList<>();
     int max = 10000000;
@@ -110,7 +111,7 @@ public class TestReadThroughput {
   }
 
   @Test
-  public void testReadThroughputWithCacheRandomFindsMultipleThreads() {
+  void testReadThroughputWithCacheRandomFindsMultipleThreads() {
 
     List<Measure> measures = new ArrayList<>();
     int max = 10000000;

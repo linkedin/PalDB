@@ -14,6 +14,8 @@
 
 package com.linkedin.paldb.utils;
 
+import org.slf4j.*;
+
 import java.io.*;
 import java.nio.file.Files;
 
@@ -23,9 +25,28 @@ import java.nio.file.Files;
  */
 public final class TempUtils {
 
+  private static final Logger log = LoggerFactory.getLogger(TempUtils.class);
+
   // Default constructor
   private TempUtils() {
 
+  }
+
+  public static boolean deleteDirectory(File directoryToBeDeleted) {
+    if (directoryToBeDeleted.isDirectory()) {
+      File[] allContents = directoryToBeDeleted.listFiles();
+      if (allContents != null) {
+        for (File file : allContents) {
+          deleteDirectory(file);
+        }
+      }
+    }
+    try {
+      return Files.deleteIfExists(directoryToBeDeleted.toPath());
+    } catch (IOException e) {
+      log.warn("Cannot delete directory: " + directoryToBeDeleted, e);
+      return false;
+    }
   }
 
   /**

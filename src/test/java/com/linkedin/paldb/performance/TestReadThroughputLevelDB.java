@@ -27,25 +27,25 @@ import static org.fusesource.leveldbjni.JniDBFactory.*;
 
 @Disabled
 @Tag("performance")
-public class TestReadThroughputLevelDB {
+class TestReadThroughputLevelDB {
 
   private File TEST_FOLDER = new File("testreadthroughputleveldb");
   private final int READS = 500000;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     DirectoryUtils.deleteDirectory(TEST_FOLDER);
     TEST_FOLDER.mkdir();
   }
 
   @AfterEach
-  public void cleanUp() {
+  void cleanUp() {
     DirectoryUtils.deleteDirectory(TEST_FOLDER);
   }
 
   @Test
-  public void testReadThroughput() {
-    List<Measure> measures = new ArrayList<Measure>();
+  void testReadThroughput() {
+    List<Measure> measures = new ArrayList<>();
 
     int max = 10000000;
     for (int i = 100; i <= max; i *= 10) {
@@ -72,7 +72,7 @@ public class TestReadThroughputLevelDB {
     options.compressionType(CompressionType.NONE);
     options.verifyChecksums(false);
     options.blockSize(1024);
-    options.cacheSize(0l);
+    options.cacheSize(0L);
     DB db = null;
     try {
       db = factory.open(file, options);
@@ -104,21 +104,18 @@ public class TestReadThroughputLevelDB {
 
       // Measure
       nanoBench.cpuOnly().warmUps(5).measurements(20)
-          .measure("Measure %d reads for %d keys with cache", new Runnable() {
-            @Override
-            public void run() {
-              Random r = new Random();
-              int length = keys.length;
-              for (int i = 0; i < READS; i++) {
-                int index;
-                if (i % 2 == 0 && frequentReads) {
-                  index = r.nextInt(length / 10);
-                } else {
-                  index = r.nextInt(length);
-                }
-                Integer key = keys[index];
-                reader.get(bytes(key.toString()));
+          .measure("Measure %d reads for %d keys with cache", () -> {
+            Random r = new Random();
+            int length = keys.length;
+            for (int i = 0; i < READS; i++) {
+              int index;
+              if (i % 2 == 0 && frequentReads) {
+                index = r.nextInt(length / 10);
+              } else {
+                index = r.nextInt(length);
               }
+              Integer key = keys[index];
+              reader.get(bytes(key.toString()));
             }
           });
     } catch (IOException e) {
@@ -135,7 +132,7 @@ public class TestReadThroughputLevelDB {
 
     // Return measure
     double rps = READS * nanoBench.getTps();
-    return new Measure(DirectoryUtils.folderSize(TEST_FOLDER), rps, valueLength, 0l, keys.length);
+    return new Measure(DirectoryUtils.folderSize(TEST_FOLDER), rps, valueLength, 0L, keys.length);
   }
 
   private void report(String title, List<Measure> measures) {

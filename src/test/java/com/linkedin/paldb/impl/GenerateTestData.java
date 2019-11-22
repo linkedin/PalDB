@@ -98,7 +98,7 @@ public class GenerateTestData {
     Object[] res = new Object[count];
     Random random = new Random(345);
     for (int i = 0; i < count; i++) {
-      Object[] k = new Object[]{Byte.valueOf((byte) random.nextInt(10)), Integer.valueOf(i)};
+      Object[] k = new Object[]{(byte) random.nextInt(10), i};
       res[i] = k;
     }
     return res;
@@ -125,7 +125,7 @@ public class GenerateTestData {
 
   public static Integer[] generateIntData(int count) {
     Integer[] res = new Integer[count];
-    Random random = new Random(count + 34593263544354353l);
+    Random random = new Random(count + 34593263544354353L);
     for (int i = 0; i < count; i++) {
       res[i] = random.nextInt(1000000);
     }
@@ -134,7 +134,7 @@ public class GenerateTestData {
 
   public static int[][] generateIntArrayData(int count, int size) {
     int[][] res = new int[count][];
-    Random random = new Random(count + 34593263544354353l);
+    Random random = new Random(count + 34593263544354353L);
     for (int i = 0; i < count; i++) {
       int[] r = new int[size];
       for (int j = 0; j < size; j++) {

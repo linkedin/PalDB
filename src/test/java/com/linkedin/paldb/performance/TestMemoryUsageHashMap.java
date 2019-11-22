@@ -21,12 +21,12 @@ import java.util.*;
 
 @Disabled
 @Tag("performance")
-public class TestMemoryUsageHashMap {
+class TestMemoryUsageHashMap {
 
   private Set<Integer> ref;
 
   @Test
-  public void testMemoryUsage() {
+  void testMemoryUsage() {
 
     System.out.println("MEMORY USAGE (HashSet int)\n\n");
     System.out.println("KEYS;MB");
@@ -37,14 +37,11 @@ public class TestMemoryUsageHashMap {
       // Benchmark
       final int cnt = i;
       NanoBench nanoBench = NanoBench.create();
-      nanoBench.memoryOnly().warmUps(2).measurements(10).measure(String.format("Measure memory for %d keys", i), new Runnable() {
-        @Override
-        public void run() {
-          Random setRandom = new Random(4532);
-          ref = new HashSet<Integer>(cnt);
-          while (ref.size() < cnt) {
-            ref.add(setRandom.nextInt(Integer.MAX_VALUE));
-          }
+      nanoBench.memoryOnly().warmUps(2).measurements(10).measure(String.format("Measure memory for %d keys", i), () -> {
+        Random setRandom = new Random(4532);
+        ref = new HashSet<>(cnt);
+        while (ref.size() < cnt) {
+          ref.add(setRandom.nextInt(Integer.MAX_VALUE));
         }
       });
 

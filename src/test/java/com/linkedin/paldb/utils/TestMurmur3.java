@@ -19,20 +19,20 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TestMurmur3 {
+class TestMurmur3 {
 
   @Test
-  public void testHashEquals() {
+  void testHashEquals() {
     assertEquals(Murmur3.hash("foo".getBytes()), Murmur3.hash("foo".getBytes()));
   }
 
   @Test
-  public void testEmpty() {
+  void testEmpty() {
     assertTrue(Murmur3.hash(new byte[0]) > 0);
   }
 
   @Test
-  public void testSameHash() {
+  void testSameHash() {
     var bytes = "foo".getBytes();
     assertEquals(Murmur3.hash(bytes, 42), MurmurHash3.hash32(bytes, bytes.length, 42));
   }

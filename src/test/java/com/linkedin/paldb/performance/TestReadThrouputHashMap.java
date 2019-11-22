@@ -19,14 +19,16 @@ import org.junit.jupiter.api.*;
 
 import java.util.*;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 @Disabled
 @Tag("performance")
-public class TestReadThrouputHashMap {
+class TestReadThrouputHashMap {
 
   private final int READS = 500000;
 
   @Test
-  public void testReadThroughput() {
+  void testReadThroughput() {
 
     System.out.println("READ THROUGHPUT (HashSet int)\n\n");
     System.out.println("KEYS;RPS");
@@ -36,7 +38,7 @@ public class TestReadThrouputHashMap {
 
       // Prepare set
       Random setRandom = new Random(4532);
-      final Set<Integer> set = new HashSet<Integer>(i);
+      final Set<Integer> set = new HashSet<>(i);
       while (set.size() < i) {
         set.add(setRandom.nextInt(Integer.MAX_VALUE));
       }
@@ -45,12 +47,9 @@ public class TestReadThrouputHashMap {
       // Benchmark
       final Random random = new Random(i);
       NanoBench nanoBench = NanoBench.create();
-      nanoBench.cpuOnly().measure(String.format("Measure %d reads for %d keys", READS, i), new Runnable() {
-        @Override
-        public void run() {
-          for (int i = 0; i < READS; i++) {
-            set.contains(keys[random.nextInt(keys.length)]);
-          }
+      nanoBench.cpuOnly().measure(String.format("Measure %d reads for %d keys", READS, i), () -> {
+        for (int i1 = 0; i1 < READS; i1++) {
+          assertTrue(set.contains(keys[random.nextInt(keys.length)]));
         }
       });
 

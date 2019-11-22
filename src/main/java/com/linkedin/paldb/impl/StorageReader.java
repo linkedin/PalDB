@@ -15,6 +15,7 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.Configuration;
+import com.linkedin.paldb.api.errors.VersionMismatch;
 import com.linkedin.paldb.utils.*;
 import org.slf4j.*;
 
@@ -25,6 +26,8 @@ import java.nio.charset.MalformedInputException;
 import java.text.*;
 import java.time.Instant;
 import java.util.*;
+
+import static com.linkedin.paldb.utils.DataInputOutput.*;
 
 
 /**
@@ -111,7 +114,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
       formatVersion = FormatVersion.fromBytes(versionFound);
       if (formatVersion == null || !formatVersion.is(FormatVersion.getLatestVersion())) {
-        throw new RuntimeException(
+        throw new VersionMismatch(
                 "Version mismatch, expected was '" + FormatVersion.getLatestVersion() + "' and found '" + formatVersion
                         + "'");
       }
@@ -254,7 +257,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     var slotBuffer = new byte[slotSize];
     for (long probe = 0; probe < numSlots; probe++) {
       long slot = ((hash + probe) % numSlots);
-      getFromIndexBuffer(ixOffset + slot * slotSize, slotBuffer, slotSize);
+      getFromBuffers(indexBuffers, ixOffset + slot * slotSize, slotBuffer, slotSize, segmentSize);
       long offset = LongPacker.unpackLong(slotBuffer, keyLength);
       if (offset == 0L) {
         return null;
@@ -264,36 +267,6 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
       }
     }
     return null;
-  }
-
-  private void getFromIndexBuffer(long offset, byte[] slotBuffer, int slotSize) {
-    int bufferIndex = (int) (offset / segmentSize);
-    var buf = indexBuffers[bufferIndex];
-    var pos = (int) (offset % segmentSize);
-
-    int remaining = remaining(buf, pos);
-    if (remaining < slotSize) {
-      int splitOffset = 0;
-      buf.get(pos, slotBuffer, 0, remaining);
-      buf = indexBuffers[++bufferIndex];
-      int bytesLeft = slotSize - remaining;
-      splitOffset += remaining;
-      remaining = remaining(buf, 0);
-
-      while (remaining < bytesLeft) {
-        buf.get(0, slotBuffer, splitOffset, remaining);
-        buf = indexBuffers[++bufferIndex];
-        splitOffset += remaining;
-        bytesLeft -= remaining;
-        remaining = remaining(buf, 0);
-      }
-
-      if (remaining > 0 && bytesLeft > 0) {
-        buf.get(0, slotBuffer, splitOffset, bytesLeft);
-      }
-    } else {
-      buf.get(pos, slotBuffer, 0, slotSize);
-    }
   }
 
   private static boolean isKey(byte[] slotBuffer, byte[] key) {
@@ -311,10 +284,6 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
   public long getKeyCount() {
     return keyCount;
-  }
-
-  private static int remaining(ByteBuffer buffer, int pos) {
-    return buffer.limit() - pos;
   }
 
   //Read the data at the given offset, the data can be spread over multiple data buffers
@@ -460,7 +429,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
       try {
         long offset = 0;
         while (offset == 0) {
-          getFromIndexBuffer(currentIndexOffset, currentSlotBuffer, currentSlotBuffer.length);
+          getFromBuffers(indexBuffers, currentIndexOffset, currentSlotBuffer, currentSlotBuffer.length, segmentSize);
           offset = LongPacker.unpackLong(currentSlotBuffer, currentKeyLength);
           currentIndexOffset += currentSlotBuffer.length;
         }

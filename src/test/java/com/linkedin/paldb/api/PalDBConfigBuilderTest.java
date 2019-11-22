@@ -4,10 +4,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class PalDBConfigBuilderTest {
+class PalDBConfigBuilderTest {
 
     @Test
-    public void testAllPropertiesSet() {
+    void testAllPropertiesSet() {
         var config = PalDBConfigBuilder.create()
                 .withMemoryMapSegmentSize(500)
                 .withMemoryMapDataEnabled(false)

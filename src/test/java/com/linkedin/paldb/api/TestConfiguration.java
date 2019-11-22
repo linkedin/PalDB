@@ -17,38 +17,36 @@ package com.linkedin.paldb.api;
 
 import org.junit.jupiter.api.Test;
 
-import java.awt.*;
-import java.io.*;
-import java.util.*;
+import java.util.Arrays;
 
 import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.*;
 
 
-public class TestConfiguration {
+class TestConfiguration {
 
   @Test
-  public void testConfiguration() {
+  void testConfiguration() {
     Configuration c = new Configuration();
     c.set("foo", "bar");
-    assertEquals(c.get("foo", null), "bar");
-    assertEquals(c.get("bar", "foo"), "foo");
+    assertEquals("bar", c.get("foo", null));
+    assertEquals("foo", c.get("bar", "foo"));
   }
 
   @Test
-  public void testConfigurationCopy() {
+  void testConfigurationCopy() {
     Configuration c = new Configuration();
     c.set("foo", "bar");
 
     Configuration r = new Configuration(c);
-    assertEquals(r.get("foo", null), "bar");
+    assertEquals("bar", r.get("foo", null));
 
     c.set("foo", "");
-    assertEquals(r.get("foo", null), "bar");
+    assertEquals("bar", r.get("foo", null));
   }
 
   @Test
-  public void testConfigurationReadOnly() {
+  void testConfigurationReadOnly() {
     Configuration c = new Configuration();
     c.set("foo", "bar");
 
@@ -59,12 +57,12 @@ public class TestConfiguration {
   }
 
   @Test
-  public void testEqualsEmpty() {
+  void testEqualsEmpty() {
     assertEquals(new Configuration(), new Configuration());
   }
 
   @Test
-  public void testEquals() {
+  void testEquals() {
     Configuration c1 = new Configuration();
     c1.set("foo", "bar");
 
@@ -76,13 +74,13 @@ public class TestConfiguration {
 
     assertEquals(c1, c2);
     assertEquals(c1, c1);
-    assertNotEquals(c1, "any value");
+    assertNotEquals("any value", c1);
     assertNotEquals(c1, c3);
     assertEquals(c1.hashCode(), c2.hashCode());
   }
 
   @Test
-  public void testGetBoolean() {
+  void testGetBoolean() {
     Configuration c = new Configuration();
     c.set("foo", "true");
     c.set("bar", "false");
@@ -92,12 +90,12 @@ public class TestConfiguration {
   }
 
   @Test
-  public void testGetBooleanMissing() {
+  void testGetBooleanMissing() {
     assertThrows(IllegalArgumentException.class, () -> new Configuration().getBoolean("foo"));
   }
 
   @Test
-  public void testGetBooleanDefault() {
+  void testGetBooleanDefault() {
     Configuration c = new Configuration();
     c.set("foo", "true");
 
@@ -106,169 +104,148 @@ public class TestConfiguration {
   }
 
   @Test
-  public void testGetDouble() {
+  void testGetDouble() {
     Configuration c = new Configuration();
     c.set("foo", "1.0");
 
-    assertEquals(c.getDouble("foo"), 1.0);
+    assertEquals(1.0, c.getDouble("foo"));
   }
 
   @Test
-  public void testGetDoubleMissing() {
+  void testGetDoubleMissing() {
     assertThrows(IllegalArgumentException.class, () -> new Configuration().getDouble("foo"));
   }
 
   @Test
-  public void testGetDoubleDefault() {
+  void testGetDoubleDefault() {
     Configuration c = new Configuration();
     c.set("foo", "1.0");
 
-    assertEquals(c.getDouble("foo", 2.0), 1.0);
-    assertEquals(c.getDouble("bar", 2.0), 2.0);
+    assertEquals(1.0, c.getDouble("foo", 2.0));
+    assertEquals(2.0, c.getDouble("bar", 2.0));
   }
 
   @Test
-  public void testGetFloat() {
+  void testGetFloat() {
     Configuration c = new Configuration();
     c.set("foo", "1.0");
 
-    assertEquals(c.getFloat("foo"), 1f);
+    assertEquals(1f, c.getFloat("foo"));
   }
 
   @Test
-  public void testGetFloatMissing() {
+  void testGetFloatMissing() {
     assertThrows(IllegalArgumentException.class, () -> new Configuration().getFloat("foo"));
   }
 
   @Test
-  public void testGetFloatDefault() {
+  void testGetFloatDefault() {
     Configuration c = new Configuration();
     c.set("foo", "1.0");
 
-    assertEquals(c.getFloat("foo", 2f), 1f);
-    assertEquals(c.getFloat("bar", 2f), 2f);
+    assertEquals(1f, c.getFloat("foo", 2f));
+    assertEquals(2f, c.getFloat("bar", 2f));
   }
 
   @Test
-  public void testGetInt() {
+  void testGetInt() {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    assertEquals(c.getInt("foo"), 1);
+    assertEquals(1, c.getInt("foo"));
   }
 
   @Test
-  public void testGetIntMissing() {
+  void testGetIntMissing() {
     assertThrows(IllegalArgumentException.class, () -> new Configuration().getInt("foo"));
   }
 
   @Test
-  public void testGetIntDefault() {
+  void testGetIntDefault() {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    assertEquals(c.getInt("foo", 2), 1);
-    assertEquals(c.getInt("bar", 2), 2);
+    assertEquals(1, c.getInt("foo", 2));
+    assertEquals(2, c.getInt("bar", 2));
   }
 
   @Test
-  public void testGetShort() {
+  void testGetShort() {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    assertEquals(c.getShort("foo"), (short) 1);
+    assertEquals((short) 1, c.getShort("foo"));
   }
 
   @Test
-  public void testGetShortMissing() {
+  void testGetShortMissing() {
     assertThrows(IllegalArgumentException.class, () -> new Configuration().getShort("foo"));
   }
 
   @Test
-  public void testGetShortDefault() {
+  void testGetShortDefault() {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    assertEquals(c.getShort("foo", (short) 2), (short) 1);
-    assertEquals(c.getShort("bar", (short) 2), (short) 2);
+    assertEquals((short) 1, c.getShort("foo", (short) 2));
+    assertEquals((short) 2, c.getShort("bar", (short) 2));
   }
 
   @Test
-  public void testGetLongMissing() {
+  void testGetLongMissing() {
     assertThrows(IllegalArgumentException.class, () -> new Configuration().getLong("foo"));
   }
 
   @Test
-  public void testGetLong() {
+  void testGetLong() {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    assertEquals(c.getLong("foo"), 1L);
+    assertEquals(1L, c.getLong("foo"));
   }
 
   @Test
-  public void testGetLongDefault() {
+  void testGetLongDefault() {
     Configuration c = new Configuration();
     c.set("foo", "1");
 
-    assertEquals(c.getLong("foo", 2L), 1L);
-    assertEquals(c.getLong("bar", 2L), 2L);
+    assertEquals(1L, c.getLong("foo", 2L));
+    assertEquals(2L, c.getLong("bar", 2L));
   }
 
   @Test
-  public void testGetClass()
+  void testGetClass()
       throws ClassNotFoundException {
     Configuration c = new Configuration();
     c.set("foo", Integer.class.getName());
 
-    assertEquals(c.getClass("foo"), Integer.class);
+    assertEquals(Integer.class, c.getClass("foo"));
   }
 
   @Test
-  public void testGetClassMissing() {
+  void testGetClassMissing() {
     assertThrows(IllegalArgumentException.class, () -> new Configuration().getClass("foo"));
   }
 
   @Test
-  public void testGetList() {
+  void testGetList() {
     Configuration c = new Configuration();
     c.set("foo", "foo,bar");
 
-    assertEquals(c.getList("foo"), Arrays.asList("foo", "bar"));
+    assertEquals(Arrays.asList("foo", "bar"), c.getList("foo"));
   }
 
   @Test
-  public void testGetListMissing() {
+  void testGetListMissing() {
     assertThrows(IllegalArgumentException.class, () -> new Configuration().getList("foo"));
   }
 
   @Test
-  public void testGetListDefault() {
+  void testGetListDefault() {
     Configuration c = new Configuration();
     c.set("foo", "foo,bar");
 
-    assertEquals(c.getList("foo", singletonList("that")), Arrays.asList("foo", "bar"));
-    assertEquals(c.getList("bar", singletonList("that")), singletonList("that"));
-  }
-
-  // UTILITY
-
-  public static class PointSerializer implements Serializer<Point> {
-
-    @Override
-    public Point read(DataInput input) {
-      return null;
-    }
-
-    @Override
-    public Class<Point> serializedClass() {
-      return Point.class;
-    }
-
-    @Override
-    public void write(DataOutput output, Point input) {
-
-    }
-
+    assertEquals(Arrays.asList("foo", "bar"), c.getList("foo", singletonList("that")));
+    assertEquals(singletonList("that"), c.getList("bar", singletonList("that")));
   }
 }

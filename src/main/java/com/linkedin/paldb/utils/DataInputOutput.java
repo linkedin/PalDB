@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.invoke.*;
-import java.nio.ByteOrder;
+import java.nio.*;
 import java.util.Arrays;
 
 
@@ -69,6 +69,70 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
     return d;
   }
 
+  public static void getFromBuffers(MappedByteBuffer[] buffers, long offset, byte[] slotBuffer, int slotSize, long segmentSize) {
+    int bufferIndex = (int) (offset / segmentSize);
+    var buf = buffers[bufferIndex];
+    var pos = (int) (offset % segmentSize);
+
+    int remaining = remaining(buf, pos);
+    if (remaining < slotSize) {
+      int splitOffset = 0;
+      buf.get(pos, slotBuffer, 0, remaining);
+      buf = buffers[++bufferIndex];
+      int bytesLeft = slotSize - remaining;
+      splitOffset += remaining;
+      remaining = remaining(buf, 0);
+
+      while (remaining < bytesLeft) {
+        buf.get(0, slotBuffer, splitOffset, remaining);
+        buf = buffers[++bufferIndex];
+        splitOffset += remaining;
+        bytesLeft -= remaining;
+        remaining = remaining(buf, 0);
+      }
+
+      if (remaining > 0 && bytesLeft > 0) {
+        buf.get(0, slotBuffer, splitOffset, bytesLeft);
+      }
+    } else {
+      buf.get(pos, slotBuffer, 0, slotSize);
+    }
+  }
+
+  public static void putIntoBuffers(MappedByteBuffer[] buffers, long offset, byte[] slotBuffer, int slotSize, long segmentSize) {
+    int bufferIndex = (int) (offset / segmentSize);
+    var buf = buffers[bufferIndex];
+    var pos = (int) (offset % segmentSize);
+
+    int remaining = remaining(buf, pos);
+    if (remaining < slotSize) {
+      int splitOffset = 0;
+      buf.put(pos, slotBuffer, 0, remaining);
+      buf = buffers[++bufferIndex];
+      int bytesLeft = slotSize - remaining;
+      splitOffset += remaining;
+      remaining = remaining(buf, 0);
+
+      while (remaining < bytesLeft) {
+        buf.put(0, slotBuffer, splitOffset, remaining);
+        buf = buffers[++bufferIndex];
+        splitOffset += remaining;
+        bytesLeft -= remaining;
+        remaining = remaining(buf, 0);
+      }
+
+      if (remaining > 0 && bytesLeft > 0) {
+        buf.put(0, slotBuffer, splitOffset, bytesLeft);
+      }
+    } else {
+      buf.put(pos, slotBuffer, 0, slotSize);
+    }
+  }
+
+  public static int remaining(ByteBuffer buffer, int pos) {
+    return buffer.limit() - pos;
+  }
+
   @Override
   public int available() {
     return count - pos;
@@ -108,12 +172,12 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
 
   @Override
   public short readShort() {
-    return (short) (((short) (buf[pos++] & 0xff) << 8) | ((short) (buf[pos++] & 0xff) << 0));
+    return (short) (((short) (buf[pos++] & 0xff) << 8) | ((short) (buf[pos++] & 0xff)));
   }
 
   @Override
   public int readUnsignedShort() {
-    return (((int) (buf[pos++] & 0xff) << 8) | ((int) (buf[pos++] & 0xff) << 0));
+    return (((int) (buf[pos++] & 0xff) << 8) | ((int) (buf[pos++] & 0xff)));
   }
 
   @Override
@@ -210,7 +274,7 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
   public void writeShort(int v) {
     ensureAvail(2);
     buf[pos++] = (byte) (0xff & (v >> 8));
-    buf[pos++] = (byte) (0xff & (v >> 0));
+    buf[pos++] = (byte) (0xff & (v));
   }
 
   @Override

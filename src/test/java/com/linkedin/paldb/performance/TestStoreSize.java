@@ -22,23 +22,23 @@ import org.junit.jupiter.api.*;
 import java.io.File;
 @Disabled
 @Tag("performance")
-public class TestStoreSize {
+class TestStoreSize {
 
   private File TEST_FOLDER = new File("teststoresize");
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     DirectoryUtils.deleteDirectory(TEST_FOLDER);
     TEST_FOLDER.mkdir();
   }
 
   @AfterEach
-  public void cleanUp() {
+  void cleanUp() {
     DirectoryUtils.deleteDirectory(TEST_FOLDER);
   }
 
   @Test
-  public void testStoreSizeSet() {
+  void testStoreSizeSet() {
 
     System.out.println("STORE SIZE (SET int -> boolean)\n\n");
     System.out.println("FILE LENGTH;KEYS;BYTES_PER_KEY");
@@ -49,7 +49,7 @@ public class TestStoreSize {
       // Prepare store
       final Integer[] keys = GenerateTestData.generateRandomIntKeys(i, Integer.MAX_VALUE);
       final File storeFile = new File(TEST_FOLDER, i + ".store");
-      StoreWriter writer = PalDB.createWriter(storeFile, new Configuration());
+      StoreWriter<Integer,Boolean> writer = PalDB.createWriter(storeFile, new Configuration());
       for (Integer key : keys) {
         writer.put(key, Boolean.TRUE);
       }

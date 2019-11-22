@@ -21,23 +21,22 @@ import org.junit.jupiter.api.*;
 import java.awt.*;
 import java.io.*;
 import java.math.*;
-import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TestStorageSerialization {
+class TestStorageSerialization {
 
   private Configuration configuration;
   private StorageSerialization serialization;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     configuration = new Configuration();
     serialization = new StorageSerialization(configuration);
   }
 
   @Test
-  public void testCompressionEnabled() {
+  void testCompressionEnabled() {
     assertFalse(serialization.isCompressionEnabled());
     Configuration config = new Configuration();
     config.set(Configuration.COMPRESSION_ENABLED, "true");
@@ -46,14 +45,14 @@ public class TestStorageSerialization {
   }
 
   @Test
-  public void testSerializeKey() throws IOException, ClassNotFoundException {
+  void testSerializeKey() throws IOException {
     Integer l = 1;
     Object d = serialization.deserialize(serialization.serializeKey(l));
-    assertEquals(d, l);
+    assertEquals(l, d);
   }
 
   @Test
-  public void testSerializeKeyDataOutput() throws IOException, ClassNotFoundException {
+  void testSerializeKeyDataOutput() throws IOException {
     Integer l = 1;
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(bos);
@@ -63,11 +62,11 @@ public class TestStorageSerialization {
 
     ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
     DataInputStream dis = new DataInputStream(bis);
-    assertEquals(serialization.deserialize(dis), l);
+    assertEquals(l, serialization.deserialize(dis));
   }
 
   @Test
-  public void testSerializeValueDataOutput() throws IOException, ClassNotFoundException {
+  void testSerializeValueDataOutput() throws IOException {
     Integer l = 1;
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(bos);
@@ -77,52 +76,47 @@ public class TestStorageSerialization {
 
     ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
     DataInputStream dis = new DataInputStream(bis);
-    assertEquals(serialization.deserialize(dis), l);
+    assertEquals(l, serialization.deserialize(dis));
   }
 
   @Test
-  public void testSerializeKeyNull() {
+  void testSerializeKeyNull() {
     assertThrows(NullPointerException.class, () -> serialization.serializeKey(null));
   }
 
   @Test
-  public void testTransformValue()
-      throws ClassNotFoundException, IOException {
+  void testTransformValue() throws IOException {
     Integer l = 1;
     Object deserialize = serialization.deserialize(serialization.serializeValue(l));
-    assertEquals(deserialize, l);
+    assertEquals(l, deserialize);
   }
 
   @Test
-  public void testTransformList()
-      throws ClassNotFoundException, IOException {
+  void testTransformList() throws IOException {
     Integer[] l = new Integer[]{1, 2};
     Object deserialize = serialization.deserialize(serialization.serializeValue(l));
-    assertEquals(deserialize.getClass(), int[].class);
-    assertArrayEquals((int[]) deserialize, new int[]{1, 2});
+    assertEquals(int[].class, deserialize.getClass());
+    assertArrayEquals(new int[]{1, 2}, (int[]) deserialize);
   }
 
   @Test
-  public void testTransformListWithNull()
-      throws ClassNotFoundException, IOException {
+  void testTransformListWithNull() throws IOException {
     Integer[] l = new Integer[]{1, null, 2};
     Object deserialize = serialization.deserialize(serialization.serializeValue(l));
-    assertEquals(deserialize.getClass(), int[].class);
-    assertArrayEquals((int[])deserialize, new int[]{1, 0, 2});
+    assertEquals(int[].class, deserialize.getClass());
+    assertArrayEquals(new int[]{1, 0, 2}, (int[])deserialize);
   }
 
   @Test
-  public void testTransformListOfList()
-      throws ClassNotFoundException, IOException {
+  void testTransformListOfList() throws IOException {
     Integer[][] l = new Integer[][]{{1}, {2}};
     Object deserialize = serialization.deserialize(serialization.serializeValue(l));
-    assertEquals(deserialize.getClass(), int[][].class);
-    assertArrayEquals((int[][])deserialize, new int[][]{{1}, {2}});
+    assertEquals(int[][].class, deserialize.getClass());
+    assertArrayEquals(new int[][]{{1}, {2}}, (int[][])deserialize);
   }
 
   @Test
-  public void testCustomSerializer()
-      throws Throwable {
+  void testCustomSerializer() throws Throwable {
     configuration.registerSerializer(new Serializer<Point>() {
       @Override
       public void write(DataOutput dataOutput, Point input)
@@ -145,12 +139,11 @@ public class TestStorageSerialization {
     });
     Point p = new Point(42, 9);
     byte[] buf = serialization.serialize(p);
-    assertEquals(serialization.deserialize(buf), p);
+    assertEquals(p, serialization.deserialize(buf));
   }
 
   @Test
-  public void testCustomArraySerializer()
-      throws Throwable {
+  void testCustomArraySerializer() throws Throwable {
     configuration.registerSerializer(new Serializer<Point[]>() {
       @Override
       public void write(DataOutput dataOutput, Point[] input)
@@ -173,11 +166,11 @@ public class TestStorageSerialization {
     });
     Point[] p = new Point[]{new Point(42, 9)};
     byte[] buf = serialization.serialize(p);
-    assertArrayEquals((Point[])serialization.deserialize(buf), p);
+    assertArrayEquals(p, (Point[])serialization.deserialize(buf));
   }
 
   @Test
-  public void testInnerClassSerializer() throws Throwable {
+  void testInnerClassSerializer() throws Throwable {
     configuration.registerSerializer(new Serializer<ImplementsA>() {
 
       @Override
@@ -198,11 +191,11 @@ public class TestStorageSerialization {
     });
     ImplementsA a = new ImplementsA(42);
     byte[] buf = serialization.serialize(a);
-    assertEquals(serialization.deserialize(buf), a);
+    assertEquals(a, serialization.deserialize(buf));
   }
 
   @Test
-  public void testInheritedSerializer() throws Throwable {
+  void testInheritedSerializer() {
     configuration.registerSerializer(new Serializer<A>() {
 
       @Override
@@ -224,36 +217,34 @@ public class TestStorageSerialization {
     assertThrows(UnsupportedTypeException.class, () -> {
       ImplementsA a = new ImplementsA(42);
       byte[] buf = serialization.serialize(a);
-      assertEquals(serialization.deserialize(buf), a);
+      assertEquals(a, serialization.deserialize(buf));
     });
   }
 
   @Test
-  public void testNull() throws Throwable {
+  void testNull() throws Throwable {
     byte[] buf = serialization.serialize(null);
     assertNull(serialization.deserialize(buf));
   }
 
   @Test
-  public void testByte()
-      throws Throwable {
+  void testByte() throws Throwable {
     byte[] vals = new byte[]{-1, 0, 1, 6};
     for (byte val : vals) {
       byte[] buf = serialization.serialize(val);
       Object l2 = serialization.deserialize(buf);
-      assertTrue(l2.getClass() == Byte.class);
-      assertEquals(l2, val);
+      assertSame(Byte.class, l2.getClass());
+      assertEquals(val, l2);
     }
   }
 
   @Test
-  public void testNotSupported() {
+  void testNotSupported() {
     assertThrows(UnsupportedTypeException.class, () -> serialization.serialize(new Color(0, 0, 0)));
   }
 
   @Test
-  public void testInt()
-      throws IOException, ClassNotFoundException {
+  void testInt() throws IOException {
     int[] vals = {Integer.MIN_VALUE,
         -Short.MIN_VALUE * 2, -Short.MIN_VALUE
         + 1, -Short.MIN_VALUE, -10, -9, -8, -7, -6, -5, -4, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 127, 254, 255, 256, Short.MAX_VALUE,
@@ -261,64 +252,59 @@ public class TestStorageSerialization {
     for (int i : vals) {
       byte[] buf = serialization.serialize(i);
       Object l2 = serialization.deserialize(buf);
-      assertTrue(l2.getClass() == Integer.class);
-      assertEquals(l2, i);
+      assertSame(Integer.class, l2.getClass());
+      assertEquals(i, l2);
     }
   }
 
   @Test
-  public void testShort()
-      throws IOException, ClassNotFoundException {
+  void testShort() throws IOException {
     short[] vals = {(short) (-Short.MIN_VALUE
         + 1), (short) -Short.MIN_VALUE, -10, -9, -8, -7, -6, -5, -4, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 127, 254, 255, 256, Short.MAX_VALUE,
         Short.MAX_VALUE - 1, Short.MAX_VALUE};
     for (short i : vals) {
       byte[] buf = serialization.serialize(i);
       Object l2 = serialization.deserialize(buf);
-      assertTrue(l2.getClass() == Short.class);
-      assertEquals(l2, i);
+      assertSame(Short.class, l2.getClass());
+      assertEquals(i, l2);
     }
   }
 
   @Test
-  public void testDouble()
-      throws IOException, ClassNotFoundException {
+  void testDouble() throws IOException {
     double[] vals = {1f, 0f, -1f, Math.PI, 255, 256, Short.MAX_VALUE, Short.MAX_VALUE + 1, -100};
     for (double i : vals) {
       byte[] buf = serialization.serialize(i);
       Object l2 = serialization.deserialize(buf);
-      assertTrue(l2.getClass() == Double.class);
-      assertEquals(l2, i);
+      assertSame(Double.class, l2.getClass());
+      assertEquals(i, l2);
     }
   }
 
   @Test
-  public void testFloat()
-      throws IOException, ClassNotFoundException {
+  void testFloat() throws IOException {
     float[] vals = {1f, 0f, -1f, (float) Math.PI, 255, 256, Short.MAX_VALUE, Short.MAX_VALUE + 1, -100};
     for (float i : vals) {
       byte[] buf = serialization.serialize(i);
       Object l2 = serialization.deserialize(buf);
-      assertTrue(l2.getClass() == Float.class);
-      assertEquals(l2, i);
+      assertSame(Float.class, l2.getClass());
+      assertEquals(i, l2);
     }
   }
 
   @Test
-  public void testChar()
-      throws IOException, ClassNotFoundException {
+  void testChar() throws IOException {
     char[] vals = {'a', ' '};
     for (char i : vals) {
       byte[] buf = serialization.serialize(i);
       Object l2 = serialization.deserialize(buf);
-      assertTrue(l2.getClass() == Character.class);
-      assertEquals(l2, i);
+      assertSame(Character.class, l2.getClass());
+      assertEquals(i, l2);
     }
   }
 
   @Test
-  public void testLong()
-      throws IOException, ClassNotFoundException {
+  void testLong() throws IOException {
     long[] vals = {Long.MIN_VALUE, Integer.MIN_VALUE,
         Integer.MIN_VALUE - 1,
         Integer.MIN_VALUE + 1,
@@ -328,221 +314,208 @@ public class TestStorageSerialization {
     for (long i : vals) {
       byte[] buf = serialization.serialize(i);
       Object l2 = serialization.deserialize(buf);
-      assertTrue(l2.getClass() == Long.class);
-      assertEquals(l2, i);
+      assertSame(Long.class, l2.getClass());
+      assertEquals(i, l2);
     }
   }
 
   @Test
-  public void testBoolean()
-      throws IOException, ClassNotFoundException {
+  void testBoolean() throws IOException {
     byte[] buf = serialization.serialize(true);
     Object l2 = serialization.deserialize(buf);
-    assertTrue(l2.getClass() == Boolean.class);
-    assertEquals(l2, true);
+    assertSame(Boolean.class, l2.getClass());
+    assertEquals(true, l2);
 
     byte[] buf2 = serialization.serialize(false);
     Object l22 = serialization.deserialize(buf2);
-    assertTrue(l22.getClass() == Boolean.class);
-    assertEquals(l22, false);
+    assertSame(Boolean.class, l22.getClass());
+    assertEquals(false, l22);
   }
 
   @Test
-  public void testString()
-      throws IOException, ClassNotFoundException {
+  void testString() throws IOException {
     byte[] buf = serialization.serialize("Abcd");
     String l2 = (String) serialization.deserialize(buf);
-    assertEquals(l2, "Abcd");
+    assertEquals("Abcd", l2);
   }
 
   @Test
-  public void testEmptyString()
-      throws IOException, ClassNotFoundException {
+  void testEmptyString() throws IOException {
     byte[] buf = serialization.serialize("");
     String l2 = (String) serialization.deserialize(buf);
-    assertEquals(l2, "");
+    assertEquals("", l2);
   }
 
   @Test
-  public void testBigString()
-      throws IOException, ClassNotFoundException {
-    String bigString = "";
+  void testBigString() throws IOException {
+    var bigString = new StringBuilder();
     for (int i = 0; i < 1e4; i++) {
-      bigString += i % 10;
+      bigString.append(i % 10);
     }
-    byte[] buf = serialization.serialize(bigString);
+    byte[] buf = serialization.serialize(bigString.toString());
     String l2 = (String) serialization.deserialize(buf);
-    assertEquals(l2, bigString);
+    assertEquals(bigString.toString(), l2);
   }
 
   @Test
-  public void testClass()
-      throws IOException, ClassNotFoundException {
+  void testClass() throws IOException {
     byte[] buf = serialization.serialize(String.class);
     Class l2 = (Class) serialization.deserialize(buf);
-    assertEquals(l2, String.class);
+    assertEquals(String.class, l2);
   }
 
   @Test
-  public void testClass2()
-      throws IOException, ClassNotFoundException {
+  void testClass2() throws IOException {
     byte[] buf = serialization.serialize(long[].class);
     Class l2 = (Class) serialization.deserialize(buf);
-    assertEquals(l2, long[].class);
+    assertEquals(long[].class, l2);
   }
 
   @Test
-  public void testUnicodeString()
-      throws ClassNotFoundException, IOException {
+  void testUnicodeString() throws IOException {
     String s = "Ciudad Bolíva";
     byte[] buf = serialization.serialize(s);
     Object l2 = serialization.deserialize(buf);
-    assertEquals(l2, s);
+    assertEquals(s, l2);
   }
 
   @Test
-  public void testStringArray()
-      throws ClassNotFoundException, IOException {
+  void testStringArray() throws IOException {
     String[] l = new String[]{"foo", "bar", ""};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    assertTrue(Arrays.equals(l, (String[]) deserialize));
+    assertArrayEquals(l, (String[]) deserialize);
   }
 
   @Test
-  public void testObjectArray()
-      throws ClassNotFoundException, IOException {
+  void testObjectArray() throws IOException {
     Object[] l = new Object[]{"foo", 2, Boolean.TRUE};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    assertTrue(Arrays.equals(l, (Object[]) deserialize));
+    assertArrayEquals(l, (Object[]) deserialize);
   }
 
   @Test
-  public void testBooleanArray()
-      throws ClassNotFoundException, IOException {
+  void testBooleanArray() throws IOException {
     boolean[] l = new boolean[]{true, false};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    assertTrue(Arrays.equals(l, (boolean[]) deserialize));
+    assertArrayEquals(l, (boolean[]) deserialize);
   }
 
   @Test
-  public void testDoubleArray()
-      throws ClassNotFoundException, IOException {
+  void testDoubleArray() throws IOException {
     double[] l = new double[]{Math.PI, 1D};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    assertTrue(Arrays.equals(l, (double[]) deserialize));
+    assertArrayEquals(l, (double[]) deserialize);
   }
 
   @Test
-  public void testFloatArray()
-      throws ClassNotFoundException, IOException {
+  void testFloatArray() throws IOException {
     float[] l = new float[]{1F, 1.234235F};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    assertTrue(Arrays.equals(l, (float[]) deserialize));
+    assertArrayEquals(l, (float[]) deserialize);
   }
 
   @Test
-  public void testByteArray()
-      throws ClassNotFoundException, IOException {
+  void testByteArray() throws IOException {
     byte[] l = new byte[]{1, 34, -5};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    assertTrue(Arrays.equals(l, (byte[]) deserialize));
+    assertArrayEquals(l, (byte[]) deserialize);
   }
 
   @Test
-  public void testShortArray()
-      throws ClassNotFoundException, IOException {
+  void testShortArray()
+          throws Exception {
     short[] l = new short[]{1, 345, -5000};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    assertTrue(Arrays.equals(l, (short[]) deserialize));
+    assertArrayEquals(l, (short[]) deserialize);
   }
 
   @Test
-  public void testCharArray()
-      throws ClassNotFoundException, IOException {
+  void testCharArray()
+      throws IOException {
     char[] l = new char[]{'1', 'a', '&'};
     Object deserialize = serialization.deserialize(serialization.serialize(l));
-    assertTrue(Arrays.equals(l, (char[]) deserialize));
+    assertArrayEquals(l, (char[]) deserialize);
   }
 
   @Test
-  public void testIntArray()
-      throws ClassNotFoundException, IOException {
+  void testIntArray()
+      throws IOException {
     int[][] l = new int[][]{{3, 5}, {-1200, 29999}, {3, 100000}, {-43999, 100000}};
     for (int[] a : l) {
       Object deserialize = serialization.deserialize(serialization.serialize(a));
-      assertTrue(Arrays.equals(a, (int[]) deserialize));
+      assertArrayEquals(a, (int[]) deserialize);
     }
   }
 
   @Test
-  public void testLongArray()
-      throws ClassNotFoundException, IOException {
-    long[][] l = new long[][]{{3l, 5l}, {-1200l, 29999l}, {3l, 100000l}, {-43999l, 100000l}, {-123l, 12345678901234l}};
+  void testLongArray()
+      throws IOException {
+    long[][] l = new long[][]{{3L, 5L}, {-1200L, 29999L}, {3L, 100000L}, {-43999L, 100000L}, {-123L, 12345678901234L}};
     for (long[] a : l) {
       Object deserialize = serialization.deserialize(serialization.serialize(a));
-      assertTrue(Arrays.equals(a, (long[]) deserialize));
+      assertArrayEquals(a, (long[]) deserialize);
     }
   }
 
   @Test
-  public void testDoubleCompressedArray()
-      throws ClassNotFoundException, IOException {
+  void testDoubleCompressedArray()
+      throws IOException {
     double[] l = generateDoubleArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    assertTrue(Arrays.equals(l, (double[]) deserialize));
+    assertArrayEquals(l, (double[]) deserialize);
   }
 
   @Test
-  public void testFloatCompressedArray()
-      throws ClassNotFoundException, IOException {
+  void testFloatCompressedArray()
+      throws IOException {
     float[] l = generateFloatArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    assertTrue(Arrays.equals(l, (float[]) deserialize));
+    assertArrayEquals(l, (float[]) deserialize);
   }
 
   @Test
-  public void testByteCompressedArray()
-      throws ClassNotFoundException, IOException {
+  void testByteCompressedArray()
+      throws IOException {
     byte[] l = generateByteArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    assertTrue(Arrays.equals(l, (byte[]) deserialize));
+    assertArrayEquals(l, (byte[]) deserialize);
   }
 
   @Test
-  public void testCharCompressedArray()
-      throws ClassNotFoundException, IOException {
+  void testCharCompressedArray()
+      throws IOException {
     char[] l = generateCharArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    assertTrue(Arrays.equals(l, (char[]) deserialize));
+    assertArrayEquals(l, (char[]) deserialize);
   }
 
   @Test
-  public void testShortCompressedArray()
-      throws ClassNotFoundException, IOException {
+  void testShortCompressedArray()
+      throws IOException {
     short[] l = generateShortArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    assertTrue(Arrays.equals(l, (short[]) deserialize));
+    assertArrayEquals(l, (short[]) deserialize);
   }
 
   @Test
-  public void testIntCompressedArray()
-      throws ClassNotFoundException, IOException {
+  void testIntCompressedArray()
+      throws IOException {
     int[] l = generateIntArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    assertTrue(Arrays.equals(l, (int[]) deserialize));
+    assertArrayEquals(l, (int[]) deserialize);
   }
 
   @Test
-  public void testLongCompressedArray()
-      throws ClassNotFoundException, IOException {
+  void testLongCompressedArray()
+      throws IOException {
     long[] l = generateLongArray(500);
     Object deserialize = serialization.deserialize(serialization.serialize(l, true));
-    assertTrue(Arrays.equals(l, (long[]) deserialize));
+    assertArrayEquals(l, (long[]) deserialize);
   }
 
   @Test
-  public void testBigDecimal()
-      throws IOException, ClassNotFoundException {
+  void testBigDecimal()
+      throws IOException {
     BigDecimal d = new BigDecimal("445656.7889889895165654423236");
     assertEquals(d, serialization.deserialize(serialization.serialize(d)));
     d = new BigDecimal("-53534534534534445656.7889889895165654423236");
@@ -550,8 +523,8 @@ public class TestStorageSerialization {
   }
 
   @Test
-  public void testBigInteger()
-      throws IOException, ClassNotFoundException {
+  void testBigInteger()
+      throws IOException {
     BigInteger d = new BigInteger("4456567889889895165654423236");
     assertEquals(d, serialization.deserialize(serialization.serialize(d)));
     d = new BigInteger("-535345345345344456567889889895165654423236");
@@ -559,8 +532,8 @@ public class TestStorageSerialization {
   }
 
   @Test
-  public void testMultiDimensionalIntArray()
-      throws IOException, ClassNotFoundException {
+  void testMultiDimensionalIntArray()
+      throws IOException {
     int[][] d = new int[2][];
     d[0] = new int[]{1, 3};
     d[1] = new int[]{-3, 1};
@@ -570,8 +543,8 @@ public class TestStorageSerialization {
   }
 
   @Test
-  public void testMultiDimensionalLongArray()
-      throws IOException, ClassNotFoundException {
+  void testMultiDimensionalLongArray()
+      throws IOException {
     long[][] d = new long[2][];
     d[0] = new long[]{1, 3};
     d[1] = new long[]{-3, 1};
@@ -654,7 +627,7 @@ public class TestStorageSerialization {
 
     int val;
 
-    public ImplementsA(int val) {
+    ImplementsA(int val) {
       this.val = val;
     }
 

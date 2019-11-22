@@ -22,8 +22,11 @@ import org.slf4j.*;
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.*;
+
+import static com.linkedin.paldb.utils.DataInputOutput.*;
 
 /**
  * Internal write implementation.
@@ -285,70 +288,6 @@ public class StorageWriter {
     }
   }
 
-  private void getFromIndexBuffer(MappedByteBuffer[] indexBuffers, long offset, byte[] slotBuffer, int slotSize) {
-    int bufferIndex = (int) (offset / segmentSize);
-    var buf = indexBuffers[bufferIndex];
-    var pos = (int) (offset % segmentSize);
-
-    int remaining = remaining(buf, pos);
-    if (remaining < slotSize) {
-      int splitOffset = 0;
-      buf.get(pos, slotBuffer, 0, remaining);
-      buf = indexBuffers[++bufferIndex];
-      int bytesLeft = slotSize - remaining;
-      splitOffset += remaining;
-      remaining = remaining(buf, 0);
-
-      while (remaining < bytesLeft) {
-        buf.get(0, slotBuffer, splitOffset, remaining);
-        buf = indexBuffers[++bufferIndex];
-        splitOffset += remaining;
-        bytesLeft -= remaining;
-        remaining = remaining(buf, 0);
-      }
-
-      if (remaining > 0 && bytesLeft > 0) {
-        buf.get(0, slotBuffer, splitOffset, bytesLeft);
-      }
-    } else {
-      buf.get(pos, slotBuffer, 0, slotSize);
-    }
-  }
-
-  private void putIntoIndexBuffer(MappedByteBuffer[] indexBuffers, long offset, byte[] slotBuffer, int slotSize) {
-    int bufferIndex = (int) (offset / segmentSize);
-    var buf = indexBuffers[bufferIndex];
-    var pos = (int) (offset % segmentSize);
-
-    int remaining = remaining(buf, pos);
-    if (remaining < slotSize) {
-      int splitOffset = 0;
-      buf.put(pos, slotBuffer, 0, remaining);
-      buf = indexBuffers[++bufferIndex];
-      int bytesLeft = slotSize - remaining;
-      splitOffset += remaining;
-      remaining = remaining(buf, 0);
-
-      while (remaining < bytesLeft) {
-        buf.put(0, slotBuffer, splitOffset, remaining);
-        buf = indexBuffers[++bufferIndex];
-        splitOffset += remaining;
-        bytesLeft -= remaining;
-        remaining = remaining(buf, 0);
-      }
-
-      if (remaining > 0 && bytesLeft > 0) {
-        buf.put(0, slotBuffer, splitOffset, bytesLeft);
-      }
-    } else {
-      buf.put(pos, slotBuffer, 0, slotSize);
-    }
-  }
-
-  private static int remaining(ByteBuffer buffer, int pos) {
-    return buffer.limit() - pos;
-  }
-
   private File buildIndex(int keyLength, BloomFilter bloomFilter) throws IOException {
     long count = keyCounts[keyLength];
     long numSlots = Math.round(count / loadFactor);
@@ -385,22 +324,22 @@ public class StorageWriter {
             boolean collision = false;
             for (long probe = 0; probe < count; probe++) {
               long slot = ((hash + probe) % numSlots);
-              getFromIndexBuffer(indexBuffers, slot * slotSize, slotBuffer, slotSize);
+              getFromBuffers(indexBuffers, slot * slotSize, slotBuffer, slotSize, segmentSize);
               long found = LongPacker.unpackLong(slotBuffer, keyLength);
               if (found == 0) {
                 // The spot is empty use it
-                putIntoIndexBuffer(indexBuffers, slot * slotSize, keyBuffer, keyBuffer.length);
+                putIntoBuffers(indexBuffers, slot * slotSize, keyBuffer, keyBuffer.length, segmentSize);
                 int pos = LongPacker.packLong(offsetBuffer, offsetData);
-                putIntoIndexBuffer(indexBuffers, (slot * slotSize) + keyBuffer.length, offsetBuffer, pos);
+                putIntoBuffers(indexBuffers, (slot * slotSize) + keyBuffer.length, offsetBuffer, pos, segmentSize);
                 break;
               } else {
                 collision = true;
                 // Check for duplicates
                 if (isKey(slotBuffer, keyBuffer)) {
                   if (duplicatesEnabled) {
-                    putIntoIndexBuffer(indexBuffers, slot * slotSize, keyBuffer, keyBuffer.length);
+                    putIntoBuffers(indexBuffers, slot * slotSize, keyBuffer, keyBuffer.length, segmentSize);
                     int pos = LongPacker.packLong(offsetBuffer, offsetData);
-                    putIntoIndexBuffer(indexBuffers, (slot * slotSize) + keyBuffer.length, offsetBuffer, pos);
+                    putIntoBuffers(indexBuffers, (slot * slotSize) + keyBuffer.length, offsetBuffer, pos, segmentSize);
                   } else {
                     throw new DuplicateKeyException(
                             String.format("A duplicate key has been found for key bytes %s", Arrays.toString(keyBuffer)));
@@ -420,12 +359,18 @@ public class StorageWriter {
           log.info("Built index file {} \n{}", indexFile.getName(), msg);
 
         } finally {
+          Arrays.fill(indexBuffers, null);
           indexBuffers = null;
+          System.gc();
           if (tempIndexFile.delete()) {
             log.info("Temporary index file {} has been deleted", tempIndexFile.getName());
           }
         }
       }
+    } catch (Exception e) {
+      System.gc();
+      Files.deleteIfExists(indexFile.toPath());
+      throw e;
     }
     return indexFile;
   }
@@ -457,20 +402,11 @@ public class StorageWriter {
   //Merge files to the provided fileChannel
   private void mergeFiles(List<File> inputFiles, OutputStream outputStream) throws IOException {
     long startTime = System.nanoTime();
-
     //Merge files
     for (File f : inputFiles) {
       if (f.exists()) {
-        try (FileInputStream fileInputStream = new FileInputStream(f);
-             BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream)) {
-          log.info("Merging {} size={}", f.getName(), f.length());
-
-          byte[] buffer = new byte[8192];
-          int length;
-          while ((length = bufferedInputStream.read(buffer)) > 0) {
-            outputStream.write(buffer, 0, length);
-          }
-        }
+        log.info("Merging {} size={}", f.getName(), f.length());
+        Files.copy(f.toPath(), outputStream);
       } else {
         log.info("Skip merging file {} because it doesn't exist", f.getName());
       }
@@ -478,14 +414,18 @@ public class StorageWriter {
     log.debug("Time to merge {} s", ((System.nanoTime() - startTime) / 1000000000.0));
   }
 
-  //Cleanup files
   private void cleanup(List<File> inputFiles) {
     for (File f : inputFiles) {
-      if (f.exists() && f.delete()) {
-        log.info("Deleted temporary file {}", f.getName());
+      try {
+        if (Files.deleteIfExists(f.toPath())) {
+          log.info("Deleted temporary file {}", f.getName());
+        }
+      } catch (IOException e) {
+        log.error("Cannot delete file " + f, e);
       }
     }
-    if (tempFolder.delete()) {
+
+    if (TempUtils.deleteDirectory(tempFolder)) {
       log.info("Deleted temporary folder at {}", tempFolder.getAbsolutePath());
     }
   }
