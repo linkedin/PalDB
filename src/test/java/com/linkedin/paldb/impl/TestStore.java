@@ -521,6 +521,23 @@ public class TestStore {
     assertEquals(0L, DirectoryUtils.folderSize(tempDir.toFile()));
   }
 
+  @Test
+  void should_allow_duplicates() {
+    var config = new Configuration();
+    config.set(Configuration.ALLOW_DUPLICATES, String.valueOf(true));
+
+    try (StoreWriter<String,byte[]> writer = PalDB.createWriter(storeFile, config)) {
+      writer.put("foobar", EMPTY_VALUE);
+      writer.put("foobar", "test".getBytes());
+      writer.put("any data", "test2".getBytes());
+    }
+
+    try (StoreReader<String,byte[]> reader = PalDB.createReader(storeFile, config)) {
+      assertArrayEquals("test".getBytes(), reader.get("foobar"));
+      assertArrayEquals("test2".getBytes(), reader.get("any data"));
+    }
+  }
+
   private static final byte[] EMPTY_VALUE = new byte[0];
 
   @Test

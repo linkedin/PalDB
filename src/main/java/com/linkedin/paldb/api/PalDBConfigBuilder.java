@@ -63,6 +63,18 @@ public final class PalDBConfigBuilder {
     /**
      * <i>PalDB configuration property.</i>
      * <p>
+     * <code>duplicates.enabled</code> - allow duplicates [default: false]
+     * @param enabled flag
+     * @return this {@code CachemeerConfigBuilder} instance (for chaining)
+     */
+    public PalDBConfigBuilder withEnableDuplicates(boolean enabled) {
+        palDbConfiguration.set(Configuration.ALLOW_DUPLICATES, String.valueOf(enabled));
+        return this;
+    }
+
+    /**
+     * <i>PalDB configuration property.</i>
+     * <p>
      * <code>compression.enabled</code> - enable bloom filter [default: true]
      * @param enabled flag
      * @return this {@code CachemeerConfigBuilder} instance (for chaining)

@@ -51,6 +51,8 @@ public class Configuration {
   public static final String BLOOM_FILTER_ENABLED = "bloom.filter.enabled";
   //Bloom filter error rate
   public static final String BLOOM_FILTER_ERROR_FACTOR = "bloom.filter.error.factor";
+  //Enable duplicates (keep last key)
+  public static final String ALLOW_DUPLICATES = "duplicates.enabled";
 
   // Property map
   private final Map<String, String> properties = new HashMap<>();
@@ -72,6 +74,7 @@ public class Configuration {
     putWithSystemPropertyDefault(COMPRESSION_ENABLED, "false");
     putWithSystemPropertyDefault(BLOOM_FILTER_ENABLED, "false");
     putWithSystemPropertyDefault(BLOOM_FILTER_ERROR_FACTOR, "0.01");
+    putWithSystemPropertyDefault(ALLOW_DUPLICATES, "false");
 
     //Serializers
     serializers = new Serializers();

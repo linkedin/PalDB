@@ -61,6 +61,7 @@ public class StorageWriter {
   private int collisions;
 
   private final long segmentSize;
+  private final boolean duplicatesEnabled;
 
   StorageWriter(Configuration configuration, OutputStream stream) {
     config = configuration;
@@ -84,6 +85,7 @@ public class StorageWriter {
     maxOffsetLengths = new int[0];
     keyCounts = new long[0];
     segmentSize = config.getLong(Configuration.MMAP_SEGMENT_SIZE);
+    duplicatesEnabled = config.getBoolean(Configuration.ALLOW_DUPLICATES);
    }
 
   public void put(byte[] key, byte[] value) throws IOException {
@@ -394,9 +396,15 @@ public class StorageWriter {
               } else {
                 collision = true;
                 // Check for duplicates
-                if (Arrays.equals(keyBuffer, Arrays.copyOf(slotBuffer, keyLength))) {
-                  throw new DuplicateKeyException(
-                          String.format("A duplicate key has been found for key bytes %s", Arrays.toString(keyBuffer)));
+                if (isKey(slotBuffer, keyBuffer)) {
+                  if (duplicatesEnabled) {
+                    putIntoIndexBuffer(indexBuffers, slot * slotSize, keyBuffer, keyBuffer.length);
+                    int pos = LongPacker.packLong(offsetBuffer, offsetData);
+                    putIntoIndexBuffer(indexBuffers, (slot * slotSize) + keyBuffer.length, offsetBuffer, pos);
+                  } else {
+                    throw new DuplicateKeyException(
+                            String.format("A duplicate key has been found for key bytes %s", Arrays.toString(keyBuffer)));
+                  }
                 }
               }
             }
@@ -420,6 +428,10 @@ public class StorageWriter {
       }
     }
     return indexFile;
+  }
+
+  private static boolean isKey(byte[] slotBuffer, byte[] key) {
+    return Arrays.compare(slotBuffer, 0, key.length, key, 0, key.length) == 0;
   }
 
   //Fail if the size of the expected store file exceed 2/3rd of the free disk space

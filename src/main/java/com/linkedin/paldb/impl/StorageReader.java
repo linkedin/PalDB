@@ -296,7 +296,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     }
   }
 
-  private boolean isKey(byte[] slotBuffer, byte[] key) {
+  private static boolean isKey(byte[] slotBuffer, byte[] key) {
     return Arrays.compare(slotBuffer, 0, key.length, key, 0, key.length) == 0;
   }
 
