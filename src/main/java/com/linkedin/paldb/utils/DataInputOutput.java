@@ -19,6 +19,8 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.invoke.*;
+import java.nio.*;
 import java.util.Arrays;
 
 
@@ -54,11 +56,6 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
     return this;
   }
 
-  public void resetForReading() {
-    count = pos;
-    pos = 0;
-  }
-
   public DataInputOutput reset(byte[] b) {
     pos = 0;
     buf = b;
@@ -70,6 +67,70 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
     byte[] d = new byte[pos];
     System.arraycopy(buf, 0, d, 0, pos);
     return d;
+  }
+
+  public static void getFromBuffers(MappedByteBuffer[] buffers, long offset, byte[] slotBuffer, int slotSize, long segmentSize) {
+    int bufferIndex = (int) (offset / segmentSize);
+    var buf = buffers[bufferIndex];
+    var pos = (int) (offset % segmentSize);
+
+    int remaining = remaining(buf, pos);
+    if (remaining < slotSize) {
+      int splitOffset = 0;
+      buf.get(pos, slotBuffer, 0, remaining);
+      buf = buffers[++bufferIndex];
+      int bytesLeft = slotSize - remaining;
+      splitOffset += remaining;
+      remaining = remaining(buf, 0);
+
+      while (remaining < bytesLeft) {
+        buf.get(0, slotBuffer, splitOffset, remaining);
+        buf = buffers[++bufferIndex];
+        splitOffset += remaining;
+        bytesLeft -= remaining;
+        remaining = remaining(buf, 0);
+      }
+
+      if (remaining > 0 && bytesLeft > 0) {
+        buf.get(0, slotBuffer, splitOffset, bytesLeft);
+      }
+    } else {
+      buf.get(pos, slotBuffer, 0, slotSize);
+    }
+  }
+
+  public static void putIntoBuffers(MappedByteBuffer[] buffers, long offset, byte[] slotBuffer, int slotSize, long segmentSize) {
+    int bufferIndex = (int) (offset / segmentSize);
+    var buf = buffers[bufferIndex];
+    var pos = (int) (offset % segmentSize);
+
+    int remaining = remaining(buf, pos);
+    if (remaining < slotSize) {
+      int splitOffset = 0;
+      buf.put(pos, slotBuffer, 0, remaining);
+      buf = buffers[++bufferIndex];
+      int bytesLeft = slotSize - remaining;
+      splitOffset += remaining;
+      remaining = remaining(buf, 0);
+
+      while (remaining < bytesLeft) {
+        buf.put(0, slotBuffer, splitOffset, remaining);
+        buf = buffers[++bufferIndex];
+        splitOffset += remaining;
+        bytesLeft -= remaining;
+        remaining = remaining(buf, 0);
+      }
+
+      if (remaining > 0 && bytesLeft > 0) {
+        buf.put(0, slotBuffer, splitOffset, bytesLeft);
+      }
+    } else {
+      buf.put(pos, slotBuffer, 0, slotSize);
+    }
+  }
+
+  public static int remaining(ByteBuffer buffer, int pos) {
+    return buffer.limit() - pos;
   }
 
   @Override
@@ -111,12 +172,12 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
 
   @Override
   public short readShort() {
-    return (short) (((short) (buf[pos++] & 0xff) << 8) | ((short) (buf[pos++] & 0xff) << 0));
+    return (short) (((short) (buf[pos++] & 0xff) << 8) | ((short) (buf[pos++] & 0xff)));
   }
 
   @Override
   public int readUnsignedShort() {
-    return (((int) (buf[pos++] & 0xff) << 8) | ((int) (buf[pos++] & 0xff) << 0));
+    return (((int) (buf[pos++] & 0xff) << 8) | ((int) (buf[pos++] & 0xff)));
   }
 
   @Override
@@ -126,15 +187,19 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
 
   @Override
   public int readInt() {
-    return (((buf[pos++] & 0xff) << 24) | ((buf[pos++] & 0xff) << 16) | ((buf[pos++] & 0xff) << 8) | (
-        (buf[pos++] & 0xff) << 0));
+    int result = (int)INT_HANDLE.get(buf, pos);
+    pos += Integer.BYTES;
+    return result;
   }
+
+  private static final VarHandle INT_HANDLE = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
+  private static final VarHandle LONG_HANDLE = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
 
   @Override
   public long readLong() {
-    return (((long) (buf[pos++] & 0xff) << 56) | ((long) (buf[pos++] & 0xff) << 48) | ((long) (buf[pos++] & 0xff) << 40)
-        | ((long) (buf[pos++] & 0xff) << 32) | ((long) (buf[pos++] & 0xff) << 24) | ((long) (buf[pos++] & 0xff) << 16)
-        | ((long) (buf[pos++] & 0xff) << 8) | ((long) (buf[pos++] & 0xff) << 0));
+    long result = (long)LONG_HANDLE.get(buf, pos);
+    pos += Long.BYTES;
+    return result;
   }
 
   @Override
@@ -209,7 +274,7 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
   public void writeShort(int v) {
     ensureAvail(2);
     buf[pos++] = (byte) (0xff & (v >> 8));
-    buf[pos++] = (byte) (0xff & (v >> 0));
+    buf[pos++] = (byte) (0xff & (v));
   }
 
   @Override
@@ -220,23 +285,15 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
   @Override
   public void writeInt(int v) {
     ensureAvail(4);
-    buf[pos++] = (byte) (0xff & (v >> 24));
-    buf[pos++] = (byte) (0xff & (v >> 16));
-    buf[pos++] = (byte) (0xff & (v >> 8));
-    buf[pos++] = (byte) (0xff & (v >> 0));
+    INT_HANDLE.set(buf, pos, v);
+    pos += Integer.BYTES;
   }
 
   @Override
   public void writeLong(long v) {
     ensureAvail(8);
-    buf[pos++] = (byte) (0xff & (v >> 56));
-    buf[pos++] = (byte) (0xff & (v >> 48));
-    buf[pos++] = (byte) (0xff & (v >> 40));
-    buf[pos++] = (byte) (0xff & (v >> 32));
-    buf[pos++] = (byte) (0xff & (v >> 24));
-    buf[pos++] = (byte) (0xff & (v >> 16));
-    buf[pos++] = (byte) (0xff & (v >> 8));
-    buf[pos++] = (byte) (0xff & (v >> 0));
+    LONG_HANDLE.set(buf, pos, v);
+    pos += Long.BYTES;
   }
 
   @Override

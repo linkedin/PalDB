@@ -25,30 +25,30 @@ import java.util.*;
 
 @Disabled
 @Tag("performance")
-public class TestReadThrouputRocksDB {
+class TestReadThrouputRocksDB {
 
   private File TEST_FOLDER = new File("testreadthroughputrocksdb");
   private final int READS = 500000;
 
   @BeforeEach
-  public void loadLibrary() {
+  void loadLibrary() {
     RocksDB.loadLibrary();
   }
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     DirectoryUtils.deleteDirectory(TEST_FOLDER);
     TEST_FOLDER.mkdir();
   }
 
   @AfterEach
-  public void cleanUp() {
+  void cleanUp() {
     DirectoryUtils.deleteDirectory(TEST_FOLDER);
   }
 
   @Test
-  public void testReadThroughput() {
-    List<Measure> measures = new ArrayList<Measure>();
+  void testReadThroughput() {
+    List<Measure> measures = new ArrayList<>();
 
     int max = 10000000;
     for (int i = 100; i <= max; i *= 10) {
@@ -78,8 +78,14 @@ public class TestReadThrouputRocksDB {
     options.setCompactionStyle(CompactionStyle.LEVEL);
     options.setMaxOpenFiles(-1);
 
+    var wOptions = new WriteOptions();
+    wOptions.setDisableWAL(true);
+
+    var fOptions = new FlushOptions();
+    fOptions.setWaitForFlush(true);
+
     final BlockBasedTableConfig tableOptions = new BlockBasedTableConfig();
-    tableOptions.setFilter(new BloomFilter(10, false));
+    tableOptions.setFilterPolicy(new BloomFilter(10, false));
     options.setTableFormatConfig(tableOptions);
 
     RocksDB db = null;
@@ -88,19 +94,22 @@ public class TestReadThrouputRocksDB {
 
       for (Integer key : keys) {
         if (valueLength == 0) {
-          db.put(key.toString().getBytes(), "1".getBytes());
+          db.put(wOptions, key.toString().getBytes(), "1".getBytes());
         } else {
-          db.put(key.toString().getBytes(), RandomStringUtils.randomAlphabetic(valueLength).getBytes());
+          db.put(wOptions, key.toString().getBytes(), RandomStringUtils.randomAlphabetic(valueLength).getBytes());
         }
       }
+      db.flush(fOptions);
     } catch (RocksDBException e) {
       throw new RuntimeException(e);
     } finally {
+      wOptions.close();
+      fOptions.close();
       if (db != null) {
         db.close();
       }
     }
-    options.dispose();
+    options.close();
 
     final ReadOptions readOptions = new ReadOptions();
     readOptions.setVerifyChecksums(false);
@@ -121,24 +130,21 @@ public class TestReadThrouputRocksDB {
 
       // Measure
       nanoBench.cpuOnly().warmUps(5).measurements(20)
-          .measure("Measure %d reads for %d keys with cache", new Runnable() {
-            @Override
-            public void run() {
-              Random r = new Random();
-              int length = keys.length;
-              for (int i = 0; i < READS; i++) {
-                int index;
-                if (i % 2 == 0 && frequentReads) {
-                  index = r.nextInt(length / 10);
-                } else {
-                  index = r.nextInt(length);
-                }
-                Integer key = keys[index];
-                try {
-                  reader.get(readOptions, key.toString().getBytes());
-                } catch (RocksDBException e) {
+          .measure("Measure %d reads for %d keys with cache", () -> {
+            Random r = new Random();
+            int length = keys.length;
+            for (int i = 0; i < READS; i++) {
+              int index;
+              if (i % 2 == 0 && frequentReads) {
+                index = r.nextInt(length / 10);
+              } else {
+                index = r.nextInt(length);
+              }
+              Integer key = keys[index];
+              try {
+                reader.get(readOptions, key.toString().getBytes());
+              } catch (RocksDBException e) {
 
-                }
               }
             }
           });
@@ -152,7 +158,7 @@ public class TestReadThrouputRocksDB {
 
     // Return measure
     double rps = READS * nanoBench.getTps();
-    return new Measure(DirectoryUtils.folderSize(TEST_FOLDER), rps, valueLength, 0l, keys.length);
+    return new Measure(DirectoryUtils.folderSize(TEST_FOLDER), rps, valueLength, 0L, keys.length);
   }
 
   private void report(String title, List<Measure> measures) {

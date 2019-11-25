@@ -15,7 +15,7 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
-import com.linkedin.paldb.api.errors.UnsupportedTypeException;
+import com.linkedin.paldb.api.errors.*;
 import com.linkedin.paldb.utils.*;
 import org.xerial.snappy.Snappy;
 
@@ -26,7 +26,7 @@ import java.math.*;
 /**
  * Internal serialization implementation.
  */
-public final class StorageSerialization {
+final class StorageSerialization {
 
   //Buffer
   private final DataInputOutput dataInputOutput = new DataInputOutput();
@@ -43,7 +43,7 @@ public final class StorageSerialization {
    *
    * @param config configuration
    */
-  public StorageSerialization(Configuration config) {
+  StorageSerialization(Configuration config) {
     this.compression = config.getBoolean(Configuration.COMPRESSION_ENABLED);
     this.serializers = config.getSerializers();
   }
@@ -56,7 +56,7 @@ public final class StorageSerialization {
    * @return key as byte array
    * @throws IOException if an io error occurs
    */
-  public <K> byte[] serializeKey(K key) throws IOException {
+  <K> byte[] serializeKey(K key) throws IOException {
     if (key == null) {
       throw new NullPointerException();
     }
@@ -72,7 +72,7 @@ public final class StorageSerialization {
    * @param dataOutput data output
    * @throws IOException if an io error occurs
    */
-  public void serializeKey(Object key, DataOutput dataOutput) throws IOException {
+  void serializeKey(Object key, DataOutput dataOutput) throws IOException {
     serializeObject(key, dataOutput, false);
   }
 
@@ -83,7 +83,7 @@ public final class StorageSerialization {
    * @return value as byte array
    * @throws IOException if an io error occurs
    */
-  public byte[] serializeValue(Object value) throws IOException {
+  byte[] serializeValue(Object value) throws IOException {
 
     serializeObject(value, dataInputOutput.reset(), compression);
     return dataInputOutput.toByteArray();
@@ -96,7 +96,7 @@ public final class StorageSerialization {
    * @param dataOutput data output
    * @throws IOException if an io error occurs
    */
-  public void serializeValue(Object value, DataOutput dataOutput) throws IOException {
+  void serializeValue(Object value, DataOutput dataOutput) throws IOException {
     serializeObject(value, dataOutput, compression);
   }
 
@@ -111,37 +111,37 @@ public final class StorageSerialization {
     //Cast to primitive arrays if necessary
     if (obj != null && obj.getClass().isArray()) {
       if (obj instanceof Integer[]) {
-        obj = (int[]) getPrimitiveArray((Integer[]) obj);
+        obj = getPrimitiveArray((Integer[]) obj);
       } else if (obj instanceof Boolean[]) {
-        obj = (boolean[]) getPrimitiveArray((Object[]) obj);
+        obj = getPrimitiveArray((Object[]) obj);
       } else if (obj instanceof Byte[]) {
-        obj = (byte[]) getPrimitiveArray((Object[]) obj);
+        obj = getPrimitiveArray((Object[]) obj);
       } else if (obj instanceof Character[]) {
-        obj = (char[]) getPrimitiveArray((Object[]) obj);
+        obj = getPrimitiveArray((Object[]) obj);
       } else if (obj instanceof Double[]) {
-        obj = (double[]) getPrimitiveArray((Object[]) obj);
+        obj = getPrimitiveArray((Object[]) obj);
       } else if (obj instanceof Float[]) {
-        obj = (float[]) getPrimitiveArray((Object[]) obj);
+        obj = getPrimitiveArray((Object[]) obj);
       } else if (obj instanceof Long[]) {
-        obj = (long[]) getPrimitiveArray((Object[]) obj);
+        obj = getPrimitiveArray((Object[]) obj);
       } else if (obj instanceof Short[]) {
-        obj = (short[]) getPrimitiveArray((Object[]) obj);
+        obj = getPrimitiveArray((Object[]) obj);
       } else if (obj instanceof Integer[][]) {
-        obj = (int[][]) getPrimitiveArray((Object[][]) obj);
+        obj = getPrimitiveArray((Object[][]) obj);
       } else if (obj instanceof Boolean[][]) {
-        obj = (boolean[][]) getPrimitiveArray((Object[][]) obj);
+        obj = getPrimitiveArray((Object[][]) obj);
       } else if (obj instanceof Byte[][]) {
-        obj = (byte[][]) getPrimitiveArray((Object[][]) obj);
+        obj = getPrimitiveArray((Object[][]) obj);
       } else if (obj instanceof Character[][]) {
-        obj = (char[][]) getPrimitiveArray((Object[][]) obj);
+        obj = getPrimitiveArray((Object[][]) obj);
       } else if (obj instanceof Double[][]) {
-        obj = (double[][]) getPrimitiveArray((Object[][]) obj);
+        obj = getPrimitiveArray((Object[][]) obj);
       } else if (obj instanceof Float[][]) {
-        obj = (float[][]) getPrimitiveArray((Object[][]) obj);
+        obj = getPrimitiveArray((Object[][]) obj);
       } else if (obj instanceof Long[][]) {
-        obj = (long[][]) getPrimitiveArray((Object[][]) obj);
+        obj = getPrimitiveArray((Object[][]) obj);
       } else if (obj instanceof Short[][]) {
-        obj = (short[][]) getPrimitiveArray((Object[][]) obj);
+        obj = getPrimitiveArray((Object[][]) obj);
       }
     }
 
@@ -153,7 +153,7 @@ public final class StorageSerialization {
    *
    * @return true if enabled, false otherwise
    */
-  public boolean isCompressionEnabled() {
+  boolean isCompressionEnabled() {
     return compression;
   }
 
@@ -231,94 +231,94 @@ public final class StorageSerialization {
 
   // SERIALIZATION
 
-  final static int NULL_ID = -1;
-  final static int NULL = 0;
-  final static int BOOLEAN_TRUE = 2;
-  final static int BOOLEAN_FALSE = 3;
-  final static int INTEGER_MINUS_1 = 4;
-  final static int INTEGER_0 = 5;
-  final static int INTEGER_1 = 6;
-  final static int INTEGER_2 = 7;
-  final static int INTEGER_3 = 8;
-  final static int INTEGER_4 = 9;
-  final static int INTEGER_5 = 10;
-  final static int INTEGER_6 = 11;
-  final static int INTEGER_7 = 12;
-  final static int INTEGER_8 = 13;
-  final static int INTEGER_255 = 14;
-  final static int INTEGER_PACK_NEG = 15;
-  final static int INTEGER_PACK = 16;
-  final static int LONG_MINUS_1 = 17;
-  final static int LONG_0 = 18;
-  final static int LONG_1 = 19;
-  final static int LONG_2 = 20;
-  final static int LONG_3 = 21;
-  final static int LONG_4 = 22;
-  final static int LONG_5 = 23;
-  final static int LONG_6 = 24;
-  final static int LONG_7 = 25;
-  final static int LONG_8 = 26;
-  final static int LONG_PACK_NEG = 27;
-  final static int LONG_PACK = 28;
-  final static int LONG_255 = 29;
-  final static int LONG_MINUS_MAX = 30;
-  final static int SHORT_MINUS_1 = 31;
-  final static int SHORT_0 = 32;
-  final static int SHORT_1 = 33;
-  final static int SHORT_255 = 34;
-  final static int SHORT_FULL = 35;
-  final static int BYTE_MINUS_1 = 36;
-  final static int BYTE_0 = 37;
-  final static int BYTE_1 = 38;
-  final static int BYTE_FULL = 39;
-  final static int CHAR = 40;
-  final static int FLOAT_MINUS_1 = 41;
-  final static int FLOAT_0 = 42;
-  final static int FLOAT_1 = 43;
-  final static int FLOAT_255 = 44;
-  final static int FLOAT_SHORT = 45;
-  final static int FLOAT_FULL = 46;
-  final static int DOUBLE_MINUS_1 = 47;
-  final static int DOUBLE_0 = 48;
-  final static int DOUBLE_1 = 49;
-  final static int DOUBLE_255 = 50;
-  final static int DOUBLE_SHORT = 51;
-  final static int DOUBLE_FULL = 52;
-  final static int DOUBLE_ARRAY = 53;
-  final static int BIGDECIMAL = 54;
-  final static int BIGINTEGER = 55;
-  final static int FLOAT_ARRAY = 56;
-  final static int INTEGER_MINUS_MAX = 57;
-  final static int SHORT_ARRAY = 58;
-  final static int BOOLEAN_ARRAY = 59;
-  final static int ARRAY_INT_B = 60;
-  final static int ARRAY_INT_S = 61;
-  final static int ARRAY_INT_I = 62;
-  final static int ARRAY_INT_PACKED = 63;
-  final static int ARRAY_LONG_B = 64;
-  final static int ARRAY_LONG_S = 65;
-  final static int ARRAY_LONG_I = 66;
-  final static int ARRAY_LONG_L = 67;
-  final static int ARRAY_LONG_PACKED = 68;
-  final static int CHAR_ARRAY = 69;
-  final static int BYTE_ARRAY = 70;
-  final static int STRING_ARRAY = 71;
-  final static int ARRAY_OBJECT = 72;
-  final static int STRING_EMPTY = 101;
-  final static int NOTUSED_STRING_C = 102;
-  final static int STRING = 103;
-  final static int ARRAY_INT_C = 104;
-  final static int ARRAY_LONG_C = 105;
-  final static int DOUBLE_ARRAY_C = 106;
-  final static int FLOAT_ARRAY_C = 107;
-  final static int CHAR_ARRAY_C = 108;
-  final static int BYTE_ARRAY_C = 109;
-  final static int SHORT_ARRAY_C = 110;
-  final static int INT_INT_ARRAY = 111;
-  final static int LONG_LONG_ARRAY = 112;
-  final static int CLASS = 113;
-  final static int CUSTOM = 114;
-  final static String EMPTY_STRING = "";
+  static final int NULL_ID = -1;
+  private static final int NULL = 0;
+  private static final int BOOLEAN_TRUE = 2;
+  private static final int BOOLEAN_FALSE = 3;
+  private static final int INTEGER_MINUS_1 = 4;
+  private static final int INTEGER_0 = 5;
+  private static final int INTEGER_1 = 6;
+  private static final int INTEGER_2 = 7;
+  private static final int INTEGER_3 = 8;
+  private static final int INTEGER_4 = 9;
+  private static final int INTEGER_5 = 10;
+  private static final int INTEGER_6 = 11;
+  private static final int INTEGER_7 = 12;
+  private static final int INTEGER_8 = 13;
+  private static final int INTEGER_255 = 14;
+  private static final int INTEGER_PACK_NEG = 15;
+  private static final int INTEGER_PACK = 16;
+  private static final int LONG_MINUS_1 = 17;
+  private static final int LONG_0 = 18;
+  private static final int LONG_1 = 19;
+  private static final int LONG_2 = 20;
+  private static final int LONG_3 = 21;
+  private static final int LONG_4 = 22;
+  private static final int LONG_5 = 23;
+  private static final int LONG_6 = 24;
+  private static final int LONG_7 = 25;
+  private static final int LONG_8 = 26;
+  private static final int LONG_PACK_NEG = 27;
+  private static final int LONG_PACK = 28;
+  private static final int LONG_255 = 29;
+  private static final int LONG_MINUS_MAX = 30;
+  private static final int SHORT_MINUS_1 = 31;
+  private static final int SHORT_0 = 32;
+  private static final int SHORT_1 = 33;
+  private static final int SHORT_255 = 34;
+  private static final int SHORT_FULL = 35;
+  private static final int BYTE_MINUS_1 = 36;
+  private static final int BYTE_0 = 37;
+  private static final int BYTE_1 = 38;
+  private static final int BYTE_FULL = 39;
+  private static final int CHAR = 40;
+  private static final int FLOAT_MINUS_1 = 41;
+  private static final int FLOAT_0 = 42;
+  private static final int FLOAT_1 = 43;
+  private static final int FLOAT_255 = 44;
+  private static final int FLOAT_SHORT = 45;
+  private static final int FLOAT_FULL = 46;
+  private static final int DOUBLE_MINUS_1 = 47;
+  private static final int DOUBLE_0 = 48;
+  private static final int DOUBLE_1 = 49;
+  private static final int DOUBLE_255 = 50;
+  private static final int DOUBLE_SHORT = 51;
+  private static final int DOUBLE_FULL = 52;
+  private static final int DOUBLE_ARRAY = 53;
+  private static final int BIGDECIMAL = 54;
+  private static final int BIGINTEGER = 55;
+  private static final int FLOAT_ARRAY = 56;
+  private static final int INTEGER_MINUS_MAX = 57;
+  private static final int SHORT_ARRAY = 58;
+  private static final int BOOLEAN_ARRAY = 59;
+  private static final int ARRAY_INT_B = 60;
+  private static final int ARRAY_INT_S = 61;
+  private static final int ARRAY_INT_I = 62;
+  private static final int ARRAY_INT_PACKED = 63;
+  private static final int ARRAY_LONG_B = 64;
+  private static final int ARRAY_LONG_S = 65;
+  private static final int ARRAY_LONG_I = 66;
+  private static final int ARRAY_LONG_L = 67;
+  private static final int ARRAY_LONG_PACKED = 68;
+  private static final int CHAR_ARRAY = 69;
+  private static final int BYTE_ARRAY = 70;
+  private static final int STRING_ARRAY = 71;
+  private static final int ARRAY_OBJECT = 72;
+  private static final int STRING_EMPTY = 101;
+  static final int NOTUSED_STRING_C = 102;
+  private static final int STRING = 103;
+  private static final int ARRAY_INT_C = 104;
+  private static final int ARRAY_LONG_C = 105;
+  private static final int DOUBLE_ARRAY_C = 106;
+  private static final int FLOAT_ARRAY_C = 107;
+  private static final int CHAR_ARRAY_C = 108;
+  private static final int BYTE_ARRAY_C = 109;
+  private static final int SHORT_ARRAY_C = 110;
+  private static final int INT_INT_ARRAY = 111;
+  private static final int LONG_LONG_ARRAY = 112;
+  private static final int CLASS = 113;
+  private static final int CUSTOM = 114;
+  private static final String EMPTY_STRING = "";
 
   byte[] serialize(Object obj) throws IOException {
     return serialize(obj, false);
@@ -557,7 +557,7 @@ public final class StorageSerialization {
       final int len = val.length();
       LongPacker.packInt(out, len);
       for (int i = 0; i < len; i++) {
-        int c = (int) val.charAt(i); //TODO investigate if c could be negative here
+        int c = val.charAt(i); //TODO investigate if c could be negative here
         LongPacker.packInt(out, c);
       }
     }
@@ -781,7 +781,7 @@ public final class StorageSerialization {
     }
   }
 
-  public Object deserialize(byte[] buf) throws ClassNotFoundException, IOException {
+  Object deserialize(byte[] buf) throws IOException {
     DataInputOutput bs = new DataInputOutput(buf);
     Object ret = deserialize(bs);
     if (bs.available() != 0) {
@@ -791,7 +791,7 @@ public final class StorageSerialization {
     return ret;
   }
 
-  public Object deserialize(DataInput is) throws IOException, ClassNotFoundException {
+  Object deserialize(DataInput is) throws IOException {
     Object ret = null;
 
     final int head = is.readUnsignedByte();
@@ -800,7 +800,7 @@ public final class StorageSerialization {
       var className = is.readUTF();
       Serializer serializer = serializers.getSerializer(className);
       if (serializer == null) {
-        throw new ClassNotFoundException("Serializer not registered: " + className);
+        throw new MissingSerializer("Serializer not registered: " + className);
       }
       ret = serializer.read(is);
     } else {
@@ -814,115 +814,115 @@ public final class StorageSerialization {
           ret = Boolean.FALSE;
           break;
         case INTEGER_MINUS_1:
-          ret = Integer.valueOf(-1);
+          ret = -1;
           break;
         case INTEGER_0:
-          ret = Integer.valueOf(0);
+          ret = 0;
           break;
         case INTEGER_1:
-          ret = Integer.valueOf(1);
+          ret = 1;
           break;
         case INTEGER_2:
-          ret = Integer.valueOf(2);
+          ret = 2;
           break;
         case INTEGER_3:
-          ret = Integer.valueOf(3);
+          ret = 3;
           break;
         case INTEGER_4:
-          ret = Integer.valueOf(4);
+          ret = 4;
           break;
         case INTEGER_5:
-          ret = Integer.valueOf(5);
+          ret = 5;
           break;
         case INTEGER_6:
-          ret = Integer.valueOf(6);
+          ret = 6;
           break;
         case INTEGER_7:
-          ret = Integer.valueOf(7);
+          ret = 7;
           break;
         case INTEGER_8:
-          ret = Integer.valueOf(8);
+          ret = 8;
           break;
         case INTEGER_MINUS_MAX:
-          ret = Integer.valueOf(Integer.MIN_VALUE);
+          ret = Integer.MIN_VALUE;
           break;
         case INTEGER_255:
-          ret = Integer.valueOf(is.readUnsignedByte());
+          ret = is.readUnsignedByte();
           break;
         case INTEGER_PACK_NEG:
-          ret = Integer.valueOf(-LongPacker.unpackInt(is));
+          ret = -LongPacker.unpackInt(is);
           break;
         case INTEGER_PACK:
-          ret = Integer.valueOf(LongPacker.unpackInt(is));
+          ret = LongPacker.unpackInt(is);
           break;
         case LONG_MINUS_1:
-          ret = Long.valueOf(-1);
+          ret = (long) -1;
           break;
         case LONG_0:
-          ret = Long.valueOf(0);
+          ret = 0L;
           break;
         case LONG_1:
-          ret = Long.valueOf(1);
+          ret = 1L;
           break;
         case LONG_2:
-          ret = Long.valueOf(2);
+          ret = 2L;
           break;
         case LONG_3:
-          ret = Long.valueOf(3);
+          ret = 3L;
           break;
         case LONG_4:
-          ret = Long.valueOf(4);
+          ret = 4L;
           break;
         case LONG_5:
-          ret = Long.valueOf(5);
+          ret = 5L;
           break;
         case LONG_6:
-          ret = Long.valueOf(6);
+          ret = 6L;
           break;
         case LONG_7:
-          ret = Long.valueOf(7);
+          ret = 7L;
           break;
         case LONG_8:
-          ret = Long.valueOf(8);
+          ret = 8L;
           break;
         case LONG_255:
-          ret = Long.valueOf(is.readUnsignedByte());
+          ret = (long) is.readUnsignedByte();
           break;
         case LONG_PACK_NEG:
-          ret = Long.valueOf(-LongPacker.unpackLong(is));
+          ret = -LongPacker.unpackLong(is);
           break;
         case LONG_PACK:
-          ret = Long.valueOf(LongPacker.unpackLong(is));
+          ret = LongPacker.unpackLong(is);
           break;
         case LONG_MINUS_MAX:
-          ret = Long.valueOf(Long.MIN_VALUE);
+          ret = Long.MIN_VALUE;
           break;
         case SHORT_MINUS_1:
-          ret = Short.valueOf((short) -1);
+          ret = (short) -1;
           break;
         case SHORT_0:
-          ret = Short.valueOf((short) 0);
+          ret = (short) 0;
           break;
         case SHORT_1:
-          ret = Short.valueOf((short) 1);
+          ret = (short) 1;
           break;
         case SHORT_255:
-          ret = Short.valueOf((short) is.readUnsignedByte());
+          ret = (short) is.readUnsignedByte();
           break;
         case SHORT_FULL:
-          ret = Short.valueOf(is.readShort());
+          ret = is.readShort();
           break;
         case BYTE_MINUS_1:
-          ret = Byte.valueOf((byte) -1);
+          ret = (byte) -1;
           break;
         case BYTE_0:
-          ret = Byte.valueOf((byte) 0);
+          ret = (byte) 0;
           break;
         case BYTE_1:
-          ret = Byte.valueOf((byte) 1);
+          ret = (byte) 1;
           break;
         case BYTE_FULL:
-          ret = Byte.valueOf(is.readByte());
+          ret = is.readByte();
           break;
         case SHORT_ARRAY:
           ret = deserializeShortArray(is);
@@ -952,43 +952,43 @@ public final class StorageSerialization {
           ret = deserializeCharCompressedArray(is);
           break;
         case CHAR:
-          ret = Character.valueOf(is.readChar());
+          ret = is.readChar();
           break;
         case FLOAT_MINUS_1:
-          ret = Float.valueOf(-1);
+          ret = (float) -1;
           break;
         case FLOAT_0:
-          ret = Float.valueOf(0);
+          ret = (float) 0;
           break;
         case FLOAT_1:
-          ret = Float.valueOf(1);
+          ret = 1f;
           break;
         case FLOAT_255:
-          ret = Float.valueOf(is.readUnsignedByte());
+          ret = (float) is.readUnsignedByte();
           break;
         case FLOAT_SHORT:
-          ret = Float.valueOf(is.readShort());
+          ret = (float) is.readShort();
           break;
         case FLOAT_FULL:
-          ret = Float.valueOf(is.readFloat());
+          ret = is.readFloat();
           break;
         case DOUBLE_MINUS_1:
-          ret = Double.valueOf(-1);
+          ret = (double) -1;
           break;
         case DOUBLE_0:
-          ret = Double.valueOf(0);
+          ret = (double) 0;
           break;
         case DOUBLE_1:
-          ret = Double.valueOf(1);
+          ret = 1d;
           break;
         case DOUBLE_255:
-          ret = Double.valueOf(is.readUnsignedByte());
+          ret = (double) is.readUnsignedByte();
           break;
         case DOUBLE_SHORT:
-          ret = Double.valueOf(is.readShort());
+          ret = (double) is.readShort();
           break;
         case DOUBLE_FULL:
-          ret = Double.valueOf(is.readDouble());
+          ret = is.readDouble();
           break;
         case BIGINTEGER:
           ret = new BigInteger((byte[]) deserialize(is));
@@ -1074,10 +1074,14 @@ public final class StorageSerialization {
     return new String(b);
   }
 
-  private static Class deserializeClass(DataInput is) throws IOException, ClassNotFoundException {
+  private static Class deserializeClass(DataInput is) throws IOException {
     is.readByte();
     String className = deserializeString(is);
-    return Class.forName(className);
+    try {
+      return Class.forName(className);
+    } catch (ClassNotFoundException e) {
+      throw new MissingClass("Class is missing: " + className);
+    }
   }
 
   private static short[] deserializeShortArray(DataInput is) throws IOException {
@@ -1192,8 +1196,7 @@ public final class StorageSerialization {
     return Snappy.uncompress(b);
   }
 
-  private Object[] deserializeArrayObject(DataInput is)
-      throws IOException, ClassNotFoundException {
+  private Object[] deserializeArrayObject(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
 
     Object[] s = (Object[]) Array.newInstance(Object.class, size);

@@ -23,8 +23,8 @@ public class NanoBench {
   private int numberOfWarmUp = 20;
   private List<MeasureListener> listeners;
 
-  public NanoBench() {
-    listeners = new ArrayList<MeasureListener>(2);
+  private NanoBench() {
+    listeners = new ArrayList<>(2);
     listeners.add(new CPUMeasure(logger));
     listeners.add(new MemoryUsage(logger));
   }
@@ -40,14 +40,14 @@ public class NanoBench {
   }
 
   public NanoBench cpuAndMemory() {
-    listeners = new ArrayList<MeasureListener>(2);
+    listeners = new ArrayList<>(2);
     listeners.add(new CPUMeasure(logger));
     listeners.add(new MemoryUsage(logger));
     return this;
   }
 
   public NanoBench bytesOnly() {
-    listeners = new ArrayList<MeasureListener>(1);
+    listeners = new ArrayList<>(1);
     listeners.add(new BytesMeasure(logger));
     return this;
   }
@@ -61,13 +61,13 @@ public class NanoBench {
   }
 
   public NanoBench cpuOnly() {
-    listeners = new ArrayList<MeasureListener>(1);
+    listeners = new ArrayList<>(1);
     listeners.add(new CPUMeasure(logger));
     return this;
   }
 
   public NanoBench memoryOnly() {
-    listeners = new ArrayList<MeasureListener>(1);
+    listeners = new ArrayList<>(1);
     listeners.add(new MemoryUsage(logger));
     return this;
   }
@@ -133,7 +133,7 @@ public class NanoBench {
     }
   }
 
-  static int[] arrayStress = new int[10000];
+  private static int[] arrayStress = new int[10000];
 
   private void stress() {
     int m = 0;
@@ -172,7 +172,7 @@ public class NanoBench {
     private Runnable runnable;
     private List<MeasureListener> listeners;
 
-    public TimeMeasureProxy(MeasureState state, Runnable runnable, List<MeasureListener> listeners) {
+    TimeMeasureProxy(MeasureState state, Runnable runnable, List<MeasureListener> listeners) {
       super();
       this.state = state;
       this.runnable = runnable;
@@ -210,15 +210,15 @@ public class NanoBench {
 
   public static abstract class BytesRunnable implements Runnable {
 
-    protected int measure;
+    int measure;
 
     public void run() {
       measure = runMeasure();
     }
 
-    public abstract int runMeasure();
+    abstract int runMeasure();
 
-    public int getMeasure() {
+    int getMeasure() {
       return measure;
     }
   }
@@ -235,7 +235,7 @@ public class NanoBench {
     private int measurement;
     private int bytesMeasure;
 
-    public MeasureState(String label, long index, int measurement) {
+    MeasureState(String label, long index, int measurement) {
       super();
       this.label = label;
       this.measurement = measurement;
@@ -246,7 +246,7 @@ public class NanoBench {
       return index;
     }
 
-    public String getLabel() {
+    String getLabel() {
       return label;
     }
 
@@ -258,35 +258,29 @@ public class NanoBench {
       return endTime;
     }
 
-    public long getMeasurements() {
+    long getMeasurements() {
       return measurement;
     }
 
-    public long getMeasureTime() {
+    long getMeasureTime() {
       return endTime - startTime;
     }
 
-    public void startNow() {
+    void startNow() {
       this.startTime = System.nanoTime();
     }
 
-    public void endNow() {
+    void endNow() {
       this.endTime = System.nanoTime();
     }
 
-    public int getBytesMeasure() {
+    int getBytesMeasure() {
       return bytesMeasure;
     }
 
     @Override
     public int compareTo(MeasureState another) {
-      if (this.startTime > another.startTime) {
-        return -1;
-      } else if (this.startTime < another.startTime) {
-        return 1;
-      } else {
-        return 0;
-      }
+      return Long.compare(another.startTime, this.startTime);
     }
   }
 
@@ -311,7 +305,7 @@ public class NanoBench {
     private double finalAvg;
     private double finalTotal;
 
-    public CPUMeasure(Logger logger) {
+    CPUMeasure(Logger logger) {
       this.log = logger;
     }
 
@@ -343,15 +337,15 @@ public class NanoBench {
       }
     }
 
-    public double getFinalAvg() {
+    double getFinalAvg() {
       return finalAvg;
     }
 
-    public double getFinalTotal() {
+    double getFinalTotal() {
       return finalTotal;
     }
 
-    public double getFinalTps() {
+    double getFinalTps() {
       return finalTps;
     }
 
@@ -367,7 +361,7 @@ public class NanoBench {
     private int count = 0;
     private long bytesUsed = 0;
 
-    public BytesMeasure(Logger logger) {
+    BytesMeasure(Logger logger) {
       this.log = logger;
     }
 
@@ -417,7 +411,7 @@ public class NanoBench {
     // Final
     private long finalBytes;
 
-    public MemoryUsage(Logger logger) {
+    MemoryUsage(Logger logger) {
       this.log = logger;
     }
 
@@ -446,7 +440,7 @@ public class NanoBench {
       }
     }
 
-    public long getFinalBytes() {
+    long getFinalBytes() {
       return finalBytes;
     }
 
@@ -467,7 +461,7 @@ public class NanoBench {
     /**
      * Call GC until no more memory can be freed
      */
-    public static void restoreJvm() {
+    static void restoreJvm() {
       int maxRestoreJvmLoops = 10;
       long memUsedPrev = memoryUsed();
       for (int i = 0; i < maxRestoreJvmLoops; i++) {
@@ -490,7 +484,7 @@ public class NanoBench {
      *
      * @return heap memory used in bytes
      */
-    public static long memoryUsed() {
+    static long memoryUsed() {
       Runtime rt = Runtime.getRuntime();
       return rt.totalMemory() - rt.freeMemory();
     }

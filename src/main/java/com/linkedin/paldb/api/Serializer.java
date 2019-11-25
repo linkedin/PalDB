@@ -29,9 +29,9 @@ import java.io.Serializable;
  * configuration.registerSerializer(new PointSerializer());
  * </pre>
  *
- * @param <K> class type
+ * @param <T> class type
  */
-public interface Serializer<K> extends Serializable {
+public interface Serializer<T> extends Serializable {
 
   /**
    * Writes the instance <code>input</code> to the data output.
@@ -39,7 +39,7 @@ public interface Serializer<K> extends Serializable {
    * @param input instance
    * @throws IOException if an io error occurs
    */
-  void write(DataOutput dataOutput, K input) throws IOException;
+  void write(DataOutput dataOutput, T input) throws IOException;
 
   /**
    * Reads the data input and creates the instance.
@@ -48,7 +48,7 @@ public interface Serializer<K> extends Serializable {
    * @return new instance of type <code>K</code>.
    * @throws IOException if an io error occurs
    */
-  K read(DataInput dataInput) throws IOException;
+  T read(DataInput dataInput) throws IOException;
 
-  Class<K> serializedClass();
+  Class<T> serializedClass();
 }

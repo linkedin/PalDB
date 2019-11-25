@@ -21,7 +21,7 @@ import com.linkedin.paldb.api.StoreReader;
  *
  * @see StoreReader
  */
-public class UnsupportedTypeException extends RuntimeException {
+public class UnsupportedTypeException extends PalDBException {
 
   public UnsupportedTypeException(Object obj) {
     super("The type '" + obj.getClass() + "' isn't supported");

@@ -18,25 +18,25 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TestFormatVersion {
+class TestFormatVersion {
 
   @Test
-  public void testIs() {
+  void testIs() {
     assertTrue(FormatVersion.PALDB_V1.is(FormatVersion.PALDB_V1));
   }
 
   @Test
-  public void testBytes() {
-    assertEquals(FormatVersion.fromBytes(FormatVersion.PALDB_V1.getBytes()), FormatVersion.PALDB_V1);
+  void testBytes() {
+    assertEquals(FormatVersion.PALDB_V1, FormatVersion.fromBytes(FormatVersion.PALDB_V1.getBytes()));
   }
 
   @Test
-  public void testPrefixBytes() {
-    assertArrayEquals(FormatVersion.getPrefixBytes(), "PALDB".getBytes());
+  void testPrefixBytes() {
+    assertArrayEquals("PALDB".getBytes(), FormatVersion.getPrefixBytes());
   }
 
   @Test
-  public void testGetLastVersion() {
+  void testGetLastVersion() {
     assertEquals(FormatVersion.getLatestVersion(), FormatVersion.values()[FormatVersion.values().length - 1]);
   }
 }

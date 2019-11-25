@@ -6,7 +6,7 @@
 
     <groupId>net.soundvibe</groupId>
     <artifactId>paldb</artifactId>
-    <version>2.0.1</version>
+    <version>2.0.2</version>
     <packaging>jar</packaging>
     <name>paldb</name>
     <description>Embeddable persistent write-once key-value store</description>
@@ -104,7 +104,7 @@
         <dependency>
             <groupId>org.rocksdb</groupId>
             <artifactId>rocksdbjni</artifactId>
-            <version>4.0</version>
+            <version>6.2.2</version>
             <scope>test</scope>
         </dependency>
 

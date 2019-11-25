@@ -4,10 +4,10 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class PalDBConfigBuilderTest {
+class PalDBConfigBuilderTest {
 
     @Test
-    public void testAllPropertiesSet() {
+    void testAllPropertiesSet() {
         var config = PalDBConfigBuilder.create()
                 .withMemoryMapSegmentSize(500)
                 .withMemoryMapDataEnabled(false)
@@ -15,6 +15,7 @@ public class PalDBConfigBuilderTest {
                 .withEnableCompression(true)
                 .withEnableBloomFilter(true)
                 .withBloomFilterErrorFactor(0.01)
+                .withEnableDuplicates(true)
                 .build();
 
         assertEquals(500, config.getInt(Configuration.MMAP_SEGMENT_SIZE));
@@ -23,5 +24,6 @@ public class PalDBConfigBuilderTest {
         assertTrue(config.getBoolean(Configuration.COMPRESSION_ENABLED));
         assertTrue(config.getBoolean(Configuration.BLOOM_FILTER_ENABLED));
         assertEquals(0.01, config.getDouble(Configuration.BLOOM_FILTER_ERROR_FACTOR));
+        assertTrue(config.getBoolean(Configuration.ALLOW_DUPLICATES));
     }
 }

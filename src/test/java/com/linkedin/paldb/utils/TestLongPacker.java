@@ -22,95 +22,92 @@ import java.nio.ByteBuffer;
 import static org.junit.jupiter.api.Assertions.*;
 
 
-public class TestLongPacker {
+class TestLongPacker {
 
   @Test
-  public void testPackInt()
+  void testPackInt()
       throws IOException {
     DataInputOutput dio = new DataInputOutput();
     LongPacker.packInt(dio.reset(), 42);
-    assertEquals(LongPacker.unpackInt(dio.reset(dio.toByteArray())), 42);
+    assertEquals(42, LongPacker.unpackInt(dio.reset(dio.toByteArray())));
   }
 
   @Test
-  public void testPackIntZero()
+  void testPackIntZero()
       throws IOException {
     DataInputOutput dio = new DataInputOutput();
     LongPacker.packInt(dio.reset(), 0);
-    assertEquals(LongPacker.unpackInt(dio.reset(dio.toByteArray())), 0);
+    assertEquals(0, LongPacker.unpackInt(dio.reset(dio.toByteArray())));
   }
 
   @Test
-  public void testPackIntMax()
+  void testPackIntMax()
       throws IOException {
     DataInputOutput dio = new DataInputOutput();
     LongPacker.packInt(dio.reset(), Integer.MAX_VALUE);
-    assertEquals(LongPacker.unpackInt(dio.reset(dio.toByteArray())), Integer.MAX_VALUE);
+    assertEquals(Integer.MAX_VALUE, LongPacker.unpackInt(dio.reset(dio.toByteArray())));
   }
 
   @Test
-  public void testPackIntNeg() {
+  void testPackIntNeg() {
     DataInputOutput dio = new DataInputOutput();
     assertThrows(IllegalArgumentException.class, () -> LongPacker.packInt(dio.reset(), -42));
   }
 
   @Test
-  public void testPackLong()
+  void testPackLong()
       throws IOException {
     DataInputOutput dio = new DataInputOutput();
-    LongPacker.packLong(dio.reset(), 42l);
-    assertEquals(LongPacker.unpackLong(dio.reset(dio.toByteArray())), 42);
+    LongPacker.packLong(dio.reset(), 42L);
+    assertEquals(42, LongPacker.unpackLong(dio.reset(dio.toByteArray())));
   }
 
   @Test
-  public void testPackLongZero()
+  void testPackLongZero()
       throws IOException {
     DataInputOutput dio = new DataInputOutput();
-    LongPacker.packLong(dio.reset(), 0l);
-    assertEquals(LongPacker.unpackLong(dio.reset(dio.toByteArray())), 0l);
+    LongPacker.packLong(dio.reset(), 0L);
+    assertEquals(0L, LongPacker.unpackLong(dio.reset(dio.toByteArray())));
   }
 
   @Test
-  public void testPackLongBytes()
-      throws IOException {
+  void testPackLongBytes() {
     byte[] buf = new byte[15];
-    LongPacker.packLong(buf, 42l);
-    assertEquals(LongPacker.unpackLong(buf), 42l);
+    LongPacker.packLong(buf, 42L);
+    assertEquals(42L, LongPacker.unpackLong(buf));
   }
 
   @Test
-  public void testPackLongMax()
+  void testPackLongMax()
       throws IOException {
     DataInputOutput dio = new DataInputOutput();
     LongPacker.packLong(dio.reset(), Long.MAX_VALUE);
-    assertEquals(LongPacker.unpackLong(dio.reset(dio.toByteArray())), Long.MAX_VALUE);
+    assertEquals(Long.MAX_VALUE, LongPacker.unpackLong(dio.reset(dio.toByteArray())));
   }
 
   @Test
-  public void testPackLongBytesMax()
-      throws IOException {
+  void testPackLongBytesMax() {
     byte[] buf = new byte[15];
     LongPacker.packLong(buf, Long.MAX_VALUE);
-    assertEquals(LongPacker.unpackLong(buf), Long.MAX_VALUE);
+    assertEquals(Long.MAX_VALUE, LongPacker.unpackLong(buf));
   }
 
   @Test
-  public void testPackLongNeg()
-      throws IOException {
+  void testPackLongNeg() {
     DataInputOutput dio = new DataInputOutput();
     assertThrows(IllegalArgumentException.class, () -> LongPacker.packLong(dio.reset(), -42L));
   }
 
   @Test
-  public void testPackLongBytesNeg() {
+  void testPackLongBytesNeg() {
     assertThrows(IllegalArgumentException.class, () -> LongPacker.packLong(new byte[15], -42L));
   }
 
   @Test
-  public void test() throws IOException {
+  void test() throws IOException {
     DataInputOutput dio = new DataInputOutput();
     LongPacker.packInt(dio.reset(), 5);
     ByteBuffer bb = ByteBuffer.wrap(dio.getBuf());
-    assertEquals(LongPacker.unpackInt(bb), 5);
+    assertEquals(5, LongPacker.unpackInt(bb));
   }
 }

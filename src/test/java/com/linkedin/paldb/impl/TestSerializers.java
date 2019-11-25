@@ -28,38 +28,38 @@ public class TestSerializers {
   private Serializers serializers;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     serializers = new Serializers();
   }
 
   @Test
-  public void testRegister() {
+  void testRegister() {
     ColorSerializer i = new ColorSerializer();
     serializers.registerSerializer(i);
-    assertSame(serializers.getSerializer(Color.class), i);
+    assertSame(i, serializers.getSerializer(Color.class));
   }
 
   @Test
-  public void testRegisterTwice() {
+  void testRegisterTwice() {
     ColorSerializer i1 = new ColorSerializer();
     ColorSerializer i2 = new ColorSerializer();
     serializers.registerSerializer(i1);
     serializers.registerSerializer(i2);
-    assertSame(serializers.getSerializer(Color.class), i1);
+    assertSame(i1, serializers.getSerializer(Color.class));
   }
 
   @Test
-  public void testRegisterTwo() {
+  void testRegisterTwo() {
     ColorSerializer i = new ColorSerializer();
     PointSerializer f = new PointSerializer();
     serializers.registerSerializer(i);
     serializers.registerSerializer(f);
-    assertSame(serializers.getSerializer(Color.class), i);
-    assertSame(serializers.getSerializer(Point.class), f);
+    assertSame(i, serializers.getSerializer(Color.class));
+    assertSame(f, serializers.getSerializer(Point.class));
   }
 
   @Test
-  public void testGetSerializer() {
+  void testGetSerializer() {
     ColorSerializer i = new ColorSerializer();
     serializers.registerSerializer(i);
     assertNull(serializers.getSerializer(Point.class));
@@ -67,16 +67,16 @@ public class TestSerializers {
   }
 
   @Test
-  public void testSerialize() {
+  void testSerialize() {
     serializers.registerSerializer(new ColorSerializer());
     assertNotNull(serializers.getSerializer(Color.class));
   }
 
   @Test
-  public void testInterfaceType() {
+  void testInterfaceType() {
     SerializerWithInterface i = new SerializerWithInterface();
     serializers.registerSerializer(i);
-    assertSame(serializers.getSerializer(AnInterface.class), i);
+    assertSame(i, serializers.getSerializer(AnInterface.class));
   }
 
   // HELPER
@@ -119,7 +119,7 @@ public class TestSerializers {
 
   }
 
-  public interface AnInterface {
+  interface AnInterface {
 
   }
 

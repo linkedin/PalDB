@@ -15,6 +15,7 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.Configuration;
+import com.linkedin.paldb.api.errors.VersionMismatch;
 import com.linkedin.paldb.utils.*;
 import org.slf4j.*;
 
@@ -25,6 +26,8 @@ import java.nio.charset.MalformedInputException;
 import java.text.*;
 import java.time.Instant;
 import java.util.*;
+
+import static com.linkedin.paldb.utils.DataInputOutput.*;
 
 
 /**
@@ -37,15 +40,15 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   // Buffer segment size
   private final long segmentSize;
   // Number of keys in the index
-  private final int keyCount;
+  private final long keyCount;
   // Key count for each key length
-  private final int[] keyCounts;
+  private final long[] keyCounts;
   // Slot size for each key length
   private final int[] slotSizes;
   // Number of slots for each key length
-  private final int[] slots;
+  private final long[] slots;
   // Offset of the index for different key length
-  private final int[] indexOffsets;
+  private final long[] indexOffsets;
   // Offset of the data in the channel
   private final long dataOffset;
   // Offset of the data for different key length
@@ -59,7 +62,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   private final boolean mMapData;
   // Buffers
   private final BloomFilter bloomFilter;
-  private MappedByteBuffer indexBuffer;
+  private MappedByteBuffer[] indexBuffers;
   private MappedByteBuffer[] dataBuffers;
 
   StorageReader(Configuration configuration, File file) throws IOException {
@@ -84,7 +87,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     FormatVersion formatVersion = null;
 
     // Offset of the index in the channel
-    int indexOffset;
+    long indexOffset;
     int bloomFilterBitSize = 0;
     int bloomFilterHashFunctions = 0;
 
@@ -111,7 +114,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
       formatVersion = FormatVersion.fromBytes(versionFound);
       if (formatVersion == null || !formatVersion.is(FormatVersion.getLatestVersion())) {
-        throw new RuntimeException(
+        throw new VersionMismatch(
                 "Version mismatch, expected was '" + FormatVersion.getLatestVersion() + "' and found '" + formatVersion
                         + "'");
       }
@@ -120,7 +123,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
       createdAt = dataInputStream.readLong();
 
       //Metadata counters
-      keyCount = dataInputStream.readInt();
+      keyCount = dataInputStream.readLong();
 
       //read bloom filter bit size
       bloomFilterBitSize = dataInputStream.readInt();
@@ -145,26 +148,26 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
       final int maxKeyLength = dataInputStream.readInt();
 
       //Read offset counts and keys
-      indexOffsets = new int[maxKeyLength + 1];
+      indexOffsets = new long[maxKeyLength + 1];
       dataOffsets = new long[maxKeyLength + 1];
-      keyCounts = new int[maxKeyLength + 1];
-      slots = new int[maxKeyLength + 1];
+      keyCounts = new long[maxKeyLength + 1];
+      slots = new long[maxKeyLength + 1];
       slotSizes = new int[maxKeyLength + 1];
 
       int mSlotSize = 0;
       for (int i = 0; i < keyLengthCount; i++) {
         int keyLength = dataInputStream.readInt();
 
-        keyCounts[keyLength] = dataInputStream.readInt();
-        slots[keyLength] = dataInputStream.readInt();
+        keyCounts[keyLength] = dataInputStream.readLong();
+        slots[keyLength] = dataInputStream.readLong();
         slotSizes[keyLength] = dataInputStream.readInt();
-        indexOffsets[keyLength] = dataInputStream.readInt();
+        indexOffsets[keyLength] = dataInputStream.readLong();
         dataOffsets[keyLength] = dataInputStream.readLong();
 
         mSlotSize = Math.max(mSlotSize, slotSizes[keyLength]);
       }
       //Read index and data offset
-      indexOffset = dataInputStream.readInt() + ignoredBytes;
+      indexOffset = dataInputStream.readLong() + ignoredBytes;
       dataOffset = dataInputStream.readLong() + ignoredBytes;
     }
     //Close metadata
@@ -179,7 +182,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
 
     //Check if data size fits in memory map limit
     mMapData = configuration.getBoolean(Configuration.MMAP_DATA_ENABLED);
-    indexBuffer = initIndexBuffer(channel, indexOffset);
+    indexBuffers = initIndexBuffers(channel, indexOffset);
     dataBuffers = initDataBuffers(channel);
 
     //logging
@@ -202,9 +205,18 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     }
   }
 
-  private MappedByteBuffer initIndexBuffer(FileChannel channel, int indexOffset) {
+  private MappedByteBuffer[] initIndexBuffers(FileChannel channel, long indexOffset) {
+    long indexSize = dataOffset - indexOffset;
+    int bufIdx = 0;
+    int bufArraySize = (int) (indexSize / segmentSize) + ((indexSize % segmentSize != 0) ? 1 : 0);
+    var result = new MappedByteBuffer[bufArraySize];
     try {
-      return channel.map(FileChannel.MapMode.READ_ONLY, indexOffset, dataOffset - indexOffset);
+      for (long offset = 0; offset < indexSize; offset += segmentSize) {
+        long remainingFileSize = indexSize - offset;
+        long thisSegmentSize = Math.min(segmentSize, remainingFileSize);
+        result[bufIdx++] = channel.map(FileChannel.MapMode.READ_ONLY, indexOffset + offset, thisSegmentSize);
+      }
+      return result;
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
@@ -237,15 +249,15 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
         return null;
     }
 
-    int numSlots = slots[keyLength];
+    long numSlots = slots[keyLength];
     int slotSize = slotSizes[keyLength];
-    int ixOffset = indexOffsets[keyLength];
+    long ixOffset = indexOffsets[keyLength];
     long dtOffset = dataOffsets[keyLength];
     long hash = Murmur3.hash(key);
     var slotBuffer = new byte[slotSize];
-    for (int probe = 0; probe < numSlots; probe++) {
-      int slot = (int) ((hash + probe) % numSlots);
-      indexBuffer.get(ixOffset + slot * slotSize, slotBuffer, 0, slotSize);
+    for (long probe = 0; probe < numSlots; probe++) {
+      long slot = ((hash + probe) % numSlots);
+      getFromBuffers(indexBuffers, ixOffset + slot * slotSize, slotBuffer, slotSize, segmentSize);
       long offset = LongPacker.unpackLong(slotBuffer, keyLength);
       if (offset == 0L) {
         return null;
@@ -257,7 +269,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     return null;
   }
 
-  private boolean isKey(byte[] slotBuffer, byte[] key) {
+  private static boolean isKey(byte[] slotBuffer, byte[] key) {
     return Arrays.compare(slotBuffer, 0, key.length, key, 0, key.length) == 0;
   }
 
@@ -265,17 +277,13 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   public void close() throws IOException {
     channel.close();
     mappedFile.close();
-    indexBuffer = null;
+    indexBuffers = null;
     dataBuffers = null;
     System.gc(); //need to call gc because otherwise memory mapped file buffers won't close. See: https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4715154
   }
 
-  public int getKeyCount() {
+  public long getKeyCount() {
     return keyCount;
-  }
-
-  private static int remaining(ByteBuffer buffer, int pos) {
-    return buffer.limit() - pos;
   }
 
   //Read the data at the given offset, the data can be spread over multiple data buffers
@@ -389,7 +397,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     private long keyIndex;
     private long keyLimit;
     private long currentDataOffset;
-    private int currentIndexOffset;
+    private long currentIndexOffset;
 
 
     public StorageIterator(boolean value) {
@@ -421,7 +429,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
       try {
         long offset = 0;
         while (offset == 0) {
-          indexBuffer.get(currentIndexOffset, currentSlotBuffer);
+          getFromBuffers(indexBuffers, currentIndexOffset, currentSlotBuffer, currentSlotBuffer.length, segmentSize);
           offset = LongPacker.unpackLong(currentSlotBuffer, currentKeyLength);
           currentIndexOffset += currentSlotBuffer.length;
         }

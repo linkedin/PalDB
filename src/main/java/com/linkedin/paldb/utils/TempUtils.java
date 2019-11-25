@@ -14,7 +14,10 @@
 
 package com.linkedin.paldb.utils;
 
+import org.slf4j.*;
+
 import java.io.*;
+import java.nio.file.Files;
 
 
 /**
@@ -22,9 +25,28 @@ import java.io.*;
  */
 public final class TempUtils {
 
+  private static final Logger log = LoggerFactory.getLogger(TempUtils.class);
+
   // Default constructor
   private TempUtils() {
 
+  }
+
+  public static boolean deleteDirectory(File directoryToBeDeleted) {
+    if (directoryToBeDeleted.isDirectory()) {
+      File[] allContents = directoryToBeDeleted.listFiles();
+      if (allContents != null) {
+        for (File file : allContents) {
+          deleteDirectory(file);
+        }
+      }
+    }
+    try {
+      return Files.deleteIfExists(directoryToBeDeleted.toPath());
+    } catch (IOException e) {
+      log.warn("Cannot delete directory: " + directoryToBeDeleted, e);
+      return false;
+    }
   }
 
   /**
@@ -34,18 +56,11 @@ public final class TempUtils {
    * @return temporary folder
    */
   public static File createTempDir(String prefix) {
-    File baseDir = new File(System.getProperty("java.io.tmpdir"));
-    String baseName = prefix + System.currentTimeMillis() + "-";
-
-    for (int counter = 0; counter < 10000; counter++) {
-      File tempDir = new File(baseDir, baseName + counter);
-      if (tempDir.mkdir()) {
-        return tempDir;
-      }
+    try {
+      return Files.createTempDirectory(prefix).toFile();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
-    throw new IllegalStateException(
-        "Failed to create directory within " + 10000 + " attempts (tried " + baseName + "0 to " + baseName + (10000 - 1)
-            + ')');
   }
   
   /**
@@ -56,8 +71,7 @@ public final class TempUtils {
    * @return temporary file
    * @throws IOException if an IO error occurs
    */
-  public static File copyIntoTempFile(String fileName, InputStream inputStream)
-      throws IOException {
+  public static File copyIntoTempFile(String fileName, InputStream inputStream) throws IOException {
     File destFile = File.createTempFile(fileName, null);
     destFile.deleteOnExit();
     try (BufferedInputStream bufferedStream = inputStream instanceof BufferedInputStream ? (BufferedInputStream) inputStream

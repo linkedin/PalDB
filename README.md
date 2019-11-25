@@ -13,6 +13,17 @@ PalDB is an embeddable persistent key-value store with very fast read performanc
 
 PalDB's JAR is only 65K and has a single dependency (snappy, which isn't mandatory). It's also very easy to use with just a few configuration parameters.
 
+**This is separate evolution of original PalDB.**
+
+Improvements from PalDB 1.0.2
+-------------------
+- StoreReader is now fully thread-safe without any performance decrease.
+- StoreReader and StoreWriter can be used with generics (StoreReader<K<V> and StoreWriter<K,V>)
+- Typesafe ``PalDBConfigBuilder`` for easier configuration
+- There are no limits on how many keys you can store
+- Duplicates could be optionally allowed
+- Bloom filters could be enabled for even better read performance in some cases
+
 Performance
 -----------
 
@@ -74,12 +85,12 @@ PalDB is available on Maven Central, hence just add the following dependency:
 <dependency>
     <groupId>net.soundvibe</groupId>
     <artifactId>paldb</artifactId>
-    <version>2.0.1</version>
+    <version>2.0.2</version>
 </dependency>
 ```
 Scala SBT
 ```
-libraryDependencies += "net.soundvibe" % "paldb" % "2.0.1"
+libraryDependencies += "net.soundvibe" % "paldb" % "2.0.2"
 ```
 
 
@@ -92,7 +103,7 @@ No, the final binary file is created when `StoreWriter.close()` is called.
 
 **Are duplicate keys allowed?**
 
-No, duplicate keys aren't allowed and an exception will be thrown.
+Duplicates are not allowed by default. But it could be changed in writer configuration if needed.
 
 **Do keys have an order when iterating?**
 
@@ -131,6 +142,7 @@ Write parameters:
 + `compression.enabled`, enable compression (boolean) [default: false]
 + `bloom.filter.enabled`, enable bloom filter (boolean) [default: false]
 + `bloom.filter.error.factor`, bloom filter error rate  (double) [default: 0.01]
++ `duplicates.enabled`, allow duplicates  (boolean) [default: false]
 
 Read parameters:
 
@@ -204,7 +216,6 @@ Machine-learning applications often have complex binary model files created in t
 Limitations
 -----------
 + PalDB is optimal in replacing the usage of large in-memory data storage but still use memory (off-heap, yet much less) to do its job. Disabling memory mapping and relying on seeks is possible but is not what PalDB has been optimized for.
-+ The size of the index is limited to 2GB. There's no limitation in the data size however.
 + PalDB reader is thread-safe but writer is not thread-safe at the moment so synchronization should be done externally if multi-threaded.
 
 Contributions

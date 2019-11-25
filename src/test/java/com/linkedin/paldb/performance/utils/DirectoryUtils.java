@@ -1,6 +1,7 @@
 package com.linkedin.paldb.performance.utils;
 
 import java.io.File;
+import java.util.Objects;
 
 
 public class DirectoryUtils {
@@ -9,11 +10,11 @@ public class DirectoryUtils {
     if (directory.exists()) {
       File[] files = directory.listFiles();
       if (null != files) {
-        for (int i = 0; i < files.length; i++) {
-          if (files[i].isDirectory()) {
-            deleteDirectory(files[i]);
+        for (final File file : files) {
+          if (file.isDirectory()) {
+            deleteDirectory(file);
           } else {
-            files[i].delete();
+            file.delete();
           }
         }
       }
@@ -23,7 +24,7 @@ public class DirectoryUtils {
 
   public static long folderSize(File directory) {
     long length = 0;
-    for (File file : directory.listFiles()) {
+    for (File file : Objects.requireNonNull(directory.listFiles())) {
       if (file == null) break;
       if (file.isFile()) {
         length += file.length();

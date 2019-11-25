@@ -110,8 +110,6 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
       }
     } catch (IOException ex) {
       throw new UncheckedIOException(ex);
-    } catch (ClassNotFoundException e) {
-      throw new RuntimeException(e);
     }
   }
 

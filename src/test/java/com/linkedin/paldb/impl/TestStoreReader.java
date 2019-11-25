@@ -25,22 +25,22 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.linkedin.paldb.utils.TestTempUtils.deleteDirectory;
+import static com.linkedin.paldb.utils.TempUtils.deleteDirectory;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TestStoreReader {
+class TestStoreReader {
 
   private Path tempDir;
   private File storeFile;
 
   @BeforeEach
-  public void setUp() throws IOException {
+  void setUp() throws IOException {
     tempDir = Files.createTempDirectory("tmp");
     storeFile = Files.createTempFile(tempDir, "paldb", ".dat").toFile();
   }
 
   @AfterEach
-  public void cleanUp() {
+  void cleanUp() {
     deleteDirectory(tempDir.toFile());
   }
 
@@ -61,28 +61,28 @@ public class TestStoreReader {
   }
 
   @Test
-  public void testFile() {
+  void testFile() {
     try (var reader = readerFor(true)) {
       assertEquals(reader.getFile(), storeFile);
     }
   }
 
   @Test
-  public void testSize() {
+  void testSize() {
     try (var reader = readerFor(true)) {
-      assertEquals(reader.size(), 1);
+      assertEquals(1, reader.size());
     }
   }
 
   @Test
-  public void testStoreClosed() {
+  void testStoreClosed() {
     var reader = readerFor(true);
     reader.close();
     assertThrows(IllegalStateException.class, () -> reader.get(0));
   }
 
   @Test
-  public void testGetBoolean() {
+  void testGetBoolean() {
     try (var reader = readerFor(true)) {
       assertTrue(reader.get(0));
       assertTrue(reader.get(0, false));
@@ -91,14 +91,14 @@ public class TestStoreReader {
   }
 
   @Test
-  public void testGetBooleanMissing() {
+  void testGetBooleanMissing() {
     try (var reader = readerFor(true)) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetByte() {
+  void testGetByte() {
     try (var reader = readerFor((byte)1)) {
       assertEquals(reader.get(0).byteValue(), (byte) 1);
       assertEquals(reader.get(0, (byte) 5).byteValue(), (byte) 1);
@@ -107,300 +107,300 @@ public class TestStoreReader {
   }
 
   @Test
-  public void testGetByteMissing() {
+  void testGetByteMissing() {
     try (var reader = readerFor((byte)1)) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetChar() {
+  void testGetChar() {
     try (var reader = readerFor('a')) {
-      assertEquals(reader.get(0).charValue(), 'a');
-      assertEquals(reader.get(0, 'b').charValue(), 'a');
-      assertEquals(reader.get(-1, 'b').charValue(), 'b');
+      assertEquals('a', reader.get(0).charValue());
+      assertEquals('a', reader.get(0, 'b').charValue());
+      assertEquals('b', reader.get(-1, 'b').charValue());
     }
   }
 
   @Test
-  public void testGetCharMissing() {
+  void testGetCharMissing() {
     try (var reader = readerFor('a')) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetDouble() {
+  void testGetDouble() {
     try (var reader = readerFor(1.0)) {
-      assertEquals(reader.get(0).doubleValue(), 1.0);
-      assertEquals(reader.get(0, 2.0).doubleValue(), 1.0);
-      assertEquals(reader.get(-1, 2.0).doubleValue(), 2.0);
+      assertEquals(1.0, reader.get(0).doubleValue());
+      assertEquals(1.0, reader.get(0, 2.0).doubleValue());
+      assertEquals(2.0, reader.get(-1, 2.0).doubleValue());
     }
   }
 
   @Test
-  public void testGetDoubleMissing() {
+  void testGetDoubleMissing() {
     try (var reader = readerFor(1.0)) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetFloat() {
+  void testGetFloat() {
     try (var reader = readerFor(1f)) {
-      assertEquals(reader.get(0).floatValue(), 1f);
-      assertEquals(reader.get(0, 2f).floatValue(), 1f);
-      assertEquals(reader.get(-1, 2f).floatValue(), 2f);
+      assertEquals(1f, reader.get(0).floatValue());
+      assertEquals(1f, reader.get(0, 2f).floatValue());
+      assertEquals(2f, reader.get(-1, 2f).floatValue());
     }
   }
 
   @Test
-  public void testGetFloatMissing() {
+  void testGetFloatMissing() {
     try (var reader = readerFor(1.0)) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetShort() {
+  void testGetShort() {
     try (var reader = readerFor((short) 1)) {
-      assertEquals(reader.get(0).shortValue(), (short) 1);
-      assertEquals(reader.get(0, (short) 2).shortValue(), (short) 1);
-      assertEquals(reader.get(-1, (short) 2).shortValue(), (short) 2);
+      assertEquals((short) 1, reader.get(0).shortValue());
+      assertEquals((short) 1, reader.get(0, (short) 2).shortValue());
+      assertEquals((short) 2, reader.get(-1, (short) 2).shortValue());
     }
   }
 
   @Test
-  public void testGetShortMissing() {
+  void testGetShortMissing() {
     try (var reader = readerFor((short) 1)) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetInt() {
+  void testGetInt() {
     try (var reader = readerFor(1)) {
-      assertEquals(reader.get(0).intValue(), 1);
-      assertEquals(reader.get(0, 2).intValue(), 1);
-      assertEquals(reader.get(-1, 2).intValue(), 2);
+      assertEquals(1, reader.get(0).intValue());
+      assertEquals(1, reader.get(0, 2).intValue());
+      assertEquals(2, reader.get(-1, 2).intValue());
     }
   }
 
   @Test
-  public void testGetIntMissing() {
+  void testGetIntMissing() {
     try (var reader = readerFor(1)) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetLong() {
+  void testGetLong() {
     try (var reader = readerFor(1L)) {
-      assertEquals(reader.get(0).longValue(), 1L);
-      assertEquals(reader.get(0, 2L).longValue(), 1L);
-      assertEquals(reader.get(-1, 2L).longValue(), 2L);
+      assertEquals(1L, reader.get(0).longValue());
+      assertEquals(1L, reader.get(0, 2L).longValue());
+      assertEquals(2L, reader.get(-1, 2L).longValue());
     }
   }
 
   @Test
-  public void testGetLongMissing() {
+  void testGetLongMissing() {
     try (var reader = readerFor(1L)) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetString() {
+  void testGetString() {
     try (var reader = readerFor("foo")) {
-      assertEquals(reader.get(0), "foo");
-      assertEquals(reader.get(0, "bar"), "foo");
-      assertEquals(reader.get(-1, "bar"), "bar");
+      assertEquals("foo", reader.get(0));
+      assertEquals("foo", reader.get(0, "bar"));
+      assertEquals("bar", reader.get(-1, "bar"));
     }
   }
 
   @Test
-  public void testGetStringMissing() {
+  void testGetStringMissing() {
     try (var reader = readerFor("foo")) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetBooleanArray() {
+  void testGetBooleanArray() {
     try (var reader = readerFor(new boolean[]{true})) {
-      assertArrayEquals(reader.get(0), new boolean[]{true});
-      assertArrayEquals(reader.get(0, new boolean[]{false}), new boolean[]{true});
-      assertArrayEquals(reader.get(-1, new boolean[]{false}), new boolean[]{false});
+      assertArrayEquals(new boolean[]{true}, reader.get(0));
+      assertArrayEquals(new boolean[]{true}, reader.get(0, new boolean[]{false}));
+      assertArrayEquals(new boolean[]{false}, reader.get(-1, new boolean[]{false}));
     }
   }
 
   @Test
-  public void testGetBooleanArrayMissing() {
+  void testGetBooleanArrayMissing() {
     try (var reader = readerFor(new boolean[]{true})) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetByteArray() {
+  void testGetByteArray() {
     try (var reader = readerFor(new byte[]{1})) {
-      assertArrayEquals(reader.get(0), new byte[]{1});
-      assertArrayEquals(reader.get(0, new byte[]{2}), new byte[]{1});
-      assertArrayEquals(reader.get(-1, new byte[]{2}), new byte[]{2});
+      assertArrayEquals(new byte[]{1}, reader.get(0));
+      assertArrayEquals(new byte[]{1}, reader.get(0, new byte[]{2}));
+      assertArrayEquals(new byte[]{2}, reader.get(-1, new byte[]{2}));
     }
   }
 
   @Test
-  public void testGetByteArrayMissing() {
+  void testGetByteArrayMissing() {
     try (var reader = readerFor(new byte[]{1})) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetCharArray() {
+  void testGetCharArray() {
     try (var reader = readerFor(new char[]{'a'})) {
-      assertArrayEquals(reader.get(0), new char[]{'a'});
-      assertArrayEquals(reader.get(0, new char[]{'b'}), new char[]{'a'});
-      assertArrayEquals(reader.get(-1, new char[]{'b'}), new char[]{'b'});
+      assertArrayEquals(new char[]{'a'}, reader.get(0));
+      assertArrayEquals(new char[]{'a'}, reader.get(0, new char[]{'b'}));
+      assertArrayEquals(new char[]{'b'}, reader.get(-1, new char[]{'b'}));
     }
   }
 
   @Test
-  public void testGetCharArrayMissing() {
+  void testGetCharArrayMissing() {
     try (var reader = readerFor(new char[]{'a'})) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetDoubleArray() {
+  void testGetDoubleArray() {
     try (var reader = readerFor(new double[]{1.0})) {
-      assertArrayEquals(reader.get(0), new double[]{1.0});
-      assertArrayEquals(reader.get(0, new double[]{2.0}), new double[]{1.0});
-      assertArrayEquals(reader.get(-1, new double[]{2.0}), new double[]{2.0});
+      assertArrayEquals(new double[]{1.0}, reader.get(0));
+      assertArrayEquals(new double[]{1.0}, reader.get(0, new double[]{2.0}));
+      assertArrayEquals(new double[]{2.0}, reader.get(-1, new double[]{2.0}));
     }
   }
 
   @Test
-  public void testGetDoubleArrayMissing() {
+  void testGetDoubleArrayMissing() {
     try (var reader = readerFor(new double[]{1.0})) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetFloatArray() {
+  void testGetFloatArray() {
     try (var reader = readerFor(new float[]{1f})) {
-      assertArrayEquals(reader.get(0), new float[]{1f});
-      assertArrayEquals(reader.get(0, new float[]{2f}), new float[]{1f});
-      assertArrayEquals(reader.get(-1, new float[]{2f}), new float[]{2f});
+      assertArrayEquals(new float[]{1f}, reader.get(0));
+      assertArrayEquals(new float[]{1f}, reader.get(0, new float[]{2f}));
+      assertArrayEquals(new float[]{2f}, reader.get(-1, new float[]{2f}));
     }
   }
 
   @Test
-  public void testGetFloatArrayMissing() {
+  void testGetFloatArrayMissing() {
     try (var reader = readerFor(new float[]{1f})) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetShortArray() {
+  void testGetShortArray() {
     try (var reader = readerFor(new short[]{1})) {
-      assertArrayEquals(reader.get(0), new short[]{1});
-      assertArrayEquals(reader.get(0, new short[]{2}), new short[]{1});
-      assertArrayEquals(reader.get(-1, new short[]{2}), new short[]{2});
+      assertArrayEquals(new short[]{1}, reader.get(0));
+      assertArrayEquals(new short[]{1}, reader.get(0, new short[]{2}));
+      assertArrayEquals(new short[]{2}, reader.get(-1, new short[]{2}));
     }
   }
 
   @Test
-  public void testGetShortArrayMissing() {
+  void testGetShortArrayMissing() {
     try (var reader = readerFor(new short[]{1})) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetIntArray() {
+  void testGetIntArray() {
     try (var reader = readerFor(new int[]{1})) {
-      assertArrayEquals(reader.get(0), new int[]{1});
-      assertArrayEquals(reader.get(0, new int[]{2}), new int[]{1});
-      assertArrayEquals(reader.get(-1, new int[]{2}), new int[]{2});
+      assertArrayEquals(new int[]{1}, reader.get(0));
+      assertArrayEquals(new int[]{1}, reader.get(0, new int[]{2}));
+      assertArrayEquals(new int[]{2}, reader.get(-1, new int[]{2}));
     }
   }
 
   @Test
-  public void testGetIntArrayMissing() {
+  void testGetIntArrayMissing() {
     try (var reader = readerFor(new int[]{1})) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetLongArray() {
+  void testGetLongArray() {
     try (var reader = readerFor(new long[]{1L})) {
-      assertArrayEquals(reader.get(0), new long[]{1L});
-      assertArrayEquals(reader.get(0, new long[]{2L}), new long[]{1L});
-      assertArrayEquals(reader.get(-1, new long[]{2L}), new long[]{2L});
+      assertArrayEquals(new long[]{1L}, reader.get(0));
+      assertArrayEquals(new long[]{1L}, reader.get(0, new long[]{2L}));
+      assertArrayEquals(new long[]{2L}, reader.get(-1, new long[]{2L}));
     }
   }
 
   @Test
-  public void testGetLongArrayMissing() {
+  void testGetLongArrayMissing() {
     try (var reader = readerFor(new long[]{1L})) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetStringArray() {
+  void testGetStringArray() {
     try (var reader = readerFor(new String[]{"foo"})) {
-      assertArrayEquals(reader.get(0), new String[]{"foo"});
-      assertArrayEquals(reader.get(0, new String[]{"bar"}), new String[]{"foo"});
-      assertArrayEquals(reader.get(-1, new String[]{"bar"}), new String[]{"bar"});
+      assertArrayEquals(new String[]{"foo"}, reader.get(0));
+      assertArrayEquals(new String[]{"foo"}, reader.get(0, new String[]{"bar"}));
+      assertArrayEquals(new String[]{"bar"}, reader.get(-1, new String[]{"bar"}));
     }
   }
 
   @Test
-  public void testGetStringArrayMissing() {
+  void testGetStringArrayMissing() {
     try (var reader = readerFor(new String[]{"foo"})) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetMissing() {
+  void testGetMissing() {
     try (var reader = readerFor("foo")) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetArray() {
+  void testGetArray() {
     try (var reader = readerFor(new Object[]{"foo"})) {
-      assertArrayEquals(reader.get(0), new Object[]{"foo"});
-      assertArrayEquals(reader.get(0, new Object[]{"bar"}), new Object[]{"foo"});
-      assertArrayEquals(reader.get(-1, new Object[]{"bar"}), new Object[]{"bar"});
+      assertArrayEquals(new Object[]{"foo"}, reader.get(0));
+      assertArrayEquals(new Object[]{"foo"}, reader.get(0, new Object[]{"bar"}));
+      assertArrayEquals(new Object[]{"bar"}, reader.get(-1, new Object[]{"bar"}));
     }
   }
 
   @Test
-  public void testGetArrayMissing() {
+  void testGetArrayMissing() {
     try (var reader = readerFor(new Object[]{"foo"})) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
-  public void testGetPoint() {
+  void testGetPoint() {
     try (var reader = readerFor(new Point(4, 56))) {
-      assertEquals(reader.get(0), new Point(4, 56));
+      assertEquals(new Point(4, 56), reader.get(0));
     }
   }
 
   @Test
-  public void testIterator() {
+  void testIterator() {
     var values = List.of("foo", "bar");
     try (var reader = readerForMany(values.get(0), values.get(1))) {
       var iter = reader.iterable();
@@ -417,18 +417,18 @@ public class TestStoreReader {
   }
 
   @Test
-  public void testIterate() {
+  void testIterate() {
     var values = List.of("foo", "bar");
     try (var reader = readerForMany(values.get(0), values.get(1))) {
       for (var entry: reader) {
         var val = values.get(entry.getKey());
-        assertEquals(entry.getValue(), val);
+        assertEquals(val, entry.getValue());
       }
     }
   }
 
   @Test
-  public void testKeyIterator() {
+  void testKeyIterator() {
     var values = List.of("foo", "bar");
     try (var reader = readerForMany(values.get(0), values.get(1))) {
       var iter = reader.keys();
@@ -444,12 +444,12 @@ public class TestStoreReader {
         actual.add(k);
         expected.add(i);
       }
-      assertEquals(actual, expected);
+      assertEquals(expected, actual);
     }
   }
 
   @Test
-  public void testMultiThreadRead() throws InterruptedException {
+  void testMultiThreadRead() throws InterruptedException {
     int threadCount = 50;
     final CountDownLatch latch = new CountDownLatch(threadCount);
     final AtomicBoolean success = new AtomicBoolean(true);
@@ -460,8 +460,8 @@ public class TestStoreReader {
           try {
             for(int c = 0; c < 100000; c++) {
               if(!success.get())break;
-              assertEquals(reader.get(1), "any");
-              assertEquals(reader.get(0), "foobar");
+              assertEquals("any", reader.get(1));
+              assertEquals("foobar", reader.get(0));
             }
           } catch (Throwable error){
             error.printStackTrace();
@@ -497,6 +497,5 @@ public class TestStoreReader {
       output.writeInt(input.x);
       output.writeInt(input.y);
     }
-
   }
 }

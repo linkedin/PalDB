@@ -17,42 +17,30 @@ package com.linkedin.paldb.utils;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
+import java.nio.file.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 
-public class TestTempUtils {
-
-  public static boolean deleteDirectory(File directoryToBeDeleted) {
-    if (directoryToBeDeleted.isDirectory()) {
-      File[] allContents = directoryToBeDeleted.listFiles();
-      if (allContents != null) {
-        for (File file : allContents) {
-          deleteDirectory(file);
-        }
-      }
-    }
-    return directoryToBeDeleted.delete();
-  }
+class TestTempUtils {
 
   @Test
-  public void testTempDir() {
+  void testTempDir() {
     File file = TempUtils.createTempDir("foo");
     assertTrue(file.exists());
     assertTrue(file.isDirectory());
     assertTrue(file.getName().contains("foo"));
-    file.delete();
+    assertTrue(file.delete());
   }
 
   @Test
-  public void testCopyIntoTempFile()
-      throws IOException {
+  void testCopyIntoTempFile() throws IOException {
     ByteArrayInputStream bis = new ByteArrayInputStream("foo".getBytes());
     File file = TempUtils.copyIntoTempFile("bar", bis);
     assertTrue(file.exists());
     assertTrue(file.isFile());
     assertTrue(file.getName().contains("bar"));
-    assertEquals(bis.available(), 0);
+    assertEquals(0, bis.available());
 
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     FileInputStream fis = new FileInputStream(file);
@@ -63,7 +51,21 @@ public class TestTempUtils {
     }
     fis.close();
     bos.close();
-    assertArrayEquals(bos.toByteArray(), "foo".getBytes());
+    assertArrayEquals("foo".getBytes(), bos.toByteArray());
+  }
+
+  @Test
+  void should_delete_files_and_dir() throws IOException {
+    var testDir = Files.createTempDirectory("testDir");
+
+    for (int i = 0; i < 10; i++) {
+      Files.createTempFile(testDir, "tmp1", ".tmp");
+    }
+
+    assertEquals(10, Files.list(testDir).count());
+
+    TempUtils.deleteDirectory(testDir.toFile());
+    assertFalse(Files.exists(testDir ));
   }
 }
 
