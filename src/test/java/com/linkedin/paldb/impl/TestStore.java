@@ -535,6 +535,39 @@ class TestStore {
     }
   }
 
+  @Test
+  void should_not_allow_put_null_keys() {
+    try (StoreWriter<String,byte[]> writer = PalDB.createWriter(storeFile)) {
+      assertThrows(NullPointerException.class, () -> writer.put((String)null, EMPTY_VALUE));
+      assertThrows(NullPointerException.class, () -> writer.putAll((String[])null, new byte[][]{}));
+    }
+  }
+
+  @Test
+  void should_not_allow_getting_null_keys() {
+    try (StoreWriter<String,byte[]> writer = PalDB.createWriter(storeFile)) {
+      writer.put("any value", EMPTY_VALUE);
+    }
+
+    try (StoreReader<String,byte[]> reader = PalDB.createReader(storeFile)) {
+      assertThrows(NullPointerException.class, () -> reader.get(null));
+    }
+  }
+
+  @Test
+  void should_not_find_when_bloom_filter_enabled() {
+    var config = PalDBConfigBuilder.create()
+            .withEnableBloomFilter(true).build();
+    try (StoreWriter<String,byte[]> writer = PalDB.createWriter(storeFile, config)) {
+      writer.put("abc", EMPTY_VALUE);
+    }
+
+    try (StoreReader<String,byte[]> reader = PalDB.createReader(storeFile, config)) {
+      assertNull(reader.get("foo"));
+      assertArrayEquals(EMPTY_VALUE, reader.get("abc"));
+    }
+  }
+
   private static final byte[] EMPTY_VALUE = new byte[0];
 
   @Test

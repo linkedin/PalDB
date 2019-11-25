@@ -361,7 +361,6 @@ public class StorageWriter {
         } finally {
           Arrays.fill(indexBuffers, null);
           indexBuffers = null;
-          System.gc();
           if (tempIndexFile.delete()) {
             log.info("Temporary index file {} has been deleted", tempIndexFile.getName());
           }

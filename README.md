@@ -13,6 +13,17 @@ PalDB is an embeddable persistent key-value store with very fast read performanc
 
 PalDB's JAR is only 65K and has a single dependency (snappy, which isn't mandatory). It's also very easy to use with just a few configuration parameters.
 
+**This is separate evolution of original PalDB.**
+
+Improvements from PalDB 1.0.2
+-------------------
+- StoreReader is now fully thread-safe without any performance decrease.
+- StoreReader and StoreWriter can be used with generics (StoreReader<K<V> and StoreWriter<K,V>)
+- Typesafe ``PalDBConfigBuilder`` for easier configuration
+- There are no limits on how many keys you can store
+- Duplicates could be optionally allowed
+- Bloom filters could be enabled for even better read performance in some cases
+
 Performance
 -----------
 
