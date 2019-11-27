@@ -15,10 +15,12 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
+import com.linkedin.paldb.api.StoreRW;
 import com.linkedin.paldb.utils.TempUtils;
 import org.slf4j.*;
 
 import java.io.*;
+import java.nio.file.Files;
 
 
 /**
@@ -79,5 +81,18 @@ public final class StoreImpl {
     }
     log.info("Initialize writer from stream");
     return new WriterImpl<>(config, stream);
+  }
+
+  public static <V, K> StoreRW<K, V> createRW(File file, Configuration config) {
+    if (file == null || config == null) {
+      throw new NullPointerException();
+    }
+    log.info("Initialize RW from file {}", file.getName());
+    try {
+        Files.createDirectories(file.isDirectory() ? file.toPath() : file.toPath().getParent());
+        return new StoreRWImpl<>(config, file);
+    } catch (IOException e) {
+        throw new UncheckedIOException(e);
+    }
   }
 }

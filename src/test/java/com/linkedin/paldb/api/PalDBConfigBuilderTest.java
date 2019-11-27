@@ -16,6 +16,7 @@ class PalDBConfigBuilderTest {
                 .withEnableBloomFilter(true)
                 .withBloomFilterErrorFactor(0.01)
                 .withEnableDuplicates(true)
+                .withWriteBufferElements(100)
                 .build();
 
         assertEquals(500, config.getInt(Configuration.MMAP_SEGMENT_SIZE));
@@ -25,5 +26,6 @@ class PalDBConfigBuilderTest {
         assertTrue(config.getBoolean(Configuration.BLOOM_FILTER_ENABLED));
         assertEquals(0.01, config.getDouble(Configuration.BLOOM_FILTER_ERROR_FACTOR));
         assertTrue(config.getBoolean(Configuration.ALLOW_DUPLICATES));
+        assertEquals(100, config.getInt(Configuration.WRITE_BUFFER_SIZE));
     }
 }

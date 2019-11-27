@@ -15,6 +15,7 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
+import com.linkedin.paldb.api.errors.StoreClosed;
 import org.junit.jupiter.api.*;
 
 import java.awt.*;
@@ -78,7 +79,7 @@ class TestStoreReader {
   void testStoreClosed() {
     var reader = readerFor(true);
     reader.close();
-    assertThrows(IllegalStateException.class, () -> reader.get(0));
+    assertThrows(StoreClosed.class, () -> reader.get(0));
   }
 
   @Test

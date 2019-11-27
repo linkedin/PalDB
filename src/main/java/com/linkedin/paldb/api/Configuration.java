@@ -37,7 +37,7 @@ import java.util.*;
  * -Dpaldb.mmap.data.enabled=false). All property names should be prefixed
  * with <em>paldb</em>.
  */
-public class Configuration {
+public class Configuration implements Iterable<Map.Entry<String,String>> {
 
   // Buffer segment size
   public static final String MMAP_SEGMENT_SIZE = "mmap.segment.size";
@@ -53,6 +53,8 @@ public class Configuration {
   public static final String BLOOM_FILTER_ERROR_FACTOR = "bloom.filter.error.factor";
   //Enable duplicates (keep last key)
   public static final String ALLOW_DUPLICATES = "duplicates.enabled";
+  //Number of elements to hold in write buffer before compaction occurs
+  public static final String WRITE_BUFFER_SIZE = "write.buffer.size";
 
   // Property map
   private final Map<String, String> properties = new HashMap<>();
@@ -75,6 +77,7 @@ public class Configuration {
     putWithSystemPropertyDefault(BLOOM_FILTER_ENABLED, "false");
     putWithSystemPropertyDefault(BLOOM_FILTER_ERROR_FACTOR, "0.01");
     putWithSystemPropertyDefault(ALLOW_DUPLICATES, "false");
+    putWithSystemPropertyDefault(WRITE_BUFFER_SIZE, "100000");
 
     //Serializers
     serializers = new Serializers();
@@ -87,6 +90,12 @@ public class Configuration {
    */
   Configuration(Configuration configuration) {
     readOnly = true;
+    properties.putAll(configuration.properties);
+    serializers = configuration.serializers;
+  }
+
+  Configuration(Configuration configuration, boolean readOnly) {
+    this.readOnly = readOnly;
     properties.putAll(configuration.properties);
     serializers = configuration.serializers;
   }
@@ -427,5 +436,19 @@ public class Configuration {
       throw new UnsupportedOperationException(
           "The configuration values can't be set once the store reader/writer have been initialized");
     }
+  }
+
+  @Override
+  public String toString() {
+    return "Configuration{" +
+            "properties=" + properties +
+            ", readOnly=" + readOnly +
+            ", serializers=" + serializers +
+            '}';
+  }
+
+  @Override
+  public Iterator<Map.Entry<String, String>> iterator() {
+    return properties.entrySet().iterator();
   }
 }

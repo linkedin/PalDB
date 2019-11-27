@@ -589,7 +589,7 @@ final class StorageSerialization {
   }
 
   private static void serializeShortArray(final DataOutput out, final short[] val, boolean compress) throws IOException {
-    if (compress && val.length > 250) {
+    if (compress) {
       out.write(SHORT_ARRAY_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);
@@ -604,7 +604,7 @@ final class StorageSerialization {
   }
 
   private static void serializeDoubleArray(final DataOutput out, final double[] val, boolean compress) throws IOException {
-    if (compress && val.length > 250) {
+    if (compress) {
       out.write(DOUBLE_ARRAY_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);
@@ -619,7 +619,7 @@ final class StorageSerialization {
   }
 
   private static void serializeFloatArray(final DataOutput out, final float[] val, boolean compress) throws IOException {
-    if (compress && val.length > 250) {
+    if (compress) {
       out.write(FLOAT_ARRAY_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);
@@ -634,7 +634,7 @@ final class StorageSerialization {
   }
 
   private static void serializeCharArray(final DataOutput out, final char[] val, boolean compress) throws IOException {
-    if (compress && val.length > 250) {
+    if (compress) {
       out.write(CHAR_ARRAY_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);
@@ -668,7 +668,7 @@ final class StorageSerialization {
       for (int i : val) {
         out.writeShort(i);
       }
-    } else if (compress && val.length > 250) {
+    } else if (compress) {
       out.write(ARRAY_INT_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);
@@ -717,7 +717,7 @@ final class StorageSerialization {
       for (long l : val) {
         out.writeShort((short) l);
       }
-    } else if (compress && val.length > 250) {
+    } else if (compress) {
       out.write(ARRAY_LONG_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);
@@ -753,7 +753,7 @@ final class StorageSerialization {
   }
 
   private static void serializeByteArray(final DataOutput out, final byte[] val, boolean compress) throws IOException {
-    if (compress && val.length > 250) {
+    if (compress) {
       out.write(BYTE_ARRAY_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);

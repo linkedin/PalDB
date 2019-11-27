@@ -8,8 +8,15 @@ public final class PalDBConfigBuilder {
         this.palDbConfiguration = new Configuration();
     }
 
+    private PalDBConfigBuilder(Configuration configuration) {
+        this.palDbConfiguration = new Configuration(configuration, false);
+    }
+
     public static PalDBConfigBuilder create() {
         return new PalDBConfigBuilder();
+    }
+    public static PalDBConfigBuilder create(Configuration fromConfig) {
+        return new PalDBConfigBuilder(fromConfig);
     }
 
     /**
@@ -93,6 +100,18 @@ public final class PalDBConfigBuilder {
      */
     public PalDBConfigBuilder withBloomFilterErrorFactor(double errorFactor) {
         palDbConfiguration.set(Configuration.BLOOM_FILTER_ERROR_FACTOR, String.valueOf(errorFactor));
+        return this;
+    }
+
+    /**
+     * <i>PalDB configuration property.</i>
+     * <p>
+     * <code>write.buffer.size</code> - Write cache lements size, [default: 100_000]
+     * @param elements value, e.g. 100_000
+     * @return this {@code CachemeerConfigBuilder} instance (for chaining)
+     */
+    public PalDBConfigBuilder withWriteBufferElements(int elements) {
+        palDbConfiguration.set(Configuration.WRITE_BUFFER_SIZE, String.valueOf(elements));
         return this;
     }
 

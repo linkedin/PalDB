@@ -15,6 +15,7 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
+import com.linkedin.paldb.api.errors.StoreClosed;
 import com.linkedin.paldb.utils.DataInputOutput;
 import org.slf4j.*;
 
@@ -38,7 +39,7 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
   // File
   private final File file;
   // Opened?
-  private boolean opened;
+  private volatile boolean opened;
 
   /**
    * Private constructor.
@@ -63,13 +64,12 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
 
   @Override
   public void close() {
-    checkOpen();
+    if (!opened) return;
     try {
-      log.info("Closing reader storage");
       storage.close();
       opened = false;
-    } catch (IOException ex) {
-      throw new UncheckedIOException(ex);
+    } catch (IOException e) {
+      log.error("Error when closing reader storage", e);
     }
   }
 
@@ -137,7 +137,7 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
    */
   private void checkOpen() {
     if (!opened) {
-      throw new IllegalStateException("The store is closed");
+      throw new StoreClosed("The store is closed");
     }
   }
 }

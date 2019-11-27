@@ -20,10 +20,10 @@ import com.linkedin.paldb.utils.*;
 import org.slf4j.*;
 
 import java.io.*;
-import java.nio.*;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.MalformedInputException;
-import java.text.*;
+import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.*;
 
@@ -91,8 +91,8 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     int bloomFilterBitSize = 0;
     int bloomFilterHashFunctions = 0;
 
-        try (FileInputStream inputStream = new FileInputStream(file);
-             DataInputStream dataInputStream = new DataInputStream(new BufferedInputStream(inputStream))) {
+    try (FileInputStream inputStream = new FileInputStream(file);
+         DataInputStream dataInputStream = new DataInputStream(new BufferedInputStream(inputStream))) {
       int ignoredBytes = -2;
 
       //Byte mark
@@ -277,9 +277,10 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   public void close() throws IOException {
     channel.close();
     mappedFile.close();
+    unmap(indexBuffers);
+    unmap(dataBuffers);
     indexBuffers = null;
     dataBuffers = null;
-    System.gc(); //need to call gc because otherwise memory mapped file buffers won't close. See: https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4715154
   }
 
   public long getKeyCount() {

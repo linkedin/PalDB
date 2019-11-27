@@ -119,6 +119,35 @@ public interface PalDB {
   }
 
   /**
+     * Creates a store reader-writer with the specified <code>file</code> as destination with a default configuration.
+     * <p>
+     * The parent folder is created if missing.
+     *
+     * @param file location of the output file
+     * @param <K> key type
+     * @param <V> value type
+     * @return a store reader-writer
+     */
+  static <K,V> StoreRW<K,V> createRW(File file) {
+        return StoreImpl.createRW(file, newConfiguration());
+    }
+
+  /**
+     * Creates a store reader-writer with the specified <code>file</code> as destination.
+     * <p>
+     * The parent folder is created if missing.
+     *
+     * @param file location of the output file
+     * @param config configuration
+     * @param <K> key type
+     * @param <V> value type
+     * @return a store reader-writer
+     */
+  static <K,V> StoreRW<K,V> createRW(File file, Configuration config) {
+    return StoreImpl.createRW(file, config);
+  }
+
+  /**
    * Creates new configuration with default values.
    *
    * @return new configuration

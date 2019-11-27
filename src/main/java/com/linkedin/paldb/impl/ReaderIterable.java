@@ -128,6 +128,14 @@ public final class ReaderIterable<K, V> implements Iterable<Map.Entry<K, V>> {
       public V setValue(V value) {
         throw new UnsupportedOperationException("Not supported.");
       }
+
+        @Override
+        public String toString() {
+            return "FastEntry{" +
+                    "key=" + key +
+                    ", val=" + val +
+                    '}';
+        }
     }
   }
 }
