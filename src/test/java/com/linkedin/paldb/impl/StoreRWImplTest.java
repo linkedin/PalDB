@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.*;
 import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -214,10 +214,12 @@ class StoreRWImplTest {
                 store.put(i + values.size(), valuesAfterInit.get(i));
             }
 
+            var counter = new AtomicInteger(100);
+
             for(int i = 0; i < threadCount; i++) {
                 new Thread(() -> {
                     try {
-                        var id = (int) Thread.currentThread().getId();
+                        var id = counter.getAndIncrement();
                         var name = Thread.currentThread().getName();
                         store.put(id, name);
                         for(int c = 0; c < 100000; c++) {
