@@ -7,6 +7,7 @@ import org.slf4j.*;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.StampedLock;
 
 public class StoreRWImpl<K,V> implements StoreRW<K,V> {
@@ -28,7 +29,7 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
         this.file = file;
         this.reader = null;
         this.maxBufferSize = config.getInt(Configuration.WRITE_BUFFER_SIZE);
-        this.buffer = new HashMap<>(maxBufferSize);
+        this.buffer = new ConcurrentHashMap<>(maxBufferSize);
     }
 
     @Override
@@ -129,6 +130,7 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
     public synchronized void put(K key, V value) {
         checkOpen();
         buffer.put(key, value);
+
         if (needsCompaction()) {
             compact();
         }
@@ -163,28 +165,27 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
     }
 
     private void compact() {
+        var stamp = lock.writeLock();
         try {
             log.info("Compacting {}, size: {}", file, file.length());
             var tempFile = Files.createTempFile("tmp_", ".paldb");
             try (var writer = new WriterImpl<>(config, tempFile.toFile())) {
-                for (var keyValue: this) {
+                for (var keyValue : this) {
                     writer.put(keyValue.getKey(), keyValue.getValue());
                 }
             }
-            var stamp = lock.writeLock();
-            try {
-                reader.close();
-                log.info("Closed reader");
-                Files.move(tempFile, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                log.info("Moved {} file to {}", tempFile, file);
-                reader = new ReaderImpl<>(config, file);
-                buffer.clear();
-                log.info("Compaction completed for {} with size of {}", file, file.length());
-            } finally {
-                lock.unlockWrite(stamp);
-            }
+
+            reader.close();
+            log.info("Closed reader");
+            Files.move(tempFile, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            log.info("Moved {} file to {}", tempFile, file);
+            reader = new ReaderImpl<>(config, file);
+            buffer.clear();
+            log.info("Compaction completed for {} with size of {}", file, file.length());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        } finally {
+            lock.unlockWrite(stamp);
         }
     }
 

@@ -191,9 +191,12 @@ class StoreRWImplTest {
         }
     }
 
-    @Test
+    private static final AtomicInteger ix = new AtomicInteger(0);
+
+   // @Test
+    @RepeatedTest(10)
     void should_read_and_put_using_50_threads(@TempDir Path tempDir) throws InterruptedException {
-        var file = tempDir.resolve("testMultiThread.paldb");
+        var file = tempDir.resolve("testMultiThread" + ix.getAndIncrement() + ".paldb");
         int threadCount = 50;
         final CountDownLatch latch = new CountDownLatch(threadCount);
         final AtomicBoolean success = new AtomicBoolean(true);
@@ -220,7 +223,7 @@ class StoreRWImplTest {
                 new Thread(() -> {
                     try {
                         var id = counter.getAndIncrement();
-                        var name = Thread.currentThread().getName();
+                        var name = "random" + id;
                         store.put(id, name);
                         for(int c = 0; c < 100000; c++) {
                             if(!success.get())break;
@@ -232,7 +235,6 @@ class StoreRWImplTest {
                             assertEquals("any value 2", store.get(5));
                             assertEquals(name, store.get(id));
                         }
-                        System.out.println("Completed thread: " + Thread.currentThread().toString());
                     } catch (Throwable error){
                         error.printStackTrace();
                         success.set(false);
