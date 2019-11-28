@@ -194,7 +194,7 @@ class StoreRWImplTest {
     private static final AtomicInteger ix = new AtomicInteger(0);
 
    // @Test
-    @RepeatedTest(10)
+    @RepeatedTest(5)
     void should_read_and_put_using_50_threads(@TempDir Path tempDir) throws InterruptedException {
         var file = tempDir.resolve("testMultiThread" + ix.getAndIncrement() + ".paldb");
         int threadCount = 50;
