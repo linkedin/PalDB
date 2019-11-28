@@ -5,12 +5,12 @@ import com.linkedin.paldb.api.errors.StoreClosed;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.*;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
-import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -18,11 +18,15 @@ import static org.junit.jupiter.api.Assertions.*;
 class StoreRWImplTest {
 
     @Test
-    void should_test_basic_operations(@TempDir Path tempDir) throws IOException {
+    void should_test_basic_operations(@TempDir Path tempDir) throws IOException, InterruptedException {
         var file = tempDir.resolve("test.paldb");
-        try (var sut = PalDB.<String,String>createRW(file.toFile(),
-                PalDBConfigBuilder.create()
+
+        var countDownLatch = new CountDownLatch(1);
+
+        try (var sut = PalDB.createRW(file.toFile(),
+                PalDBConfigBuilder.<String,String>create()
                         .withWriteBufferElements(2)
+                        .withOnCompactedListener((lastEntry, storeFile) -> countDownLatch.countDown())
                         .build())) {
 
             try (var init = sut.init()) {
@@ -43,6 +47,7 @@ class StoreRWImplTest {
             assertEquals("time", sut.get("third"));
             assertEquals("try", sut.get("fourth"));
 
+            countDownLatch.await(10, TimeUnit.SECONDS);
             assertTrue(Files.size(file) > size);
 
             assertNull(sut.get("non-existing-key"));
@@ -50,19 +55,30 @@ class StoreRWImplTest {
             sut.remove("any");
             assertNull(sut.get("any"));
 
-            sut.forEach(System.out::println);
 
-            assertEquals(3, StreamSupport.stream(sut.spliterator(), false).count());
-            assertEquals(3, StreamSupport.stream(sut.keys().spliterator(), false).count());
+            try (var stream = sut.stream()) {
+                stream.forEach(System.out::println);
+            }
+
+            try (var stream = sut.stream()) {
+                assertEquals(3, stream.count());
+            }
+
+            try (var keys = sut.streamKeys()) {
+                assertEquals(3, keys.count());
+            }
         }
     }
 
     @Test
-    void should_put_trigger_compaction(@TempDir Path tempDir) throws IOException {
+    void should_put_trigger_compaction_in_background(@TempDir Path tempDir) throws IOException, InterruptedException {
         var file = tempDir.resolve("test.paldb");
-        try (var sut = PalDB.<String,String>createRW(file.toFile(),
-                PalDBConfigBuilder.create()
+        var countDownLatch = new CountDownLatch(1);
+
+        try (var sut = PalDB.createRW(file.toFile(),
+                PalDBConfigBuilder.<String,String>create()
                         .withWriteBufferElements(1)
+                        .withOnCompactedListener((lastEntry, storeFile) -> countDownLatch.countDown())
                         .build())) {
 
             try (var init = sut.init()) {
@@ -71,16 +87,21 @@ class StoreRWImplTest {
             }
             var size = Files.size(file);
             sut.put("new", "element");
+
+            countDownLatch.await(10, TimeUnit.SECONDS);
+
             assertTrue(Files.size(file) > size);
         }
     }
 
     @Test
-    void should_remove_trigger_compaction(@TempDir Path tempDir) throws IOException {
+    void should_remove_trigger_compaction_in_background(@TempDir Path tempDir) throws IOException, InterruptedException {
         var file = tempDir.resolve("test.paldb");
-        try (var sut = PalDB.<String,String>createRW(file.toFile(),
-                PalDBConfigBuilder.create()
+        var countDownLatch = new CountDownLatch(1);
+        try (var sut = PalDB.createRW(file.toFile(),
+                PalDBConfigBuilder.<String,String>create()
                         .withWriteBufferElements(1)
+                        .withOnCompactedListener((lastEntry, storeFile) -> countDownLatch.countDown())
                         .build())) {
 
             try (var init = sut.init()) {
@@ -89,9 +110,44 @@ class StoreRWImplTest {
             }
             var size = Files.size(file);
             sut.remove("any");
+
+            countDownLatch.await(10, TimeUnit.SECONDS);
+
             assertTrue(Files.size(file) < size);
         }
     }
+
+    @Test
+    void should_continue_working_even_when_compaction_listener_throws(@TempDir Path tempDir) throws IOException {
+        var file = tempDir.resolve("test.paldb");
+        try (var sut = PalDB.createRW(file.toFile(),
+                PalDBConfigBuilder.<String,String>create()
+                        .withOnCompactedListener((lastEntry, storeFile) -> {
+                            throw new RuntimeException("Error");
+                        })
+                        .build())) {
+
+            try (var init = sut.init()) {
+                init.put("any", "value");
+                init.put("other", "value2");
+            }
+            var size = Files.size(file);
+            sut.remove("any");
+            sut.flush();
+
+            assertTrue(Files.size(file) < size);
+
+            size = Files.size(file);
+            sut.put("new", "demoValue");
+            assertEquals("demoValue", sut.get("new"));
+
+            var lastEntry = sut.compact().join();
+            assertTrue(Files.size(file) > size);
+            assertEquals("new", lastEntry.getKey());
+            assertEquals("demoValue", lastEntry.getValue());
+        }
+    }
+
 
     @Test
     void should_throw_when_put_without_init(@TempDir Path tempDir) {
@@ -121,7 +177,11 @@ class StoreRWImplTest {
     void should_throw_when_iterating_without_init(@TempDir Path tempDir) {
         var file = tempDir.resolve("test.paldb");
         try (var sut = PalDB.<String,String>createRW(file.toFile())) {
-            assertThrows(StoreClosed.class, () -> sut.forEach(System.out::println));
+            assertThrows(StoreClosed.class, () -> {
+                try (var stream = sut.stream()) {
+                    stream.forEach(System.out::println);
+                }
+            });
         }
     }
 
@@ -149,6 +209,23 @@ class StoreRWImplTest {
     }
 
     @Test
+    void should_trigger_compaction(@TempDir Path tempDir) throws IOException {
+        var file = tempDir.resolve("test.paldb");
+        try (var sut = PalDB.<String,String>createRW(file.toFile())) {
+            try (var init = sut.init()) {
+                init.put("any", "value");
+                init.put("other", "value2");
+            }
+            var sizeBefore = Files.size(file);
+            sut.put("foo", "bar");
+            var lastEntry = sut.compact().join();
+            assertTrue(Files.size(file) > sizeBefore);
+            assertEquals("foo", lastEntry.getKey());
+            assertEquals("bar", lastEntry.getValue());
+        }
+    }
+
+    @Test
     void should_return_size_when_added_5_entries(@TempDir Path tempDir) {
         var file = tempDir.resolve("test.paldb");
         try (var sut = PalDB.<String,String>createRW(file.toFile())) {
@@ -165,9 +242,7 @@ class StoreRWImplTest {
     void should_return_size_zero_when_no_entries_added(@TempDir Path tempDir) {
         var file = tempDir.resolve("test.paldb");
         try (var sut = PalDB.<String,String>createRW(file.toFile())) {
-            try (var init = sut.init()) {
-                //
-            }
+            sut.open();
             assertEquals(0, sut.size());
         }
     }
@@ -183,17 +258,97 @@ class StoreRWImplTest {
     @Test
     void should_return_config(@TempDir Path tempDir) {
         var file = tempDir.resolve("test.paldb");
-        var configuration = PalDBConfigBuilder.create()
+        var configuration = PalDBConfigBuilder.<String,String>create()
                 .withEnableDuplicates(true) //rw sets this to true if not already set
                 .build();
-        try (var sut = PalDB.<String,String>createRW(file.toFile(), configuration)) {
+        try (var sut = PalDB.createRW(file.toFile(), configuration)) {
             assertEquals(configuration, sut.getConfiguration());
         }
+    }
+
+    @Test
+    void should_load_old_data_file(@TempDir Path tempDir) throws IOException {
+        var file = tempDir.resolve("test.paldb");
+        var configuration = PalDBConfigBuilder.<String,String>create()
+                .withEnableDuplicates(true) //rw sets this to true if not already set
+                .build();
+        try (var sut = PalDB.createRW(file.toFile(), configuration)) {
+            try (var init = sut.init()) {
+                init.put("first", "value");
+                init.put("second", "value2");
+            }
+        }
+        assertTrue(Files.exists(file));
+        assertTrue(Files.size(file) > 0);
+
+        try (var sut = PalDB.createRW(file.toFile(), configuration)) {
+            try (var init = sut.init()) {
+                init.put("third", "value3");
+                init.put("fourth", "value4");
+            }
+            assertEquals(4, sut.size());
+            assertEquals("value", sut.get("first"));
+            assertEquals("value2", sut.get("second"));
+            assertEquals("value3", sut.get("third"));
+            assertEquals("value4", sut.get("fourth"));
+        }
+    }
+
+    @Test
+    void should_invoke_on_compacted_listener_and_copy_store_file(@TempDir Path tempDir) throws IOException {
+        var file = tempDir.resolve("test.paldb");
+        var destStore = tempDir.resolve("any.paldb");
+        var configuration = PalDBConfigBuilder.<String,String>create()
+                .withOnCompactedListener((lastEntry, storeFile) -> {
+                    try {
+                        assertEquals("any", lastEntry.getKey());
+                        assertEquals("new value", lastEntry.getValue());
+                        var dest = storeFile.toPath().getParent().resolve(lastEntry.getKey() + ".paldb");
+                        Files.copy(storeFile.toPath(), dest, StandardCopyOption.REPLACE_EXISTING);
+                        System.out.println("Copied store to " + dest);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                })
+                .build();
+        try (var sut = PalDB.createRW(file.toFile(), configuration)) {
+            try (var init = sut.init()) {
+                init.put("first", "value");
+                init.put("second", "value2");
+            }
+
+            assertFalse(Files.exists(destStore));
+
+            sut.put("any", "new value");
+            sut.flush();
+
+            assertTrue(Files.exists(destStore));
+            assertTrue(Files.size(destStore) > 0L);
+
+            try (var destStoreRW = PalDB.createRW(destStore.toFile(), configuration)) {
+                destStoreRW.open();
+
+                assertEquals("new value", destStoreRW.get("any"));
+                assertEquals("value", destStoreRW.get("first"));
+                assertEquals("value2", destStoreRW.get("second"));
+            }
+        }
+    }
+
+    @Test
+    void should_throw_when_file_is_null() {
+        assertThrows(NullPointerException.class, () -> PalDB.createRW(null));
+    }
+
+    @Test
+    void should_throw_when_config_is_null(@TempDir Path tempDir) {
+        assertThrows(NullPointerException.class, () -> PalDB.createRW(tempDir.resolve("testStore.paldb").toFile(), null));
     }
 
     private static final AtomicInteger ix = new AtomicInteger(0);
 
    // @Test
+    @Tag("performance")
     @RepeatedTest(5)
     void should_read_and_put_using_50_threads(@TempDir Path tempDir) throws InterruptedException {
         var file = tempDir.resolve("testMultiThread" + ix.getAndIncrement() + ".paldb");
@@ -202,8 +357,8 @@ class StoreRWImplTest {
         final AtomicBoolean success = new AtomicBoolean(true);
         var values = List.of("foobar", "any", "any value");
         var valuesAfterInit = List.of("foobar2", "any2", "any value 2");
-        try (var store = PalDB.<Integer,String>createRW(file.toFile(),
-                PalDBConfigBuilder.create()
+        try (var store = PalDB.createRW(file.toFile(),
+                PalDBConfigBuilder.<Integer,String>create()
                         .withWriteBufferElements(15)
                         .build())) {
 
@@ -251,10 +406,11 @@ class StoreRWImplTest {
 
     @Test
     @Disabled
-    void should_rebuild_35_million_keys(@TempDir Path tempDir) throws IOException {
+    @Tag("performance")
+    void should_compact_35_million_keys_without_blocking(@TempDir Path tempDir) throws IOException {
         var file = tempDir.resolve("test.paldb");
-        try (var sut = new StoreRWImpl<String, String>(
-                PalDBConfigBuilder.create()
+        try (var sut = new StoreRWImpl<>(
+                PalDBConfigBuilder.<String, String>create()
                         .withWriteBufferElements(1)
                         .build(),
                 file.toFile())) {
@@ -266,18 +422,18 @@ class StoreRWImplTest {
                 }
             }
 
-            var size = Files.size(file);
-
             var from = System.currentTimeMillis();
 
             sut.put("compact", "test"); //should compact
 
-            assertTrue(Files.size(file) > size);
+            assertEquals("test", sut.get("compact"));
 
-            System.out.println(String.format("Compacted in %d ms", System.currentTimeMillis() - from));
+            var elapsedMs = System.currentTimeMillis() - from;
 
+            System.out.println(String.format("Compacted in %d ms", elapsedMs));
+
+            assertTrue(elapsedMs < Duration.ofSeconds(5).toMillis());
             assertEquals(elements + 1L, sut.size());
         }
-
     }
 }

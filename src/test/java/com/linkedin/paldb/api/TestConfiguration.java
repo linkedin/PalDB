@@ -248,4 +248,14 @@ class TestConfiguration {
     assertEquals(Arrays.asList("foo", "bar"), c.getList("foo", singletonList("that")));
     assertEquals(singletonList("that"), c.getList("bar", singletonList("that")));
   }
+
+  @Test
+  void testListener() {
+    var c = new Configuration<Integer,String>();
+    OnStoreCompacted<Integer,String> listener = (lastEntry, storeFile) -> System.out.println("Compacted");
+    c.registerOnStoreCompactedListener(listener);
+
+    OnStoreCompacted<?, ?> actual = c.getStoreCompactedEventListeners().get(0);
+    assertEquals(listener, actual);
+  }
 }

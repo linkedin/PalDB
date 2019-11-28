@@ -14,14 +14,14 @@
 
 package com.linkedin.paldb.utils;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import java.io.*;
 import java.nio.file.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class TestTempUtils {
 
   @Test
@@ -66,6 +66,13 @@ class TestTempUtils {
 
     TempUtils.deleteDirectory(testDir.toFile());
     assertFalse(Files.exists(testDir ));
+  }
+
+  @Test
+  void should_create_temp_file() throws IOException {
+    var tempFile = TempUtils.createTempFile("test", ".paldb");
+    assertTrue(tempFile.exists());
+    Files.delete(tempFile.toPath());
   }
 }
 

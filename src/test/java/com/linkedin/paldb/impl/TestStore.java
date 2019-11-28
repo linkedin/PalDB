@@ -468,11 +468,10 @@ class TestStore {
     Set<String> valuesSet = new HashSet<>(Arrays.asList(values));
 
     //Read
-    try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile, new Configuration())) {
-      var itr = reader.iterable().iterator();
-      for (int i = 0; i < keys.length; i++) {
-        assertTrue(itr.hasNext());
-        var entry = itr.next();
+    try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile, new Configuration());
+      var stream = reader.stream()) {
+
+      stream.forEach(entry -> {
         assertNotNull(entry);
         assertTrue(keysSet.remove(entry.getKey()));
         assertTrue(valuesSet.remove(entry.getValue()));
@@ -480,8 +479,7 @@ class TestStore {
         Object valSearch = reader.get(entry.getKey(), null);
         assertNotNull(valSearch);
         assertEquals(valSearch, entry.getValue());
-      }
-      assertFalse(itr.hasNext());
+      });
     }
 
     assertTrue(keysSet.isEmpty());
@@ -556,7 +554,7 @@ class TestStore {
 
   @Test
   void should_not_find_when_bloom_filter_enabled() {
-    var config = PalDBConfigBuilder.create()
+    var config = PalDBConfigBuilder.<String,byte[]>create()
             .withEnableBloomFilter(true).build();
     try (StoreWriter<String,byte[]> writer = PalDB.createWriter(storeFile, config)) {
       writer.put("abc", EMPTY_VALUE);

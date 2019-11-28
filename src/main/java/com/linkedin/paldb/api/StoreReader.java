@@ -15,7 +15,8 @@
 package com.linkedin.paldb.api;
 
 import java.io.File;
-import java.util.*;
+import java.util.Map;
+import java.util.stream.Stream;
 
 
 /**
@@ -25,7 +26,7 @@ import java.util.*;
  * <code>get()</code> method to fetch. Call the
  * <code>close()</code> to liberate resources when done.
  */
-public interface StoreReader<K,V> extends AutoCloseable, Iterable<Map.Entry<K,V>> {
+public interface StoreReader<K,V> extends AutoCloseable {
 
   /**
    * Closes the store reader and free resources.
@@ -40,7 +41,7 @@ public interface StoreReader<K,V> extends AutoCloseable, Iterable<Map.Entry<K,V>
    *
    * @return the store configuration
    */
-  Configuration getConfiguration();
+  Configuration<K,V> getConfiguration();
 
   /**
    * Returns the store file.
@@ -73,29 +74,32 @@ public interface StoreReader<K,V> extends AutoCloseable, Iterable<Map.Entry<K,V>
    */
   V get(K key, V defaultValue);
 
-  /**
+  Stream<Map.Entry<K,V>> stream();
+  Stream<K> streamKeys();
+
+/*  *//**
    * Gets the store iterable.
    * <p>
    * Note that entry objects are reused.
    *
    * @return iterable over store
-   */
+   *//*
   Iterable<Map.Entry<K, V>> iterable();
 
-  /**
+  *//**
    * Gets the store iterator.
    * <p>
    * Note that entry objects are reused.
    *
    * @return iterable over store
-   */
+   *//*
   @Override
   Iterator<Map.Entry<K,V>> iterator();
 
-  /**
+  *//**
    * Gets the store keys iterable.
    *
    * @return iterable over keys
-   */
-  Iterable<K> keys();
+   *//*
+  Iterable<K> keys();*/
 }

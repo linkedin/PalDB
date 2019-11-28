@@ -24,7 +24,7 @@ import java.nio.file.*;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.*;
 
 import static com.linkedin.paldb.utils.TempUtils.deleteDirectory;
 import static org.junit.jupiter.api.Assertions.*;
@@ -401,50 +401,33 @@ class TestStoreReader {
   }
 
   @Test
-  void testIterator() {
+  void testStream() {
     var values = List.of("foo", "bar");
-    try (var reader = readerForMany(values.get(0), values.get(1))) {
-      var iter = reader.iterable();
-      assertNotNull(iter);
-      var itr = iter.iterator();
-      assertNotNull(itr);
+    try (var reader = readerForMany(values.get(0), values.get(1));
+        var stream = reader.stream()) {
 
-      for (int i = 0; i < values.size(); i++) {
-        assertTrue(itr.hasNext());
-        var v = itr.next();
-        assertEquals(v.getValue(), values.get(v.getKey()));
-      }
+      assertNotNull(stream);
+
+      stream.forEach(v -> assertEquals(v.getValue(), values.get(v.getKey())));
     }
   }
 
   @Test
-  void testIterate() {
+  void testStreamKeys() {
     var values = List.of("foo", "bar");
-    try (var reader = readerForMany(values.get(0), values.get(1))) {
-      for (var entry: reader) {
-        var val = values.get(entry.getKey());
-        assertEquals(val, entry.getValue());
-      }
-    }
-  }
-
-  @Test
-  void testKeyIterator() {
-    var values = List.of("foo", "bar");
-    try (var reader = readerForMany(values.get(0), values.get(1))) {
-      var iter = reader.keys();
-      assertNotNull(iter);
-      var itr = iter.iterator();
-      assertNotNull(itr);
+    try (var reader = readerForMany(values.get(0), values.get(1));
+      var keys = reader.streamKeys()) {
+      assertNotNull(keys);
 
       Set<Integer> actual = new HashSet<>();
       Set<Integer> expected = new HashSet<>();
-      for (int i = 0; i < values.size(); i++) {
-        assertTrue(itr.hasNext());
-        Integer k = itr.next();
-        actual.add(k);
-        expected.add(i);
-      }
+
+        var ix = new AtomicInteger(0);
+
+        keys.forEach(k -> {
+          actual.add(k);
+          expected.add(ix.getAndIncrement());
+        });
       assertEquals(expected, actual);
     }
   }

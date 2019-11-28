@@ -1,6 +1,9 @@
 package com.linkedin.paldb.api;
 
+import com.linkedin.paldb.impl.TestSerializers;
 import org.junit.jupiter.api.Test;
+
+import java.awt.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -8,7 +11,7 @@ class PalDBConfigBuilderTest {
 
     @Test
     void testAllPropertiesSet() {
-        var config = PalDBConfigBuilder.create()
+        var config = PalDBConfigBuilder.<Color,Point>create()
                 .withMemoryMapSegmentSize(500)
                 .withMemoryMapDataEnabled(false)
                 .withIndexLoadFactor(0.5)
@@ -17,6 +20,9 @@ class PalDBConfigBuilderTest {
                 .withBloomFilterErrorFactor(0.01)
                 .withEnableDuplicates(true)
                 .withWriteBufferElements(100)
+                .withOnCompactedListener((lastEntry, storeFile) -> System.out.println("works"))
+                .withKeySerializer(new TestSerializers.ColorSerializer())
+                .withValueSerializer(new TestSerializers.PointSerializer())
                 .build();
 
         assertEquals(500, config.getInt(Configuration.MMAP_SEGMENT_SIZE));
@@ -27,5 +33,8 @@ class PalDBConfigBuilderTest {
         assertEquals(0.01, config.getDouble(Configuration.BLOOM_FILTER_ERROR_FACTOR));
         assertTrue(config.getBoolean(Configuration.ALLOW_DUPLICATES));
         assertEquals(100, config.getInt(Configuration.WRITE_BUFFER_SIZE));
+        assertNotNull(config.getStoreCompactedEventListeners().get(0));
+        assertNotNull(config.getSerializers().getSerializer(Point.class));
+        assertNotNull(config.getSerializers().getSerializer(Color.class));
     }
 }

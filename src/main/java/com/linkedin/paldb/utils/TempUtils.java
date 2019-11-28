@@ -62,6 +62,21 @@ public final class TempUtils {
       throw new UncheckedIOException(e);
     }
   }
+
+  /**
+   * Creates a temporary file.
+   *
+   * @param prefix file prefix
+   * @param suffix file suffix
+   * @return temporary file
+   */
+  public static File createTempFile(String prefix, String suffix) {
+    try {
+      return Files.createTempFile(prefix, suffix).toFile();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
   
   /**
    * Copies <code>inputStream</code> into a temporary file <code>fileName</code>.

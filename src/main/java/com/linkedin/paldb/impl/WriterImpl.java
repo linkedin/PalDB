@@ -46,8 +46,7 @@ public final class WriterImpl<K,V> implements StoreWriter<K,V> {
    * @param config configuration
    * @param file input file
    */
-  WriterImpl(Configuration config, File file)
-      throws IOException {
+  WriterImpl(Configuration config, File file) throws IOException {
     this(config, new FileOutputStream(file), file);
   }
 

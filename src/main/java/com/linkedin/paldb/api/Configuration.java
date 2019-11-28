@@ -37,7 +37,7 @@ import java.util.*;
  * -Dpaldb.mmap.data.enabled=false). All property names should be prefixed
  * with <em>paldb</em>.
  */
-public class Configuration implements Iterable<Map.Entry<String,String>> {
+public class Configuration<K,V> implements Iterable<Map.Entry<String,String>> {
 
   // Buffer segment size
   public static final String MMAP_SEGMENT_SIZE = "mmap.segment.size";
@@ -62,6 +62,7 @@ public class Configuration implements Iterable<Map.Entry<String,String>> {
   private final boolean readOnly;
   // Serializers
   private final Serializers serializers;
+  private final List<OnStoreCompacted<K,V>> storeCompactedEventListeners;
 
   /**
    * Default constructor that initializes default values.
@@ -81,6 +82,7 @@ public class Configuration implements Iterable<Map.Entry<String,String>> {
 
     //Serializers
     serializers = new Serializers();
+    storeCompactedEventListeners = new ArrayList<>();
   }
 
   /**
@@ -88,16 +90,15 @@ public class Configuration implements Iterable<Map.Entry<String,String>> {
    *
    * @param configuration configuration to copy values from
    */
-  Configuration(Configuration configuration) {
-    readOnly = true;
-    properties.putAll(configuration.properties);
-    serializers = configuration.serializers;
+  Configuration(Configuration<K,V> configuration) {
+    this(configuration, true);
   }
 
-  Configuration(Configuration configuration, boolean readOnly) {
+  Configuration(Configuration<K,V> configuration, boolean readOnly) {
     this.readOnly = readOnly;
     properties.putAll(configuration.properties);
     serializers = configuration.serializers;
+    storeCompactedEventListeners = configuration.storeCompactedEventListeners;
   }
 
   /**
@@ -400,8 +401,20 @@ public class Configuration implements Iterable<Map.Entry<String,String>> {
     serializers.registerSerializer(serializer);
   }
 
+  /**
+   * Register listener which will be invoked when store has compacted successfully
+   * @param onStoreCompacted listener
+   */
+  public synchronized void registerOnStoreCompactedListener(OnStoreCompacted<K,V> onStoreCompacted) {
+    storeCompactedEventListeners.add(onStoreCompacted);
+  }
+
   public Serializers getSerializers() {
     return serializers;
+  }
+
+  public List<OnStoreCompacted<K,V>> getStoreCompactedEventListeners() {
+    return storeCompactedEventListeners;
   }
 
   @Override

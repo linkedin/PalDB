@@ -33,7 +33,7 @@ public final class StoreImpl {
   private StoreImpl() {
   }
 
-  public static <K,V> StoreReader<K,V> createReader(File file, Configuration config) {
+  public static <K,V> StoreReader<K,V> createReader(File file, Configuration<K,V> config) {
     if (file == null || config == null) {
       throw new NullPointerException();
     }
@@ -41,7 +41,7 @@ public final class StoreImpl {
     return new ReaderImpl<>(config, file);
   }
 
-  public static <K,V> StoreReader<K,V> createReader(InputStream stream, Configuration config) {
+  public static <K,V> StoreReader<K,V> createReader(InputStream stream, Configuration<K,V> config) {
     if (stream == null || config == null) {
       throw new NullPointerException();
     }
@@ -55,7 +55,7 @@ public final class StoreImpl {
     }
   }
 
-  public static <K,V> StoreWriter<K,V> createWriter(File file, Configuration config) {
+  public static <K,V> StoreWriter<K,V> createWriter(File file, Configuration<K,V> config) {
     if (file == null || config == null) {
       throw new NullPointerException();
     }
@@ -75,7 +75,7 @@ public final class StoreImpl {
     }
   }
 
-  public static <K,V> StoreWriter<K,V> createWriter(OutputStream stream, Configuration config) {
+  public static <K,V> StoreWriter<K,V> createWriter(OutputStream stream, Configuration<K,V> config) {
     if (stream == null || config == null) {
       throw new NullPointerException();
     }
@@ -83,7 +83,7 @@ public final class StoreImpl {
     return new WriterImpl<>(config, stream);
   }
 
-  public static <V, K> StoreRW<K, V> createRW(File file, Configuration config) {
+  public static <V, K> StoreRW<K, V> createRW(File file, Configuration<K,V> config) {
     if (file == null || config == null) {
       throw new NullPointerException();
     }

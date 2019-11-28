@@ -21,6 +21,7 @@ import org.slf4j.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.stream.*;
 
 
 /**
@@ -31,7 +32,7 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
   // Logger
   private static final Logger log = LoggerFactory.getLogger(ReaderImpl.class);
   // Configuration
-  private final Configuration config;
+  private final Configuration<K,V> config;
   // Storage
   private final StorageReader storage;
   // Serialization
@@ -47,7 +48,7 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
    * @param config configuration
    * @param file store file
    */
-  ReaderImpl(Configuration config, File file) {
+  ReaderImpl(Configuration<K,V> config, File file) {
     this.config = config;
     this.file = file;
 
@@ -80,7 +81,7 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
   }
 
   @Override
-  public Configuration getConfiguration() {
+  public Configuration<K,V> getConfiguration() {
     return config;
   }
 
@@ -114,17 +115,24 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
   }
 
   @Override
+  public Stream<Map.Entry<K, V>> stream() {
+      return StreamSupport.stream(iterable().spliterator(), false);
+  }
+
+  @Override
+  public Stream<K> streamKeys() {
+      return StreamSupport.stream(keys().spliterator(), false);
+  }
+
+  public Iterator<Map.Entry<K, V>> iterator() {
+      return iterable().iterator();
+  }
+
   public Iterable<Map.Entry<K, V>> iterable() {
     checkOpen();
     return new ReaderIterable<>(storage, serialization);
   }
 
-  @Override
-  public Iterator<Map.Entry<K,V>> iterator() {
-      return iterable().iterator();
-  }
-
-  @Override
   public Iterable<K> keys() {
     checkOpen();
     return new ReaderKeyIterable<>(storage, serialization);
