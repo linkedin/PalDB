@@ -81,7 +81,9 @@ class TestFileUtils {
     var file = tempDir.resolve("test.dat").toFile();
     assertTrue(file.createNewFile());
 
-    try (var fileOutputStream = new FileOutputStream(file)) {
+    try (var fileOutputStream = new FileOutputStream(file);
+      var channel = fileOutputStream.getChannel();
+      var lock = channel.lock()) {
       fileOutputStream.write(10);
       assertFalse(FileUtils.deleteDirectory(file));
     }
