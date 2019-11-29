@@ -74,7 +74,7 @@ public class StorageWriter {
     }
 
     // Create temp path folder
-    tempFolder = TempUtils.createTempDir("paldbtempwriter");
+    tempFolder = FileUtils.createTempDir("paldbtempwriter");
     tempFolder.deleteOnExit();
     log.info("Creating temporary folder at {}", tempFolder);
     outputStream = stream instanceof BufferedOutputStream ? stream : new BufferedOutputStream(stream);
@@ -421,7 +421,7 @@ public class StorageWriter {
       }
     }
 
-    if (TempUtils.deleteDirectory(tempFolder)) {
+    if (FileUtils.deleteDirectory(tempFolder)) {
       log.info("Deleted temporary folder at {}", tempFolder.getAbsolutePath());
     }
   }

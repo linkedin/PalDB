@@ -2,7 +2,7 @@ package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
 import com.linkedin.paldb.api.errors.StoreClosed;
-import com.linkedin.paldb.utils.TempUtils;
+import com.linkedin.paldb.utils.FileUtils;
 import org.slf4j.*;
 
 import java.io.*;
@@ -67,7 +67,7 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
 
     private File resolveInitFile() {
         return file.exists() && file.length() > 0L ?
-                TempUtils.createTempFile("writer_", ".paldb") :
+                FileUtils.createTempFile("writer_", ".paldb") :
                 file;
     }
 
@@ -180,7 +180,7 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
         if (reader1.getFile().equals(reader2.getFile())) return reader1;
 
         log.info("Merging {} into {}", reader2, reader1);
-        var tempFile = TempUtils.createTempFile("tmp_", ".paldb");
+        var tempFile = FileUtils.createTempFile("tmp_", ".paldb");
         try (var writer = new WriterImpl<K,V>(reader1.getConfiguration(), tempFile);
              var r1 = reader1;
              var r2 = reader2) {
@@ -233,7 +233,7 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
                 if (entries.isEmpty()) return null;
                 var lastEntry = lastEntry(entries);
                 log.info("Compacting {}, size: {}", file, file.length());
-                var tempFile = TempUtils.createTempFile("tmp_", ".paldb");
+                var tempFile = FileUtils.createTempFile("tmp_", ".paldb");
                 try (var writer = new WriterImpl<>(config, tempFile)) {
                     Iterable<Map.Entry<K,V>> iter = () -> new RWEntryIterator<>(reader.get(), entries, null);
                     for (var keyValue : iter) {

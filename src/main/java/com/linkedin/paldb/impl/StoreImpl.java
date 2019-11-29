@@ -16,7 +16,7 @@ package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
 import com.linkedin.paldb.api.StoreRW;
-import com.linkedin.paldb.utils.TempUtils;
+import com.linkedin.paldb.utils.FileUtils;
 import org.slf4j.*;
 
 import java.io.*;
@@ -47,7 +47,7 @@ public final class StoreImpl {
     }
     log.info("Initialize reader from stream, copying into temp folder");
     try {
-      File file = TempUtils.copyIntoTempFile("paldbtempreader", stream);
+      File file = FileUtils.copyIntoTempFile("paldbtempreader", stream);
       log.info("Copied stream into temp file {}", file.getName());
       return new ReaderImpl<>(config, file);
     } catch (IOException ex) {

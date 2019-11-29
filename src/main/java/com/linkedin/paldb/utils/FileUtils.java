@@ -21,14 +21,14 @@ import java.nio.file.Files;
 
 
 /**
- * Temporary files utility class.
+ * Files utility class.
  */
-public final class TempUtils {
+public final class FileUtils {
 
-  private static final Logger log = LoggerFactory.getLogger(TempUtils.class);
+  private static final Logger log = LoggerFactory.getLogger(FileUtils.class);
 
   // Default constructor
-  private TempUtils() {
+  private FileUtils() {
 
   }
 

@@ -26,7 +26,7 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.*;
 
-import static com.linkedin.paldb.utils.TempUtils.deleteDirectory;
+import static com.linkedin.paldb.utils.FileUtils.deleteDirectory;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TestStoreReader {

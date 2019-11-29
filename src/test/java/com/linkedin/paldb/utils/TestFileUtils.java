@@ -15,6 +15,7 @@
 package com.linkedin.paldb.utils;
 
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.*;
 import java.nio.file.*;
@@ -22,11 +23,11 @@ import java.nio.file.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-class TestTempUtils {
+class TestFileUtils {
 
   @Test
   void testTempDir() {
-    File file = TempUtils.createTempDir("foo");
+    File file = FileUtils.createTempDir("foo");
     assertTrue(file.exists());
     assertTrue(file.isDirectory());
     assertTrue(file.getName().contains("foo"));
@@ -36,7 +37,7 @@ class TestTempUtils {
   @Test
   void testCopyIntoTempFile() throws IOException {
     ByteArrayInputStream bis = new ByteArrayInputStream("foo".getBytes());
-    File file = TempUtils.copyIntoTempFile("bar", bis);
+    File file = FileUtils.copyIntoTempFile("bar", bis);
     assertTrue(file.exists());
     assertTrue(file.isFile());
     assertTrue(file.getName().contains("bar"));
@@ -64,15 +65,26 @@ class TestTempUtils {
 
     assertEquals(10, Files.list(testDir).count());
 
-    TempUtils.deleteDirectory(testDir.toFile());
+    FileUtils.deleteDirectory(testDir.toFile());
     assertFalse(Files.exists(testDir ));
   }
 
   @Test
   void should_create_temp_file() throws IOException {
-    var tempFile = TempUtils.createTempFile("test", ".paldb");
+    var tempFile = FileUtils.createTempFile("test", ".paldb");
     assertTrue(tempFile.exists());
     Files.delete(tempFile.toPath());
+  }
+
+  @Test
+  void should_throw_when_trying_to_delete_used_file(@TempDir Path tempDir) throws IOException {
+    var file = tempDir.resolve("test.dat").toFile();
+    assertTrue(file.createNewFile());
+
+    try (var fileOutputStream = new FileOutputStream(file)) {
+      fileOutputStream.write(10);
+      assertFalse(FileUtils.deleteDirectory(file));
+    }
   }
 }
 

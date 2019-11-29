@@ -24,7 +24,7 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
-import static com.linkedin.paldb.utils.TempUtils.deleteDirectory;
+import static com.linkedin.paldb.utils.FileUtils.deleteDirectory;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TestStore {
