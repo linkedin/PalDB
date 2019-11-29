@@ -15,6 +15,7 @@
 package com.linkedin.paldb.utils;
 
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.*;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.*;
@@ -78,6 +79,7 @@ class TestFileUtils {
   }
 
   @Test
+  @EnabledOnOs(OS.WINDOWS)
   void should_throw_when_trying_to_delete_used_file(@TempDir Path tempDir) throws IOException {
     var file = tempDir.resolve("test.dat").toFile();
     assertTrue(file.createNewFile());
