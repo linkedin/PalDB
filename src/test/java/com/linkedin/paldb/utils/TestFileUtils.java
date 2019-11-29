@@ -18,6 +18,7 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.*;
+import java.nio.channels.FileChannel;
 import java.nio.file.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -81,11 +82,13 @@ class TestFileUtils {
     var file = tempDir.resolve("test.dat").toFile();
     assertTrue(file.createNewFile());
 
-    try (var fileOutputStream = new FileOutputStream(file);
-      var channel = fileOutputStream.getChannel();
-      var lock = channel.lock()) {
-      fileOutputStream.write(10);
+    try (var randomAccessFile = new RandomAccessFile(file, "rw");
+         var channel = randomAccessFile.getChannel()) {
+      randomAccessFile.setLength(1024);
+      var mappedByteBuffer = channel.map(FileChannel.MapMode.READ_WRITE, 0, randomAccessFile.length());
+      mappedByteBuffer.putLong(64L);
       assertFalse(FileUtils.deleteDirectory(file));
+      DataInputOutput.unmap(mappedByteBuffer);
     }
   }
 }
