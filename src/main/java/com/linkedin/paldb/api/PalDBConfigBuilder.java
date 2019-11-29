@@ -116,6 +116,20 @@ public final class PalDBConfigBuilder<K,V> {
     }
 
     /**
+     * <i>PalDB configuration property.</i>
+     * <p>
+     * <code>write.auto.flush.enabled</code> - enable writer auto flush [default: true]
+     * Note that when true, auto flushing will be executing in the background. You can register
+     * {@link #withOnCompactedListener} if you want to be notified after successful flush.
+     * @param enabled flag
+     * @return this {@code CachemeerConfigBuilder} instance (for chaining)
+     */
+    public PalDBConfigBuilder<K,V> withEnableWriteAutoFlush(boolean enabled) {
+        palDbConfiguration.set(Configuration.WRITE_AUTO_FLUSH_ENABLED, String.valueOf(enabled));
+        return this;
+    }
+
+    /**
      * Registers on store compacted listener
       * @param onCompactedListener listener
      * @return builder

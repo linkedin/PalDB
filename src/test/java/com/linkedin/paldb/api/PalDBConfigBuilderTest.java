@@ -20,6 +20,7 @@ class PalDBConfigBuilderTest {
                 .withBloomFilterErrorFactor(0.01)
                 .withEnableDuplicates(true)
                 .withWriteBufferElements(100)
+                .withEnableWriteAutoFlush(false)
                 .withOnCompactedListener((lastEntry, storeFile) -> System.out.println("works"))
                 .withKeySerializer(new TestSerializers.ColorSerializer())
                 .withValueSerializer(new TestSerializers.PointSerializer())
@@ -33,6 +34,7 @@ class PalDBConfigBuilderTest {
         assertEquals(0.01, config.getDouble(Configuration.BLOOM_FILTER_ERROR_FACTOR));
         assertTrue(config.getBoolean(Configuration.ALLOW_DUPLICATES));
         assertEquals(100, config.getInt(Configuration.WRITE_BUFFER_SIZE));
+        assertFalse(config.getBoolean(Configuration.WRITE_AUTO_FLUSH_ENABLED));
         assertNotNull(config.getStoreCompactedEventListeners().get(0));
         assertNotNull(config.getSerializers().getSerializer(Point.class));
         assertNotNull(config.getSerializers().getSerializer(Color.class));

@@ -15,7 +15,7 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
-import com.linkedin.paldb.api.errors.UnsupportedTypeException;
+import com.linkedin.paldb.api.errors.*;
 import org.junit.jupiter.api.*;
 
 import java.awt.*;
@@ -214,7 +214,7 @@ class TestStorageSerialization {
       }
 
     });
-    assertThrows(UnsupportedTypeException.class, () -> {
+    assertThrows(MissingSerializer.class, () -> {
       ImplementsA a = new ImplementsA(42);
       byte[] buf = serialization.serialize(a);
       assertEquals(a, serialization.deserialize(buf));
@@ -240,7 +240,7 @@ class TestStorageSerialization {
 
   @Test
   void testNotSupported() {
-    assertThrows(UnsupportedTypeException.class, () -> serialization.serialize(new Color(0, 0, 0)));
+    assertThrows(MissingSerializer.class, () -> serialization.serialize(new Color(0, 0, 0)));
   }
 
   @Test

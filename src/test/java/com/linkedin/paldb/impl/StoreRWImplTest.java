@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -95,6 +96,27 @@ class StoreRWImplTest {
     }
 
     @Test
+    void should_not_auto_flush_when_disabled(@TempDir Path tempDir) throws IOException {
+        var file = tempDir.resolve("test.paldb");
+
+        try (var sut = new StoreRWImpl<>(PalDBConfigBuilder.<String,String>create()
+                        .withWriteBufferElements(1)
+                        .withEnableWriteAutoFlush(false)
+                        .build(),
+                file.toFile())) {
+
+            try (var init = sut.init()) {
+                init.put("any", "value");
+                init.put("other", "value2");
+            }
+            var size = Files.size(file);
+            sut.put("new", "element");
+            assertNull(sut.compactionFuture());
+            assertEquals(size, Files.size(file));
+        }
+    }
+
+    @Test
     void should_remove_trigger_compaction_in_background(@TempDir Path tempDir) throws IOException, InterruptedException {
         var file = tempDir.resolve("test.paldb");
         var countDownLatch = new CountDownLatch(1);
@@ -141,7 +163,7 @@ class StoreRWImplTest {
             sut.put("new", "demoValue");
             assertEquals("demoValue", sut.get("new"));
 
-            var lastEntry = sut.compact().join();
+            var lastEntry = sut.flushAsync().join();
             assertTrue(Files.size(file) > size);
             assertEquals("new", lastEntry.getKey());
             assertEquals("demoValue", lastEntry.getValue());
@@ -218,7 +240,7 @@ class StoreRWImplTest {
             }
             var sizeBefore = Files.size(file);
             sut.put("foo", "bar");
-            var lastEntry = sut.compact().join();
+            var lastEntry = sut.flushAsync().join();
             assertTrue(Files.size(file) > sizeBefore);
             assertEquals("foo", lastEntry.getKey());
             assertEquals("bar", lastEntry.getValue());
@@ -336,6 +358,28 @@ class StoreRWImplTest {
     }
 
     @Test
+    void should_return_same_compaction_future_if_it_is_already_running(@TempDir Path tempDir) {
+        var file = tempDir.resolve("test.paldb");
+        var configuration = PalDBConfigBuilder.<String,String>create()
+                .withOnCompactedListener((lastEntry, storeFile) -> System.out.println("Compacted " + storeFile))
+                .build();
+        try (var sut = PalDB.createRW(file.toFile(), configuration)) {
+            try (var init = sut.init()) {
+                init.put("first", "value");
+                init.put("second", "value2");
+            }
+
+            sut.put("one", "value one");
+            sut.put("two", "value two");
+            var future1 = sut.flushAsync();
+            var future2 = sut.flushAsync();
+
+            assertEquals(future1, future2);
+            CompletableFuture.allOf(future1, future2).join();
+        }
+    }
+
+    @Test
     void should_throw_when_file_is_null() {
         assertThrows(NullPointerException.class, () -> PalDB.createRW(null));
     }
@@ -403,11 +447,45 @@ class StoreRWImplTest {
         }
     }
 
+    @Test
+    void should_not_return_same_key_when_iterating(@TempDir Path tempDir) {
+        var file = tempDir.resolve("test.paldb");
+
+        try (var sut = new StoreRWImpl<>(PalDBConfigBuilder.<String,String>create()
+                .withEnableWriteAutoFlush(false)
+                .build(),
+                file.toFile())) {
+
+            try (var init = sut.init()) {
+                init.put("any", "value");
+                init.put("other", "value2");
+            }
+
+            sut.put("any", "updated value");
+
+            try (var stream = sut.stream()) {
+                var any = stream.filter(e -> e.getKey().equals("any"))
+                        .collect(Collectors.toList());
+
+                assertEquals(1, any.size());
+                assertEquals("any", any.get(0).getKey());
+                assertEquals("updated value", any.get(0).getValue());
+            }
+
+            sut.remove("other");
+            try (var stream = sut.stream()) {
+                var any = stream.filter(e -> e.getKey().equals("other"))
+                        .collect(Collectors.toList());
+
+                assertEquals(0, any.size());
+            }
+        }
+    }
 
     @Test
     @Disabled
     @Tag("performance")
-    void should_compact_35_million_keys_without_blocking(@TempDir Path tempDir) throws IOException {
+    void should_compact_35_million_keys_without_blocking(@TempDir Path tempDir) {
         var file = tempDir.resolve("test.paldb");
         try (var sut = new StoreRWImpl<>(
                 PalDBConfigBuilder.<String, String>create()

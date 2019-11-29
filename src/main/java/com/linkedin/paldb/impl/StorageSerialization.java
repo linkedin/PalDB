@@ -402,7 +402,7 @@ final class StorageSerialization {
       } else if (obj instanceof Object[]) {
         serializeObjectArray(out, (Object[]) obj);
       } else {
-        throw new UnsupportedTypeException(obj);
+        throw new MissingSerializer(obj);
       }
     }
   }

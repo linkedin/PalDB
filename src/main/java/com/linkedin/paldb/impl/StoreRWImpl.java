@@ -1,7 +1,7 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
-import com.linkedin.paldb.api.errors.*;
+import com.linkedin.paldb.api.errors.StoreClosed;
 import com.linkedin.paldb.utils.TempUtils;
 import org.slf4j.*;
 
@@ -10,7 +10,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.*;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.*;
 
 public class StoreRWImpl<K,V> implements StoreRW<K,V> {
@@ -25,7 +25,8 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final List<OnStoreCompacted<K,V>> listeners;
     private boolean opened = false;
-    private volatile boolean compacting = false;
+    private final AtomicReference<CompletableFuture<Map.Entry<K,V>>> compactionFuture = new AtomicReference<>();
+    private final boolean autoFlush;
 
     StoreRWImpl(Configuration<K,V> config, File file) {
         this.config = PalDBConfigBuilder.create(config)
@@ -34,6 +35,7 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
         this.file = file;
         this.reader = new AtomicReference<>();
         this.maxBufferSize = config.getInt(Configuration.WRITE_BUFFER_SIZE);
+        this.autoFlush = config.getBoolean(Configuration.WRITE_AUTO_FLUSH_ENABLED);
         this.buffer = new LinkedHashMap<>(maxBufferSize);
         this.listeners = config.getStoreCompactedEventListeners();
     }
@@ -129,14 +131,15 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
         }
 
         if (needsCompaction()) {
-            compact();
+            flushAsync();
         }
     }
 
     private boolean needsCompaction() {
+        if (!autoFlush) return false;
         rwLock.readLock().lock();
         try {
-            return buffer.size() >= maxBufferSize && !compacting;
+            return buffer.size() >= maxBufferSize && compactionFuture() == null;
         } finally {
             rwLock.readLock().unlock();
         }
@@ -162,14 +165,14 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
         }
 
         if (needsCompaction()) {
-            compact();
+            flushAsync();
         }
     }
 
     @Override
     public synchronized void flush() {
         checkOpen();
-        compact().join();
+        flushAsync().join();
     }
 
     private ReaderImpl<K,V> merge(ReaderImpl<K,V> reader1, ReaderImpl<K,V> reader2) {
@@ -222,13 +225,12 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
     }
 
     @Override
-    public synchronized CompletableFuture<Map.Entry<K,V>> compact() {
-        if (compacting) return CompletableFuture.failedFuture(new StoreIsCompacting("Store is currently compacting"));
-        final var entries = copyBuffer();
-        if (entries.isEmpty()) return CompletableFuture.completedFuture(null);
-        compacting = true;
-        return CompletableFuture.supplyAsync(() -> {
+    public synchronized CompletableFuture<Map.Entry<K,V>> flushAsync() {
+        return compactionFuture.updateAndGet(oldFuture -> oldFuture != null ? oldFuture :
+         CompletableFuture.supplyAsync(() -> {
             try {
+                final var entries = copyBuffer();
+                if (entries.isEmpty()) return null;
                 var lastEntry = lastEntry(entries);
                 log.info("Compacting {}, size: {}", file, file.length());
                 var tempFile = TempUtils.createTempFile("tmp_", ".paldb");
@@ -266,9 +268,9 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
                 log.info("Compaction completed for {} with size of {}", file, file.length());
                 return lastEntry;
             } finally {
-                compacting = false;
+                compactionFuture.set(null);
             }
-        });
+        }));
     }
 
     @Override
@@ -311,6 +313,10 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
         }
     }
 
+    protected CompletableFuture<Map.Entry<K,V>> compactionFuture() {
+        return compactionFuture.get();
+    }
+
     private RWEntryIterator<K, V> iterator() {
         checkOpen();
         return new RWEntryIterator<>(reader.get(), copyBuffer(), rwLock);
@@ -331,8 +337,8 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
     }
 
     private static class RWEntryIterator<K,V> extends RWIterator<K,V> implements Iterator<Map.Entry<K,V>>, Iterable<Map.Entry<K,V>> {
-        private RWEntryIterator(ReaderImpl<K, V> reader, Map<K, V> cache, ReentrantReadWriteLock rwLock) {
-            super(reader, cache, rwLock);
+        private RWEntryIterator(ReaderImpl<K, V> reader, Map<K, V> buffer, ReentrantReadWriteLock rwLock) {
+            super(reader, buffer, rwLock);
         }
 
         @Override
@@ -350,8 +356,8 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
     }
 
     private static class RWKeyIterator<K,V>  extends RWIterator<K,V> implements Iterator<K>, Iterable<K> {
-        private RWKeyIterator(ReaderImpl<K, V> reader, Map<K, V> cache, ReentrantReadWriteLock rwLock) {
-            super(reader, cache, rwLock);
+        private RWKeyIterator(ReaderImpl<K, V> reader, Map<K, V> buffer, ReentrantReadWriteLock rwLock) {
+            super(reader, buffer, rwLock);
         }
 
         @Override
@@ -369,19 +375,17 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
     }
 
     private abstract static class RWIterator<K,V> implements AutoCloseable {
-        private final ReaderImpl<K,V> reader;
-        private final Set<K> deletedKeys;
+        private final Map<K, V> buffer;
         private final ReentrantReadWriteLock rwLock;
         private Iterator<Map.Entry<K,V>> iterator;
         Boolean checkedHasNext;
         private boolean startTheSecond;
         Map.Entry<K,V> nextValue;
 
-        RWIterator(ReaderImpl<K, V> reader, Map<K, V> cache, ReentrantReadWriteLock rwLock) {
-            this.reader = reader;
+        RWIterator(ReaderImpl<K, V> reader, Map<K, V> buffer, ReentrantReadWriteLock rwLock) {
+            this.buffer = buffer;
             this.rwLock = rwLock;
-            this.deletedKeys = new HashSet<>(1000);
-            this.iterator = cache.entrySet().iterator();
+            this.iterator = reader.iterator();
         }
 
         public boolean hasNext() {
@@ -401,13 +405,12 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
             if (iterator.hasNext()) {
                 nextValue = iterator.next();
                 if (!startTheSecond) {
-                    if (nextValue.getValue() == REMOVED) {
-                        deletedKeys.add(nextValue.getKey());
+                    if (buffer.containsKey(nextValue.getKey())) {
                         doNext();
                         return;
                     }
                 } else {
-                    if (deletedKeys.contains(nextValue.getKey())) {
+                    if (nextValue.getValue() == REMOVED) {
                         doNext();
                         return;
                     }
@@ -420,7 +423,7 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
                 if (rwLock != null) {
                     rwLock.readLock().lock();
                 }
-                iterator = reader.iterator();
+                iterator = buffer.entrySet().iterator();
                 doNext();
             }
         }

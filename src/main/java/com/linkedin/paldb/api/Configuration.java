@@ -26,10 +26,6 @@ import java.util.*;
  *   <dd><code>mmap.segment.size</code> - memory map segment size (bytes) [default: 1GB]</dd>
  *   <dd><code>mmap.data.enabled</code> - enable memory mapping for data (boolean) [default: true]</dd>
  *   <dd><code>load.factor</code> - index load factor (double) [default: 0.75]</dd>
- *   <dd><code>cache.enabled</code> - LRU cache enabled (boolean) [default: false]</dd>
- *   <dd><code>cache.bytes</code> - cache limit (bytes) [default: Xmx - 100MB]</dd>
- *   <dd><code>cache.initial.capacity</code> - cache initial capacity (int) [default: 1000]</dd>
- *   <dd><code>cache.load.factor</code> - cache load factor (double) [default: 0.75]</dd>
  *   <dd><code>compression.enabled</code> - enable compression (boolean) [default: false]</dd>
  * </dl>
  * <p>
@@ -55,6 +51,8 @@ public class Configuration<K,V> implements Iterable<Map.Entry<String,String>> {
   public static final String ALLOW_DUPLICATES = "duplicates.enabled";
   //Number of elements to hold in write buffer before compaction occurs
   public static final String WRITE_BUFFER_SIZE = "write.buffer.size";
+  //Enable writer auto flush
+  public static final String WRITE_AUTO_FLUSH_ENABLED = "write.auto.flush.enabled";
 
   // Property map
   private final Map<String, String> properties = new HashMap<>();
@@ -79,6 +77,7 @@ public class Configuration<K,V> implements Iterable<Map.Entry<String,String>> {
     putWithSystemPropertyDefault(BLOOM_FILTER_ERROR_FACTOR, "0.01");
     putWithSystemPropertyDefault(ALLOW_DUPLICATES, "false");
     putWithSystemPropertyDefault(WRITE_BUFFER_SIZE, "100000");
+    putWithSystemPropertyDefault(WRITE_AUTO_FLUSH_ENABLED, "true");
 
     //Serializers
     serializers = new Serializers();
