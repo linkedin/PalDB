@@ -9,7 +9,7 @@ PalDB is an embeddable write-once key-value store written in Java.
 What is PalDB?
 -------------------
 
-PalDB is an embeddable persistent key-value store with very fast read performance and compact store size. PalDB stores are single binary files written once and ready to be used in applications.
+PalDB is an embeddable persistent key-value store with very fast read performance and compact store size. PalDB stores are single binary files.
 
 PalDB's JAR is only 65K and has a single dependency (snappy, which isn't mandatory). It's also very easy to use with just a few configuration parameters.
 
@@ -17,6 +17,7 @@ PalDB's JAR is only 65K and has a single dependency (snappy, which isn't mandato
 
 Improvements from PalDB 1.0.2
 -------------------
+- New StoreRW interface for reading and writing. It is fully thread-safe and makes no sacrifices on performance.
 - StoreReader is now fully thread-safe without any performance decrease.
 - StoreReader and StoreWriter can be used with generics (StoreReader<K<V> and StoreWriter<K,V>)
 - Typesafe ``PalDBConfigBuilder`` for easier configuration
@@ -27,20 +28,21 @@ Improvements from PalDB 1.0.2
 Performance
 -----------
 
-Because PalDB is read-only and only focuses on data which can be held in memory it is significantly less complex than other embeddable key-value stores and therefore allows a compact storage format and very high throughput. PalDB is specifically optimized for fast read performance and compact store sizes. Performances can be compared to in-memory data structures such as Java collections (e.g. HashMap, HashSet) or other key-values stores (e.g. LevelDB, RocksDB).
+PalDB is significantly less complex than other embeddable key-value stores and therefore allows a compact storage format and very high throughput. PalDB is specifically optimized for fast read performance and compact store sizes. Performances can be compared to in-memory data structures such as Java collections (e.g. HashMap, HashSet) or other key-values stores (e.g. LevelDB, RocksDB).
 
 Current benchmark on a 3.1Ghz Macbook Pro with 10M integer keys index shows an average performance of ~1.6M reads/s for a memory usage 6X less than using a traditional HashSet. That is 5X faster throughput compared to LevelDB (1.8) or RocksDB (4.0).
 
-Results of a throughput benchmark between PalDB, LevelDB and RocksDB (higher is better):
+Results of a multithreaded throughput benchmark between PalDB and RocksDB (higher is better):
 
-![throughput](http://linkedin.github.io/PalDB/doc/throughput.png)
+![throughput](throughput.jpg)
 
 Memory usage benchmark between PalDB and a Java HashSet (lower is better):
 
-![memory](http://linkedin.github.com/PalDB/doc/memory.png)
+![memory](memory.jpg)
 
 What is it suitable for?
 ------------------------
+PalDB can be used for caching [Kafka](https://kafka.apache.org/) compacted topics. It will perform key lookups very efficiently by using very little memory and storing database file on disk.
 
 Side data can be defined as the extra read-only data needed by a process to do its job. For instance, a list of stopwords used by a natural language processing algorithm is side data. Machine learning models used in machine translation, content classification or spam detection are also side data. When this side data becomes large it can rapidly be a bottleneck for applications depending on them. PalDB aims to fill this gap.
 
@@ -50,6 +52,15 @@ Code samples
 ------------
 
 API documentation can be found [here](http://linkedin.github.com/PalDB/doc/javadoc/index.html).
+How to use RW store
+```java
+try (var palDB = PalDB.<Integer,String>createRW(new File("store.paldb"))) {
+    palDB.open();
+    palDB.put(1213, "foo");
+    var value = palDB.get(1213);
+}
+```
+
 
 How to write a store
 ```java
@@ -85,12 +96,12 @@ PalDB is available on Maven Central, hence just add the following dependency:
 <dependency>
     <groupId>net.soundvibe</groupId>
     <artifactId>paldb</artifactId>
-    <version>2.0.2</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 Scala SBT
 ```
-libraryDependencies += "net.soundvibe" % "paldb" % "2.0.2"
+libraryDependencies += "net.soundvibe" % "paldb" % "2.1.0"
 ```
 
 
@@ -99,7 +110,7 @@ Frequently asked questions
 
 **Can you open a store for writing subsequent times?**
 
-No, the final binary file is created when `StoreWriter.close()` is called.
+Yes, you can use `StoreRW` for that.
 
 **Are duplicate keys allowed?**
 
@@ -126,7 +137,7 @@ mvn clean test -Dtag=performance
 Test
 ----
 
-We use the JUnit framework for our unit tests. You can run them via the `mvn clean test` command.
+We use the JUnit5 framework for our unit tests. You can run them via the `mvn clean test` command.
 
 Coverage
 --------
@@ -143,6 +154,8 @@ Write parameters:
 + `bloom.filter.enabled`, enable bloom filter (boolean) [default: false]
 + `bloom.filter.error.factor`, bloom filter error rate  (double) [default: 0.01]
 + `duplicates.enabled`, allow duplicates  (boolean) [default: false]
++ `write.buffer.size`, Number of elements to hold in write buffer before compaction occurs  (int) [default: 100000]
++ `write.auto.flush.enabled`, Enable writer auto flush  (boolean) [default: true]
 
 Read parameters:
 
@@ -166,6 +179,7 @@ A few tips on how configuration can affect performance:
 + Disabling memory mapping will significantly reduce performance as disk seeks will be performed instead.
 + Enabling the bloom filter makes sense when you expect to miss finding some values. It will greatly increase read performance in this case.
 + Compression can be enabled when the store size is a concern and the values are large (e.g. a sparse matrix). By default, PalDB already uses a compact serialization. Snappy is used for compression.
++ StoreRW is not optimized for putting huge amounts of entries after `init()` is completed. Keeping `write.buffer.size` large will reduce flush times significantly with a cost of increased memory usage.
 
 Custom serializer
 -----------------
@@ -216,7 +230,6 @@ Machine-learning applications often have complex binary model files created in t
 Limitations
 -----------
 + PalDB is optimal in replacing the usage of large in-memory data storage but still use memory (off-heap, yet much less) to do its job. Disabling memory mapping and relying on seeks is possible but is not what PalDB has been optimized for.
-+ PalDB reader is thread-safe but writer is not thread-safe at the moment so synchronization should be done externally if multi-threaded.
 
 Contributions
 -----------

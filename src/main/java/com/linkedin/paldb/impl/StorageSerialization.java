@@ -337,7 +337,7 @@ final class StorageSerialization {
   }
 
   private void serialize(final DataOutput out, final Object obj, boolean compress) throws IOException {
-    final Class clazz = obj != null ? obj.getClass() : null;
+    final Class<?> clazz = obj != null ? obj.getClass() : null;
 
     if (obj == null) {
       out.write(NULL);
@@ -368,7 +368,7 @@ final class StorageSerialization {
     } else if (clazz == String.class) {
       serializeString(out, (String) obj);
     } else if (obj instanceof Class) {
-      serializeClass(out, (Class) obj);
+      serializeClass(out, (Class<?>) obj);
     } else if (obj instanceof int[]) {
       serializeIntArray(out, (int[]) obj, compress);
     } else if (obj instanceof long[]) {
@@ -575,7 +575,7 @@ final class StorageSerialization {
     LongPacker.packInt(out, val.scale());
   }
 
-  private static void serializeClass(final DataOutput out, final Class val) throws IOException {
+  private static void serializeClass(final DataOutput out, final Class<?> val) throws IOException {
     out.write(CLASS);
     serializeString(out, val.getName());
   }
