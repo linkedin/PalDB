@@ -145,7 +145,7 @@ public final class PalDBConfigBuilder<K,V> {
      * @return builder
      */
     public PalDBConfigBuilder<K,V> withKeySerializer(Serializer<K> serializer) {
-        palDbConfiguration.registerSerializer(serializer);
+        palDbConfiguration.registerKeySerializer(serializer);
         return this;
     }
 
@@ -155,7 +155,7 @@ public final class PalDBConfigBuilder<K,V> {
      * @return builder
      */
     public PalDBConfigBuilder<K,V> withValueSerializer(Serializer<V> serializer) {
-        palDbConfiguration.registerSerializer(serializer);
+        palDbConfiguration.registerValueSerializer(serializer);
         return this;
     }
 

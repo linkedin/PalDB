@@ -60,7 +60,7 @@ public final class ReaderIterable<K, V> implements Iterable<Map.Entry<K, V>> {
     // Buffer
     private final DataInputOutput dataInputOutput = new DataInputOutput();
     // Serialization
-    private StorageSerialization serialization;
+    private StorageSerialization<K,V> serialization;
 
     /**
      * Constructor.
@@ -68,7 +68,7 @@ public final class ReaderIterable<K, V> implements Iterable<Map.Entry<K, V>> {
      * @param byteIterator byte iterator
      * @param serialization serialization
      */
-    ReaderIterator(Iterator<Map.Entry<byte[], byte[]>> byteIterator, StorageSerialization serialization) {
+    ReaderIterator(Iterator<Map.Entry<byte[], byte[]>> byteIterator, StorageSerialization<K,V> serialization) {
       this.byteIterator = byteIterator;
       this.serialization = serialization;
     }
@@ -82,8 +82,8 @@ public final class ReaderIterable<K, V> implements Iterable<Map.Entry<K, V>> {
     public Map.Entry<K, V> next() {
       Map.Entry<byte[], byte[]> byteEntry = byteIterator.next();
       try {
-        K key = (K) serialization.deserialize(dataInputOutput.reset(byteEntry.getKey()));
-        V value = (V) serialization.deserialize(dataInputOutput.reset(byteEntry.getValue()));
+        K key = serialization.deserializeKey(dataInputOutput.reset(byteEntry.getKey()));
+        V value = serialization.deserializeValue(dataInputOutput.reset(byteEntry.getValue()));
         entry.set(key, value);
       } catch (Exception ex) {
         throw new RuntimeException(ex);

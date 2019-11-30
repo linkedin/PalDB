@@ -55,8 +55,9 @@ API documentation can be found [here](http://linkedin.github.com/PalDB/doc/javad
 How to use RW store
 ```java
 try (var palDB = PalDB.<Integer,String>createRW(new File("store.paldb"))) {
-    palDB.open();
-    palDB.put(1213, "foo");
+    try (var initializer = palDB.init()) {
+        palDB.put(1213, "foo");
+    }
     var value = palDB.get(1213);
 }
 ```
@@ -201,11 +202,6 @@ public class PointSerializer implements Serializer<Point> {
     output.writeInt(point.x);
     output.writeInt(point.y);
   }
-  
-  @Override
-  public Class<Point> serializedClass() {
-    return Point.class;
-  }
 }
 ```
 
@@ -215,7 +211,8 @@ Serializer implementation should be registered using the `Configuration`:
 
 ```java
 var configuration = PalDB.newConfiguration();
-configuration.registerSerializer(new PointSerializer());
+configuration.registerKeySerializer(new ColorSerializer());
+configuration.registerValueSerializer(new PointSerializer());
 ```
 
 Use cases

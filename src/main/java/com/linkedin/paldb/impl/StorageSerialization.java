@@ -26,14 +26,14 @@ import java.math.*;
 /**
  * Internal serialization implementation.
  */
-final class StorageSerialization {
+final class StorageSerialization<K,V> {
 
   //Buffer
   private final DataInputOutput dataInputOutput = new DataInputOutput();
   //Compression
   private final boolean compression;
   //Serializers
-  private Serializers serializers;
+  private final Serializers<K,V> serializers;
 
   /**
    * Default constructor with configuration.
@@ -43,7 +43,7 @@ final class StorageSerialization {
    *
    * @param config configuration
    */
-  StorageSerialization(Configuration config) {
+  StorageSerialization(Configuration<K,V> config) {
     this.compression = config.getBoolean(Configuration.COMPRESSION_ENABLED);
     this.serializers = config.getSerializers();
   }
@@ -52,16 +52,15 @@ final class StorageSerialization {
    * Serializes the key object and returns it as a byte array.
    *
    * @param key key to serialize
-   * @param <K> key type
    * @return key as byte array
    * @throws IOException if an io error occurs
    */
-  <K> byte[] serializeKey(K key) throws IOException {
+  byte[] serializeKey(K key) throws IOException {
     if (key == null) {
       throw new NullPointerException();
     }
     var dataIO = new DataInputOutput();
-    serializeObject(key, dataIO, false);
+    serializeObject(key, dataIO, false, serializers.keySerializer());
     return dataIO.toByteArray();
   }
 
@@ -72,8 +71,8 @@ final class StorageSerialization {
    * @param dataOutput data output
    * @throws IOException if an io error occurs
    */
-  void serializeKey(Object key, DataOutput dataOutput) throws IOException {
-    serializeObject(key, dataOutput, false);
+  void serializeKey(K key, DataOutput dataOutput) throws IOException {
+    serializeObject(key, dataOutput, false, serializers.keySerializer());
   }
 
   /**
@@ -83,9 +82,9 @@ final class StorageSerialization {
    * @return value as byte array
    * @throws IOException if an io error occurs
    */
-  byte[] serializeValue(Object value) throws IOException {
+  byte[] serializeValue(V value) throws IOException {
 
-    serializeObject(value, dataInputOutput.reset(), compression);
+    serializeObject(value, dataInputOutput.reset(), compression, serializers.valueSerializer());
     return dataInputOutput.toByteArray();
   }
 
@@ -96,8 +95,8 @@ final class StorageSerialization {
    * @param dataOutput data output
    * @throws IOException if an io error occurs
    */
-  void serializeValue(Object value, DataOutput dataOutput) throws IOException {
-    serializeObject(value, dataOutput, compression);
+  void serializeValue(V value, DataOutput dataOutput) throws IOException {
+    serializeObject(value, dataOutput, compression, serializers.valueSerializer());
   }
 
   /**
@@ -107,7 +106,7 @@ final class StorageSerialization {
    * @param useCompression use compression
    * @throws IOException if an io error occurs
    */
-  private void serializeObject(Object obj, DataOutput dataOutput, boolean useCompression) throws IOException {
+  private <T> void serializeObject(Object obj, DataOutput dataOutput, boolean useCompression, Serializer<T> serializer) throws IOException {
     //Cast to primitive arrays if necessary
     if (obj != null && obj.getClass().isArray()) {
       if (obj instanceof Integer[]) {
@@ -145,7 +144,7 @@ final class StorageSerialization {
       }
     }
 
-    serialize(dataOutput, obj, useCompression);
+    serialize(dataOutput, obj, useCompression, serializer);
   }
 
   /**
@@ -160,9 +159,9 @@ final class StorageSerialization {
   // UTILITIES
 
   private static Object getPrimitiveArray(Object[][] array) {
-    Class arrayClass = array.getClass().getComponentType().getComponentType();
+    Class<?> arrayClass = array.getClass().getComponentType().getComponentType();
     if (!arrayClass.isPrimitive()) {
-      Class primitiveClass = getPrimitiveType(arrayClass);
+      Class<?> primitiveClass = getPrimitiveType(arrayClass);
 
       int arrayLength = array.length;
       Object primitiveArray = Array.newInstance(primitiveClass, arrayLength, 0);
@@ -188,9 +187,9 @@ final class StorageSerialization {
   }
 
   private static <T> Object getPrimitiveArray(T[] array) {
-    Class arrayClass = array.getClass().getComponentType();
+    Class<?> arrayClass = array.getClass().getComponentType();
     if (!arrayClass.isPrimitive()) {
-      Class primitiveClass = getPrimitiveType(arrayClass);
+      Class<?> primitiveClass = getPrimitiveType(arrayClass);
 
       int arrayLength = array.length;
       Object primitiveArray = Array.newInstance(primitiveClass, arrayLength);
@@ -206,7 +205,7 @@ final class StorageSerialization {
     return array;
   }
 
-  private static Class getPrimitiveType(Class type) {
+  private static Class<?> getPrimitiveType(Class<?> type) {
     if (!type.isPrimitive()) {
       if (type.equals(Boolean.class)) {
         return boolean.class;
@@ -320,23 +319,11 @@ final class StorageSerialization {
   private static final int CUSTOM = 114;
   private static final String EMPTY_STRING = "";
 
-  byte[] serialize(Object obj) throws IOException {
-    return serialize(obj, false);
+  private <T> void serialize(final DataOutput out, final Object obj, Serializer<T> serializer) throws IOException {
+    serialize(out, obj, false, serializer);
   }
 
-  byte[] serialize(Object obj, boolean compress) throws IOException {
-    DataInputOutput ba = new DataInputOutput();
-
-    serialize(ba, obj, compress);
-
-    return ba.toByteArray();
-  }
-
-  private void serialize(final DataOutput out, final Object obj) throws IOException {
-    serialize(out, obj, false);
-  }
-
-  private void serialize(final DataOutput out, final Object obj, boolean compress) throws IOException {
+  private <T> void serialize(final DataOutput out, final Object obj, boolean compress, Serializer<T> serializer) throws IOException {
     final Class<?> clazz = obj != null ? obj.getClass() : null;
 
     if (obj == null) {
@@ -393,14 +380,11 @@ final class StorageSerialization {
       serializeLongLongArray(out, (long[][]) obj, compress);
     } else {
       // Custom
-      var serializer = serializers.getSerializer(obj.getClass());
       if (serializer != null) {
-        var className = serializer.serializedClass().getName();
         out.write(CUSTOM);
-        out.writeChars(className);
-        serializer.write(out, obj);
+        serializer.write(out, (T) obj);
       } else if (obj instanceof Object[]) {
-        serializeObjectArray(out, (Object[]) obj);
+        serializeObjectArray(out, (Object[]) obj, serializer);
       } else {
         throw new MissingSerializer(obj);
       }
@@ -773,34 +757,48 @@ final class StorageSerialization {
     }
   }
 
-  private void serializeObjectArray(final DataOutput out, final Object[] val) throws IOException {
+  private <T> void serializeObjectArray(final DataOutput out, final Object[] val, Serializer<T> serializer) throws IOException {
     out.write(ARRAY_OBJECT);
     LongPacker.packInt(out, val.length);
     for (Object o : val) {
-      serialize(out, o);
+      serialize(out, o, serializer);
     }
   }
 
-  Object deserialize(byte[] buf) throws IOException {
+  private <T> T deserialize(byte[] buf, Serializer<T> serializer) throws IOException {
     DataInputOutput bs = new DataInputOutput(buf);
-    Object ret = deserialize(bs);
+    Object ret = deserialize(bs, serializer);
     if (bs.available() != 0) {
       throw new RuntimeException("bytes left: " + bs.available());
     }
 
-    return ret;
+    return (T) ret;
   }
 
-  Object deserialize(DataInput is) throws IOException {
+  K deserializeKey(byte[] buf) throws IOException {
+    return deserialize(buf, serializers.keySerializer());
+  }
+
+  V deserializeValue(byte[] buf) throws IOException {
+    return deserialize(buf, serializers.valueSerializer());
+  }
+
+  K deserializeKey(DataInput is) throws IOException {
+    return deserialize(is, serializers.keySerializer());
+  }
+
+  V deserializeValue(DataInput is) throws IOException {
+    return deserialize(is, serializers.valueSerializer());
+  }
+
+  private <T> T deserialize(DataInput is, Serializer<T> serializer) throws IOException {
     Object ret = null;
 
     final int head = is.readUnsignedByte();
 
     if (head >= CUSTOM) {
-      var className = is.readUTF();
-      Serializer serializer = serializers.getSerializer(className);
       if (serializer == null) {
-        throw new MissingSerializer("Serializer not registered: " + className);
+        throw new MissingSerializer("Serializer not registered");
       }
       ret = serializer.read(is);
     } else {
@@ -991,10 +989,10 @@ final class StorageSerialization {
           ret = is.readDouble();
           break;
         case BIGINTEGER:
-          ret = new BigInteger((byte[]) deserialize(is));
+          ret = new BigInteger((byte[]) deserialize(is, serializer));
           break;
         case BIGDECIMAL:
-          ret = new BigDecimal(new BigInteger((byte[]) deserialize(is)), LongPacker.unpackInt(is));
+          ret = new BigDecimal(new BigInteger((byte[]) deserialize(is, serializer)), LongPacker.unpackInt(is));
           break;
         case STRING:
           ret = deserializeString(is);
@@ -1054,13 +1052,13 @@ final class StorageSerialization {
           ret = deserializeLongLongArray(is);
           break;
         case ARRAY_OBJECT:
-          ret = deserializeArrayObject(is);
+          ret = deserializeArrayObject(is, serializer);
           break;
         case -1:
           throw new EOFException();
       }
     }
-    return ret;
+    return (T) ret;
   }
 
   private static String deserializeString(DataInput buf)
@@ -1074,7 +1072,7 @@ final class StorageSerialization {
     return new String(b);
   }
 
-  private static Class deserializeClass(DataInput is) throws IOException {
+  private static Class<?> deserializeClass(DataInput is) throws IOException {
     is.readByte();
     String className = deserializeString(is);
     try {
@@ -1196,12 +1194,12 @@ final class StorageSerialization {
     return Snappy.uncompress(b);
   }
 
-  private Object[] deserializeArrayObject(DataInput is) throws IOException {
+  private <T> Object[] deserializeArrayObject(DataInput is, Serializer<T> serializer) throws IOException {
     int size = LongPacker.unpackInt(is);
 
     Object[] s = (Object[]) Array.newInstance(Object.class, size);
     for (int i = 0; i < size; i++) {
-      s[i] = deserialize(is);
+      s[i] = deserialize(is, serializer);
     }
     return s;
   }

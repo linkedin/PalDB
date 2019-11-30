@@ -47,8 +47,15 @@ class TestStoreReader {
 
   @SafeVarargs
   private <V> StoreReader<Integer, V> readerForMany(V... values) {
-    var configuration = new Configuration();
-    configuration.registerSerializer(new PointSerializer());
+    return readerForMany(null, values);
+  }
+
+  @SafeVarargs
+  private <V> StoreReader<Integer, V> readerForMany(Serializer<V> serializer, V... values) {
+    var configuration = new Configuration<Integer,V>();
+    if (serializer != null) {
+      configuration.registerValueSerializer(serializer);
+    }
     try (StoreWriter<Integer, V> writer = PalDB.createWriter(storeFile, configuration)) {
       for (int i = 0; i < values.length; i++) {
         writer.put(i, values[i]);
@@ -59,6 +66,10 @@ class TestStoreReader {
 
   private <V> StoreReader<Integer, V> readerFor(V value) {
     return readerForMany(value);
+  }
+
+  private <V> StoreReader<Integer, V> readerFor(V value, Serializer<V> serializer) {
+    return readerForMany(serializer, value);
   }
 
   @Test
@@ -395,7 +406,7 @@ class TestStoreReader {
 
   @Test
   void testGetPoint() {
-    try (var reader = readerFor(new Point(4, 56))) {
+    try (var reader = readerFor(new Point(4, 56), new PointSerializer())) {
       assertEquals(new Point(4, 56), reader.get(0));
     }
   }
@@ -468,11 +479,6 @@ class TestStoreReader {
     public Point read(DataInput input)
         throws IOException {
       return new Point(input.readInt(), input.readInt());
-    }
-
-    @Override
-    public Class<Point> serializedClass() {
-      return Point.class;
     }
 
     @Override

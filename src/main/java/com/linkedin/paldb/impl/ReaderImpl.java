@@ -36,7 +36,7 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
   // Storage
   private final StorageReader storage;
   // Serialization
-  private final StorageSerialization serialization;
+  private final StorageSerialization<K,V> serialization;
   // File
   private final File file;
   // Opened?
@@ -55,7 +55,7 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
     // Open storage
     try {
       log.info("Opening reader storage");
-      serialization = new StorageSerialization(config);
+      serialization = new StorageSerialization<>(config);
       storage = new StorageReader(config, file);
     } catch (IOException ex) {
       throw new UncheckedIOException(ex);
@@ -105,7 +105,7 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
     try {
       byte[] valueBytes = storage.get(serialization.serializeKey(key));
       if (valueBytes != null) {
-        return (V) serialization.deserialize(new DataInputOutput(valueBytes));
+        return serialization.deserializeValue(new DataInputOutput(valueBytes));
       } else {
         return defaultValue;
       }

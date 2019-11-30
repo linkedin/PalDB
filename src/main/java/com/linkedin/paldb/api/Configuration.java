@@ -59,7 +59,7 @@ public class Configuration<K,V> implements Iterable<Map.Entry<String,String>> {
   // Read only
   private final boolean readOnly;
   // Serializers
-  private final Serializers serializers;
+  private final Serializers<K,V> serializers;
   private final List<OnStoreCompacted<K,V>> storeCompactedEventListeners;
 
   /**
@@ -80,7 +80,7 @@ public class Configuration<K,V> implements Iterable<Map.Entry<String,String>> {
     putWithSystemPropertyDefault(WRITE_AUTO_FLUSH_ENABLED, "true");
 
     //Serializers
-    serializers = new Serializers();
+    serializers = new Serializers<>();
     storeCompactedEventListeners = new ArrayList<>();
   }
 
@@ -151,7 +151,7 @@ public class Configuration<K,V> implements Iterable<Map.Entry<String,String>> {
    * @param value value
    * @return this configuration
    */
-  public Configuration set(String key, String value) {
+  public Configuration<K,V> set(String key, String value) {
     checkReadOnly();
 
     properties.put(key, value);
@@ -393,11 +393,21 @@ public class Configuration<K,V> implements Iterable<Map.Entry<String,String>> {
    * <p>
    * The class for with the serializer is being registered is directly extracted from the class definition.
    *
-   * @param serializer serializer to register
-   * @param <T> serializer type
+   * @param keySerializer serializer to register
    */
-  public <T> void registerSerializer(Serializer<T> serializer) {
-    serializers.registerSerializer(serializer);
+  public void registerKeySerializer(Serializer<K> keySerializer) {
+    serializers.registerKeySerializer(keySerializer);
+  }
+
+  /**
+   * Register <code>serializer</code>.
+   * <p>
+   * The class for with the serializer is being registered is directly extracted from the class definition.
+   *
+   * @param valueSerializer serializer to register
+   */
+  public void registerValueSerializer(Serializer<V> valueSerializer) {
+    serializers.registerValueSerializer(valueSerializer);
   }
 
   /**
@@ -408,7 +418,7 @@ public class Configuration<K,V> implements Iterable<Map.Entry<String,String>> {
     storeCompactedEventListeners.add(onStoreCompacted);
   }
 
-  public Serializers getSerializers() {
+  public Serializers<K,V> getSerializers() {
     return serializers;
   }
 
@@ -425,7 +435,7 @@ public class Configuration<K,V> implements Iterable<Map.Entry<String,String>> {
       return false;
     }
 
-    Configuration that = (Configuration) o;
+    Configuration<K,V> that = (Configuration<K,V>) o;
 
     if (!properties.equals(that.properties)) {
       return false;

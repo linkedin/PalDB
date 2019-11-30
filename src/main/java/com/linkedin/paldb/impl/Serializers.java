@@ -17,61 +17,66 @@ package com.linkedin.paldb.impl;
 import com.linkedin.paldb.api.Serializer;
 import org.slf4j.*;
 
-import java.util.*;
+import java.util.Objects;
 
 
 /**
  * Manages the custom serializers.
  */
-public final class Serializers {
+public final class Serializers<K,V> {
 
   // Logger
   private static final Logger log = LoggerFactory.getLogger(Serializers.class);
-  private final Map<String, Serializer<?>> serializerMap;
+
+  private Serializer<K> keySerializer;
+  private Serializer<V> valueSerializer;
 
   /**
    * Default constructor.
    */
   public Serializers() {
-    serializerMap = new HashMap<>();
+    this.keySerializer = null;
+    this.valueSerializer = null;
   }
 
   /**
-   * Registers the serializer.
+   * Registers keu serializer.
    *
-   * @param serializer serializer
-   * @param <T> serialized class type
+   * @param keySerializer serializer
    */
-  public synchronized <T> void registerSerializer(Serializer<T> serializer) {
-    var className = serializer.serializedClass().getName();
-    serializerMap.putIfAbsent(className, serializer);
-    log.info("Registered new serializer '{}' for '{}'", serializer.getClass().getName(), className);
+  public synchronized void registerKeySerializer(Serializer<K> keySerializer) {
+    this.keySerializer = keySerializer;
+    log.info("Registered new key serializer '{}'", keySerializer.getClass().getName());
   }
 
   /**
-   * Get the serializer instance associated with <code>cls</code> or null if not found.
-   *
-   * @param cls object class
-   * @return serializer instance or null if not found
+   * Register value serializer
+   * @param valueSerializer serializer
    */
-  public Serializer getSerializer(Class<?> cls) {
-    return getSerializer(cls.getName());
-}
+  public synchronized void registerValueSerializer(Serializer<V> valueSerializer) {
+    this.valueSerializer = valueSerializer;
+    log.info("Registered new value serializer '{}'", valueSerializer.getClass().getName());
+  }
 
-  public Serializer getSerializer(String className) {
-    return serializerMap.get(className);
+  public Serializer<K> keySerializer() {
+    return keySerializer;
+  }
+
+  public Serializer<V> valueSerializer() {
+    return valueSerializer;
   }
 
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (!(o instanceof Serializers)) return false;
-    final Serializers that = (Serializers) o;
-    return Objects.equals(serializerMap, that.serializerMap);
+    if (o == null || getClass() != o.getClass()) return false;
+    final Serializers<?, ?> that = (Serializers<?, ?>) o;
+    return Objects.equals(keySerializer, that.keySerializer) &&
+            Objects.equals(valueSerializer, that.valueSerializer);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(serializerMap);
+    return Objects.hash(keySerializer, valueSerializer);
   }
 }

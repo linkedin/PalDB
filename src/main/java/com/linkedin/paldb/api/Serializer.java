@@ -49,6 +49,4 @@ public interface Serializer<T> extends Serializable {
    * @throws IOException if an io error occurs
    */
   T read(DataInput dataInput) throws IOException;
-
-  Class<T> serializedClass();
 }
