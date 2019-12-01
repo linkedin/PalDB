@@ -380,11 +380,10 @@ class TestStorageSerialization {
   }
 
   @Test
-  void testObjectArray() throws IOException {
+  void testObjectArray() {
     var serialization = new StorageSerialization<>(new Configuration<Object[],Integer>());
     Object[] l = new Object[]{"foo", 2, Boolean.TRUE};
-    var deserialize = serialization.deserializeKey(serialization.serializeKey(l));
-    assertArrayEquals(l, deserialize);
+    assertThrows(UnsupportedOperationException.class, () -> serialization.serializeKey(l));
   }
 
   @Test
@@ -436,12 +435,46 @@ class TestStorageSerialization {
   }
 
   @Test
-  void testIntArray() throws IOException {
+  void testIntPrimitiveArray() throws IOException {
     var serialization = new StorageSerialization<>(new Configuration<int[],Integer>());
     int[][] l = new int[][]{{3, 5}, {-1200, 29999}, {3, 100000}, {-43999, 100000}};
     for (int[] a : l) {
       var deserialize = serialization.deserializeKey(serialization.serializeKey(a));
       assertArrayEquals(a, deserialize);
+    }
+  }
+
+
+  @Test
+  void testIntegerArray() throws IOException {
+    var serialization = new StorageSerialization<>(new Configuration<Integer[],Integer>());
+    var l = new Integer[][]{{3, 5}, {-1200, 29999}, {3, 100000}, {-43999, 100000}};
+    for (var a : l) {
+      var key = serialization.serializeKey(a);
+      var deserialize = serialization.deserializeKey(key);
+      assertArrayEquals(a, deserialize);
+    }
+  }
+
+  @Test
+  void testIntegerIntegerArray() throws IOException {
+    var serialization = new StorageSerialization<>(new Configuration<Integer[][],Integer>());
+    var l = new Integer[][]{{3, 5}, {-1200, 29999}, {3, 100000}, {-43999, 100000}};
+    for (var a : l) {
+      var lKey = new Integer[][] { a };
+      var key = serialization.serializeKey(lKey);
+      var deserialize = serialization.deserializeKey(key);
+      assertArrayEquals(lKey, deserialize);
+    }
+  }
+
+  @Test
+  void testBooleanBooleanArrayUnsupported() throws IOException {
+    var serialization = new StorageSerialization<>(new Configuration<Boolean[][],Integer>());
+    var l = new Boolean[][]{{true, false}, {false, true}, {true, false}, {false, true}};
+    for (var a : l) {
+      var lKey = new Boolean[][] { a };
+      assertThrows(UnsupportedOperationException.class, () -> serialization.serializeKey(lKey));
     }
   }
 

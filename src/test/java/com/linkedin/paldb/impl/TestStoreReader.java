@@ -395,16 +395,16 @@ public class TestStoreReader {
 
   @Test
   void testGetArray() {
-    try (var reader = readerFor(new Object[]{"foo"})) {
-      assertArrayEquals(new Object[]{"foo"}, reader.get(0));
-      assertArrayEquals(new Object[]{"foo"}, reader.get(0, new Object[]{"bar"}));
-      assertArrayEquals(new Object[]{"bar"}, reader.get(-1, new Object[]{"bar"}));
+    try (var reader = readerFor(new String[]{"foo"})) {
+      assertArrayEquals(new String[]{"foo"}, reader.get(0));
+      assertArrayEquals(new String[]{"foo"}, reader.get(0, new String[]{"bar"}));
+      assertArrayEquals(new String[]{"bar"}, reader.get(-1, new String[]{"bar"}));
     }
   }
 
   @Test
   void testGetArrayMissing() {
-    try (var reader = readerFor(new Object[]{"foo"})) {
+    try (var reader = readerFor(new String[]{"foo"})) {
       assertNull(reader.get(-1));
     }
   }

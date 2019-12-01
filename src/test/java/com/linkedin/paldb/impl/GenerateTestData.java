@@ -94,18 +94,18 @@ public class GenerateTestData {
     return res;
   }
 
-  public static Object[] generateCompoundKeys(int count) {
-    Object[] res = new Object[count];
+  public static int[][] generateCompoundKeys(int count) {
+    var res = new int[count][];
     Random random = new Random(345);
     for (int i = 0; i < count; i++) {
-      Object[] k = new Object[]{(byte) random.nextInt(10), i};
+      var k = new int[]{(byte) random.nextInt(10), i};
       res[i] = k;
     }
     return res;
   }
 
-  public static Object[] generateCompoundByteKey() {
-    Object[] res = new Object[2];
+  public static byte[] generateCompoundByteKey() {
+    var res = new byte[2];
     res[0] = (byte) 6;
     res[1] = (byte) 0;
     return res;
