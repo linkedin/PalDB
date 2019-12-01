@@ -80,11 +80,6 @@ class TestStorageSerialization {
   }
 
   @Test
-  void testSerializeKeyNull() {
-    assertThrows(NullPointerException.class, () -> serialization.serializeKey(null));
-  }
-
-  @Test
   void testTransformValue() throws IOException {
     Integer l = 1;
     var deserialize = serialization.deserializeValue(serialization.serializeValue(l));

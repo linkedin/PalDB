@@ -56,9 +56,6 @@ final class StorageSerialization<K,V> {
    * @throws IOException if an io error occurs
    */
   byte[] serializeKey(K key) throws IOException {
-    if (key == null) {
-      throw new NullPointerException();
-    }
     var dataIO = new DataInputOutput();
     serializeObject(key, dataIO, false, serializers.keySerializer());
     return dataIO.toByteArray();
