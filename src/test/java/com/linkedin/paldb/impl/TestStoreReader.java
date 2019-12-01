@@ -16,10 +16,15 @@ package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
 import com.linkedin.paldb.api.errors.StoreClosed;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.*;
+import org.apache.avro.io.*;
 import org.junit.jupiter.api.*;
 
 import java.awt.*;
 import java.io.*;
+import java.lang.invoke.*;
+import java.nio.ByteOrder;
 import java.nio.file.*;
 import java.util.List;
 import java.util.*;
@@ -29,7 +34,7 @@ import java.util.concurrent.atomic.*;
 import static com.linkedin.paldb.utils.FileUtils.deleteDirectory;
 import static org.junit.jupiter.api.Assertions.*;
 
-class TestStoreReader {
+public class TestStoreReader {
 
   private Path tempDir;
   private File storeFile;
@@ -471,21 +476,65 @@ class TestStoreReader {
     }
   }
 
+  @Test
+  void should_serialize_avro() {
+    var record = new GenericRecordBuilder(GenericAvroSerializer.schema)
+            .set("id", 1234)
+            .set("title", "avro test")
+            .set("size", 1024)
+            .build();
+    try (var reader = readerFor(record, new GenericAvroSerializer())) {
+      assertEquals(record, reader.get(0));
+    }
+  }
+
   // UTILITY
 
-  public static class PointSerializer implements Serializer<Point> {
+  public static class GenericAvroSerializer implements Serializer<GenericRecord> {
+
+    private static final Schema schema = new Schema.Parser().parse("{\"namespace\": \"net.soundvibe.paldb\",\n" +
+            "  \"type\": \"record\",\n" +
+            "  \"name\": \"AvroTest\",\n" +
+            "  \"fields\": [\n" +
+            "    {\"name\": \"id\", \"type\": \"int\"},\n" +
+            "    {\"name\": \"title\",  \"type\": [\"string\", \"null\"]},\n" +
+            "    {\"name\": \"size\", \"type\": [\"int\", \"null\"]}\n" +
+            "  ]\n" +
+            "}");
 
     @Override
-    public Point read(DataInput input)
-        throws IOException {
-      return new Point(input.readInt(), input.readInt());
+    public byte[] write(GenericRecord input) throws IOException {
+      var byteArrayOutputStream = new ByteArrayOutputStream();
+      var directBinaryEncoder = EncoderFactory.get().directBinaryEncoder(byteArrayOutputStream, null);
+      var writer = new GenericDatumWriter<GenericRecord>(schema);
+      writer.write(input, directBinaryEncoder);
+      return byteArrayOutputStream.toByteArray();
     }
 
     @Override
-    public void write(DataOutput output, Point input)
-        throws IOException {
-      output.writeInt(input.x);
-      output.writeInt(input.y);
+    public GenericRecord read(byte[] bytes) throws IOException {
+      var reader = new GenericDatumReader<GenericRecord>(schema);
+      return reader.read(null, DecoderFactory.get().binaryDecoder(bytes, null));
+    }
+  }
+
+  public static class PointSerializer implements Serializer<Point> {
+
+    private static final VarHandle INT_HANDLE = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
+
+    @Override
+    public byte[] write(Point input) {
+      var buffer = new byte[8];
+      INT_HANDLE.set(buffer, 0, input.x);
+      INT_HANDLE.set(buffer, 4, input.y);
+      return buffer;
+    }
+
+    @Override
+    public Point read(byte[] bytes) {
+      int x = (int)INT_HANDLE.get(bytes, 0);
+      int y = (int)INT_HANDLE.get(bytes, 4);
+      return new Point(x, y);
     }
   }
 }

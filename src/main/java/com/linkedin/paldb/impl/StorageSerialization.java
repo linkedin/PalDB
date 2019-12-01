@@ -230,7 +230,7 @@ final class StorageSerialization<K,V> {
 
   // SERIALIZATION
 
-  static final int NULL_ID = -1;
+  private static final int NULL_ID = -1;
   private static final int NULL = 0;
   private static final int BOOLEAN_TRUE = 2;
   private static final int BOOLEAN_FALSE = 3;
@@ -382,7 +382,9 @@ final class StorageSerialization<K,V> {
       // Custom
       if (serializer != null) {
         out.write(CUSTOM);
-        serializer.write(out, (T) obj);
+        var bytes = serializer.write((T) obj);
+        if (bytes == null) throw new NullPointerException("Serializer [" + serializer.getClass() + "] has written null bytes for value: " + obj);
+        serializeByteArray(out, bytes, compress);
       } else if (obj instanceof Object[]) {
         serializeObjectArray(out, (Object[]) obj, serializer);
       } else {
@@ -800,7 +802,14 @@ final class StorageSerialization<K,V> {
       if (serializer == null) {
         throw new MissingSerializer("Serializer not registered");
       }
-      ret = serializer.read(is);
+      int headBytes = is.readUnsignedByte();
+      if (headBytes == BYTE_ARRAY) {
+        var bytes = deserializeByteArray(is);
+        ret = serializer.read(bytes);
+      } else if (headBytes == BYTE_ARRAY_C) {
+        var bytes = deserializeByteCompressedArray(is);
+        ret = serializer.read(bytes);
+      } else throw new IllegalStateException("Invalid byte array type [" + headBytes + "] for serializer: " + serializer.getClass());
     } else {
       switch (head) {
         case NULL:

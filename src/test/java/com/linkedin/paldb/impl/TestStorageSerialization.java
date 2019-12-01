@@ -20,7 +20,9 @@ import org.junit.jupiter.api.*;
 
 import java.awt.*;
 import java.io.*;
+import java.lang.invoke.*;
 import java.math.*;
+import java.nio.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -120,20 +122,7 @@ class TestStorageSerialization {
   void testCustomSerializer() throws Throwable {
     var configuration = new Configuration<Integer,Point>();
     var serialization = new StorageSerialization<>(configuration);
-    configuration.registerValueSerializer(new Serializer<>() {
-      @Override
-      public void write(DataOutput dataOutput, Point input)
-              throws IOException {
-        dataOutput.writeInt(input.x);
-        dataOutput.writeInt(input.y);
-      }
-
-      @Override
-      public Point read(DataInput input)
-              throws IOException {
-        return new Point(input.readInt(), input.readInt());
-      }
-    });
+    configuration.registerValueSerializer(new TestStoreReader.PointSerializer());
     Point p = new Point(42, 9);
     byte[] buf = serialization.serializeValue(p);
     assertEquals(p, serialization.deserializeValue(buf));
@@ -144,17 +133,21 @@ class TestStorageSerialization {
     var configuration = new Configuration<Integer,Point[]>();
     var serialization = new StorageSerialization<>(configuration);
     configuration.registerValueSerializer(new Serializer<>() {
+      VarHandle INT_HANDLE = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
+
       @Override
-      public void write(DataOutput dataOutput, Point[] input)
-              throws IOException {
-        dataOutput.writeInt(input[0].x);
-        dataOutput.writeInt(input[0].y);
+      public byte[] write(Point[] input) {
+        var buffer = new byte[8];
+        INT_HANDLE.set(buffer, 0, input[0].x);
+        INT_HANDLE.set(buffer, 4, input[0].y);
+        return buffer;
       }
 
       @Override
-      public Point[] read(DataInput input)
-              throws IOException {
-        return new Point[]{new Point(input.readInt(), input.readInt())};
+      public Point[] read(byte[] bytes) {
+        int x = (int)INT_HANDLE.get(bytes, 0);
+        int y = (int)INT_HANDLE.get(bytes, 4);
+        return new Point[] { new Point(x,y)};
       }
     });
     Point[] p = new Point[]{new Point(42, 9)};
@@ -168,12 +161,13 @@ class TestStorageSerialization {
     var serialization = new StorageSerialization<>(configuration);
     configuration.registerValueSerializer(new Serializer<>() {
       @Override
-      public ImplementsA read(DataInput dataInput) throws IOException {
-        return new ImplementsA(dataInput.readInt());
+      public byte[] write(ImplementsA input) {
+        return ByteBuffer.allocate(4).putInt(input.getVal()).array();
       }
+
       @Override
-      public void write(DataOutput dataOutput, ImplementsA input) throws IOException {
-        dataOutput.writeInt(input.getVal());
+      public ImplementsA read(byte[] bytes) {
+        return new ImplementsA(ByteBuffer.wrap(bytes).getInt());
       }
     });
     ImplementsA a = new ImplementsA(42);
@@ -188,14 +182,14 @@ class TestStorageSerialization {
     configuration.registerValueSerializer(new Serializer<>() {
 
       @Override
-      public A read(DataInput dataInput) throws IOException {
-        return new ImplementsA(dataInput.readInt());
-      }
-      @Override
-      public void write(DataOutput dataOutput, A input) throws IOException {
-        dataOutput.writeInt(input.getVal());
+      public byte[] write(A input) {
+        return ByteBuffer.allocate(4).putInt(input.getVal()).array();
       }
 
+      @Override
+      public A read(byte[] bytes) {
+        return new ImplementsA(ByteBuffer.wrap(bytes).getInt());
+      }
     });
 
     var a = new ImplementsA(42);

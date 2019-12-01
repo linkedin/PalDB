@@ -76,30 +76,4 @@ public interface StoreReader<K,V> extends AutoCloseable {
 
   Stream<Map.Entry<K,V>> stream();
   Stream<K> streamKeys();
-
-/*  *//**
-   * Gets the store iterable.
-   * <p>
-   * Note that entry objects are reused.
-   *
-   * @return iterable over store
-   *//*
-  Iterable<Map.Entry<K, V>> iterable();
-
-  *//**
-   * Gets the store iterator.
-   * <p>
-   * Note that entry objects are reused.
-   *
-   * @return iterable over store
-   *//*
-  @Override
-  Iterator<Map.Entry<K,V>> iterator();
-
-  *//**
-   * Gets the store keys iterable.
-   *
-   * @return iterable over keys
-   *//*
-  Iterable<K> keys();*/
 }

@@ -192,27 +192,31 @@ Serializers can be defined by implementing the `Serializer` interface and its me
 ```java
 public class PointSerializer implements Serializer<Point> {
 
+  private static final VarHandle INT_HANDLE = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
+  
   @Override
-  public Point read(DataInput input) {
-    return new Point(input.readInt(), input.readInt());
+  public byte[] write(Point input) {
+    var buffer = new byte[8];
+    INT_HANDLE.set(buffer, 0, input.x);
+    INT_HANDLE.set(buffer, 4, input.y);
+    return buffer;
   }
 
   @Override
-  public void write(DataOutput output, Point point) {
-    output.writeInt(point.x);
-    output.writeInt(point.y);
+  public Point read(byte[] bytes) {
+    int x = (int)INT_HANDLE.get(bytes, 0);
+    int y = (int)INT_HANDLE.get(bytes, 4);
+    return new Point(x, y);
   }
 }
 ```
 
-The `write` method serializes the instance to the `DataOutput`. The `read` method deserializes from `DataInput` and creates new object instances.
+The `write` method serializes the instance by returning `byte[]`. The `read` method deserializes from `byte[]` and creates new object instances.
 
 Serializer implementation should be registered using the `Configuration`:
 
 ```java
-var configuration = PalDB.newConfiguration();
-configuration.registerKeySerializer(new ColorSerializer());
-configuration.registerValueSerializer(new PointSerializer());
+var configuration = new Configuration<>(new ColorSerializer(), new PointSerializer());
 ```
 
 Use cases

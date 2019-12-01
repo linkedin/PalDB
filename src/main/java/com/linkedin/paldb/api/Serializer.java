@@ -14,10 +14,7 @@
 
 package com.linkedin.paldb.api;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.*;
 
 
 /**
@@ -31,22 +28,22 @@ import java.io.Serializable;
  *
  * @param <T> class type
  */
-public interface Serializer<T> extends Serializable {
+public interface Serializer<T> {
 
   /**
    * Writes the instance <code>input</code> to the data output.
-   * @param dataOutput data output
    * @param input instance
+   * @return serialized byte array
    * @throws IOException if an io error occurs
    */
-  void write(DataOutput dataOutput, T input) throws IOException;
+  byte[] write(T input) throws IOException;
 
   /**
    * Reads the data input and creates the instance.
    *
-   * @param dataInput data input
+   * @param bytes data input
    * @return new instance of type <code>K</code>.
    * @throws IOException if an io error occurs
    */
-  T read(DataInput dataInput) throws IOException;
+  T read(byte[] bytes) throws IOException;
 }

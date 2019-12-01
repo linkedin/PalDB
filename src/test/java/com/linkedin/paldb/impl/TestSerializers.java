@@ -18,7 +18,6 @@ import com.linkedin.paldb.api.Serializer;
 import org.junit.jupiter.api.*;
 
 import java.awt.*;
-import java.io.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -85,29 +84,27 @@ public class TestSerializers {
   public static class ColorSerializer implements Serializer<Color> {
 
     @Override
-    public Color read(DataInput input) {
-      return null;
+    public byte[] write(Color input) {
+      return new byte[0];
     }
 
     @Override
-    public void write(DataOutput output, Color input) {
-
+    public Color read(byte[] bytes) {
+      return null;
     }
-
   }
 
   public static class PointSerializer implements Serializer<Point> {
 
     @Override
-    public Point read(DataInput input) {
-      return null;
+    public byte[] write(Point input) {
+      return new byte[0];
     }
 
     @Override
-    public void write(DataOutput output, Point input) {
-
+    public Point read(byte[] bytes) {
+      return null;
     }
-
   }
 
   interface AnInterface {
@@ -121,14 +118,13 @@ public class TestSerializers {
   public static class SerializerWithInterface implements Serializer<AnInterface> {
 
     @Override
-    public AnInterface read(DataInput input) {
-      return null;
+    public byte[] write(AnInterface input) {
+      return new byte[0];
     }
 
     @Override
-    public void write(DataOutput output, AnInterface input) {
-
+    public AnInterface read(byte[] bytes) {
+      return null;
     }
-
   }
 }

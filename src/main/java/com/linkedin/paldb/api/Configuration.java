@@ -84,6 +84,12 @@ public class Configuration<K,V> implements Iterable<Map.Entry<String,String>> {
     storeCompactedEventListeners = new ArrayList<>();
   }
 
+  public Configuration(Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    this();
+    serializers.registerKeySerializer(keySerializer);
+    serializers.registerValueSerializer(valueSerializer);
+  }
+
   /**
    * Private constructor that initializes a read-only copy of <code>configuration</code>.
    *
