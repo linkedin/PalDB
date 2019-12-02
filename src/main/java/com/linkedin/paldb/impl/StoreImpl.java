@@ -66,7 +66,7 @@ public final class StoreImpl {
         if (parent.mkdirs()) {
           log.info("Creating directories for path {}", file.getName());
         } else {
-          throw new RuntimeException(String.format("Couldn't create directory %s", parent));
+          throw new IOException(String.format("Couldn't create directory %s", parent));
         }
       }
       return new WriterImpl<>(config, file);

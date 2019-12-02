@@ -28,11 +28,11 @@ public final class WriterImpl<K,V> implements StoreWriter<K,V> {
   // Logger
   private static final Logger log = LoggerFactory.getLogger(WriterImpl.class);
   // Configuration
-  private final Configuration config;
+  private final Configuration<K,V> config;
   // Storage
   private final StorageWriter storage;
   // Serialization
-  private final StorageSerialization serialization;
+  private final StorageSerialization<K,V> serialization;
   // File (can be null)
   private final File file;
   // Stream
@@ -46,7 +46,7 @@ public final class WriterImpl<K,V> implements StoreWriter<K,V> {
    * @param config configuration
    * @param file input file
    */
-  WriterImpl(Configuration config, File file) throws IOException {
+  WriterImpl(Configuration<K,V> config, File file) throws IOException {
     this(config, new FileOutputStream(file), file);
   }
 
@@ -56,7 +56,7 @@ public final class WriterImpl<K,V> implements StoreWriter<K,V> {
    * @param config configuration
    * @param stream input stream
    */
-  WriterImpl(Configuration config, OutputStream stream) {
+  WriterImpl(Configuration<K,V> config, OutputStream stream) {
     this(config, stream, null);
   }
 
@@ -66,14 +66,14 @@ public final class WriterImpl<K,V> implements StoreWriter<K,V> {
    * @param config configuration
    * @param stream output stream
    */
-  private WriterImpl(Configuration config, OutputStream stream, File file) {
+  private WriterImpl(Configuration<K,V> config, OutputStream stream, File file) {
     this.config = config;
     this.outputStream = stream;
     this.file = file;
 
     // Open storage
     log.debug("Opening writer storage");
-    serialization = new StorageSerialization(config);
+    serialization = new StorageSerialization<>(config);
     storage = new StorageWriter(config, outputStream);
     opened = true;
   }
@@ -97,7 +97,7 @@ public final class WriterImpl<K,V> implements StoreWriter<K,V> {
   }
 
   @Override
-  public Configuration getConfiguration() {
+  public Configuration<K,V> getConfiguration() {
     return config;
   }
 
@@ -112,21 +112,6 @@ public final class WriterImpl<K,V> implements StoreWriter<K,V> {
       storage.put(keyBytes, serialization.serializeValue(value));
     } catch (IOException ex) {
       throw new UncheckedIOException(ex);
-    }
-  }
-
-  @Override
-  public void putAll(K[] keys, V[] values) {
-    checkOpen();
-    if (keys == null || values == null) {
-      throw new NullPointerException();
-    }
-    if (keys.length != values.length) {
-      throw new IllegalArgumentException("Key and value collections should be the same size");
-    }
-    int size = keys.length;
-    for (int i = 0; i < size; i++) {
-      put(keys[i], values[i]);
     }
   }
 

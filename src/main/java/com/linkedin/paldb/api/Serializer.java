@@ -23,7 +23,8 @@ import java.io.*;
  * Users should register serializers in the configuration:
  * <pre>
  * Configuration configuration = PalDB.newConfiguration();
- * configuration.registerSerializer(new PointSerializer());
+ * configuration.registerKeySerializer(new PointSerializer());
+ * configuration.registerValueSerializer(new PointSerializer());
  * </pre>
  *
  * @param <T> class type

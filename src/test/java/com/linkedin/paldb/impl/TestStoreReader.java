@@ -501,19 +501,19 @@ public class TestStoreReader {
             "    {\"name\": \"size\", \"type\": [\"int\", \"null\"]}\n" +
             "  ]\n" +
             "}");
+    private static final GenericDatumReader<GenericRecord> reader = new GenericDatumReader<>(schema);
+    private static final GenericDatumWriter<GenericRecord> writer = new GenericDatumWriter<>(schema);
 
     @Override
     public byte[] write(GenericRecord input) throws IOException {
       var byteArrayOutputStream = new ByteArrayOutputStream();
       var directBinaryEncoder = EncoderFactory.get().directBinaryEncoder(byteArrayOutputStream, null);
-      var writer = new GenericDatumWriter<GenericRecord>(schema);
       writer.write(input, directBinaryEncoder);
       return byteArrayOutputStream.toByteArray();
     }
 
     @Override
     public GenericRecord read(byte[] bytes) throws IOException {
-      var reader = new GenericDatumReader<GenericRecord>(schema);
       return reader.read(null, DecoderFactory.get().binaryDecoder(bytes, null));
     }
   }

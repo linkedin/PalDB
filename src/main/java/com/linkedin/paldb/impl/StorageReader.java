@@ -65,7 +65,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   private MappedByteBuffer[] indexBuffers;
   private MappedByteBuffer[] dataBuffers;
 
-  StorageReader(Configuration configuration, File file) throws IOException {
+  StorageReader(Configuration<?,?> configuration, File file) throws IOException {
     // File path
     // Configuration
     if (!file.exists()) {

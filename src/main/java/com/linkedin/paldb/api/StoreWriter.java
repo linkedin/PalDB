@@ -40,7 +40,7 @@ public interface StoreWriter<K,V> extends AutoCloseable {
    *
    * @return the store configuration
    */
-  Configuration getConfiguration();
+  Configuration<K,V> getConfiguration();
 
   /**
    * Put key-value to the store.
@@ -58,7 +58,18 @@ public interface StoreWriter<K,V> extends AutoCloseable {
    * @param keys a collection of keys
    * @param values a collection of values
    */
-  void putAll(K[] keys, V[] values);
+  default void putAll(K[] keys, V[] values) {
+    if (keys == null || values == null) {
+      throw new NullPointerException();
+    }
+    if (keys.length != values.length) {
+      throw new IllegalArgumentException("Key and value collections should be the same size");
+    }
+    int size = keys.length;
+    for (int i = 0; i < size; i++) {
+      put(keys[i], values[i]);
+    }
+  }
 
   /**
    * Put serialized key-value entry to the store. <p> Use only this method if

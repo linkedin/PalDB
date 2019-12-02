@@ -16,6 +16,7 @@ package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.utils.DataInputOutput;
 
+import java.io.*;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -80,8 +81,8 @@ public final class ReaderKeyIterable<K> implements Iterable<K> {
       Map.Entry<byte[], byte[]> byteEntry = byteIterator.next();
       try {
         return serialization.deserializeKey(dataInputOutput.reset(byteEntry.getKey()));
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
+      } catch (IOException ex) {
+        throw new UncheckedIOException(ex);
       }
     }
 

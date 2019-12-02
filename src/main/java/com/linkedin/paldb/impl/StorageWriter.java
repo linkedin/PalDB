@@ -35,7 +35,7 @@ public class StorageWriter {
 
   private static final Logger log = LoggerFactory.getLogger(StorageWriter.class);
   // Configuration
-  private final Configuration config;
+  private final Configuration<?,?> config;
   private final double loadFactor;
   // Output
   private final File tempFolder;
@@ -66,7 +66,7 @@ public class StorageWriter {
   private final long segmentSize;
   private final boolean duplicatesEnabled;
 
-  StorageWriter(Configuration configuration, OutputStream stream) {
+  StorageWriter(Configuration<?,?> configuration, OutputStream stream) {
     config = configuration;
     loadFactor = config.getDouble(Configuration.LOAD_FACTOR);
     if (loadFactor <= 0.0 || loadFactor >= 1.0) {

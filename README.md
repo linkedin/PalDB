@@ -24,6 +24,7 @@ Improvements from PalDB 1.0.2
 - There are no limits on how many keys you can store
 - Duplicates could be optionally allowed
 - Bloom filters could be enabled for even better read performance in some cases
+- Simplified and easier to write serializers
 
 Performance
 -----------
@@ -80,9 +81,8 @@ try (var reader = PalDB.<Integer,String>createReader(new File("store.paldb"))) {
 How to iterate on a store
 ```java
 try (var reader = PalDB.<Integer,String>createReader(new File("store.paldb"))) {
-    for (var entry : reader) {
-      Integer key = entry.getKey();
-      String value = entry.getValue();
+    try (var stream : reader.stream()) {
+      stream.foreEach(entry -> System.out.println(entry.getKey() + ": " + entry.getValue()));
     }
 }
 ```
@@ -116,6 +116,7 @@ Yes, you can use `StoreRW` for that.
 **Are duplicate keys allowed?**
 
 Duplicates are not allowed by default. But it could be changed in writer configuration if needed.
+Duplicates are automatically enabled when using StoreRW to have the same semantics as Java HashMap.
 
 **Do keys have an order when iterating?**
 
@@ -180,7 +181,7 @@ A few tips on how configuration can affect performance:
 + Disabling memory mapping will significantly reduce performance as disk seeks will be performed instead.
 + Enabling the bloom filter makes sense when you expect to miss finding some values. It will greatly increase read performance in this case.
 + Compression can be enabled when the store size is a concern and the values are large (e.g. a sparse matrix). By default, PalDB already uses a compact serialization. Snappy is used for compression.
-+ StoreRW is not optimized for putting huge amounts of entries after `init()` is completed. Keeping `write.buffer.size` large will reduce flush times significantly with a cost of increased memory usage.
++ StoreRW is not optimized for putting huge amounts of entries in short intervals after `init()` is completed. Keeping `write.buffer.size` large will reduce flush times significantly with a cost of increased memory usage.
 
 Custom serializer
 -----------------

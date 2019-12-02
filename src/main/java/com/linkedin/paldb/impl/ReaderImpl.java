@@ -91,11 +91,6 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
   }
 
   @Override
-  public V get(K key) {
-    return get(key, null);
-  }
-
-  @Override
   public V get(K key, V defaultValue) {
     checkOpen();
     if (key == null) {

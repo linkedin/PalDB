@@ -49,7 +49,7 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
                 reader.set(new ReaderImpl<>(config, file));
             }
             return new RWInitializer<>(new WriterImpl<>(config, fileToInit), () -> {
-                var initReader = new ReaderImpl<K,V>(config, fileToInit);
+                var initReader = new ReaderImpl<>(config, fileToInit);
                 reader.set(reader.get() != null ? merge(reader.get(), initReader) : initReader);
                 if (!file.equals(fileToInit)) {
                     try {
@@ -65,9 +65,11 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
         }
     }
 
+    private static final String EXT_PALDB = ".paldb";
+
     private File resolveInitFile() {
         return file.exists() && file.length() > 0L ?
-                FileUtils.createTempFile("writer_", ".paldb") :
+                FileUtils.createTempFile("writer_", EXT_PALDB) :
                 file;
     }
 
@@ -91,11 +93,6 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
             writer.close();
             onClose.run();
         }
-    }
-
-    @Override
-    public V get(K key) {
-        return get(key, null);
     }
 
     @Override
@@ -180,8 +177,8 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
         if (reader1.getFile().equals(reader2.getFile())) return reader1;
 
         log.info("Merging {} into {}", reader2, reader1);
-        var tempFile = FileUtils.createTempFile("tmp_", ".paldb");
-        try (var writer = new WriterImpl<K,V>(reader1.getConfiguration(), tempFile);
+        var tempFile = FileUtils.createTempFile("tmp_", EXT_PALDB);
+        try (var writer = new WriterImpl<>(reader1.getConfiguration(), tempFile);
              var r1 = reader1;
              var r2 = reader2) {
 
@@ -233,7 +230,7 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
                 if (entries.isEmpty()) return null;
                 var lastEntry = lastEntry(entries);
                 log.info("Compacting {}, size: {}", file, file.length());
-                var tempFile = FileUtils.createTempFile("tmp_", ".paldb");
+                var tempFile = FileUtils.createTempFile("tmp_", EXT_PALDB);
                 try (var writer = new WriterImpl<>(config, tempFile)) {
                     Iterable<Map.Entry<K,V>> iter = () -> new RWEntryIterator<>(reader.get(), entries, null);
                     for (var keyValue : iter) {

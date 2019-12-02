@@ -63,7 +63,9 @@ public interface StoreReader<K,V> extends AutoCloseable {
    * @param key key to fetch
    * @return value or null if not found
    */
-  V get(K key);
+  default V get(K key) {
+    return get(key, null);
+  }
 
   /**
    * Gets the value for <code>key</code> or <code>defaultValue</code> if not found.
@@ -74,6 +76,17 @@ public interface StoreReader<K,V> extends AutoCloseable {
    */
   V get(K key, V defaultValue);
 
+  /**
+   * Streams all database entries.
+   * Stream should be properly closed, using try-with-resources.
+   * @return stream of Map.Entry<K,V>
+   */
   Stream<Map.Entry<K,V>> stream();
+
+  /**
+   * Streams all database keys.
+   * Stream should be properly closed, using try-with-resources.
+   * @return stream of keys
+   */
   Stream<K> streamKeys();
 }

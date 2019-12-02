@@ -1,5 +1,10 @@
 package com.linkedin.paldb.api;
 
+/**
+ * Configuration builder
+ * @param <K> key type
+ * @param <V> value type
+ */
 public final class PalDBConfigBuilder<K,V> {
 
     private final Configuration<K,V> palDbConfiguration;

@@ -14,7 +14,8 @@ import java.util.concurrent.CompletableFuture;
 public interface StoreRW<K,V> extends StoreReader<K,V>, Flushable {
 
     /**
-     * Opens the database with the ability to initialize it with the new entries
+     * Opens the database with the ability to initialize it with the new entries.
+     * StoreInitializer should be closed after usage.
      * @return AutoCloseable interface containing method `put` to add new entries.
      */
     StoreInitializer<K,V> init();
