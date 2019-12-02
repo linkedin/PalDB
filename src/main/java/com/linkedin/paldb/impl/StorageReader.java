@@ -27,6 +27,7 @@ import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.*;
 
+import static com.linkedin.paldb.impl.StorageSerialization.REMOVED_ID;
 import static com.linkedin.paldb.utils.DataInputOutput.*;
 
 
@@ -43,6 +44,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
   private final long keyCount;
   // Key count for each key length
   private final long[] keyCounts;
+  private final long[] actualKeyCounts;
   // Slot size for each key length
   private final int[] slotSizes;
   // Number of slots for each key length
@@ -151,6 +153,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
       indexOffsets = new long[maxKeyLength + 1];
       dataOffsets = new long[maxKeyLength + 1];
       keyCounts = new long[maxKeyLength + 1];
+      actualKeyCounts = new long[maxKeyLength + 1];
       slots = new long[maxKeyLength + 1];
       slotSizes = new int[maxKeyLength + 1];
 
@@ -159,6 +162,7 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
         int keyLength = dataInputStream.readInt();
 
         keyCounts[keyLength] = dataInputStream.readLong();
+        actualKeyCounts[keyLength] = dataInputStream.readLong();
         slots[keyLength] = dataInputStream.readLong();
         slotSizes[keyLength] = dataInputStream.readInt();
         indexOffsets[keyLength] = dataInputStream.readLong();
@@ -407,8 +411,8 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
     }
 
     private void nextKeyLength() {
-      for (int i = currentKeyLength + 1; i < keyCounts.length; i++) {
-        long c = keyCounts[i];
+      for (int i = currentKeyLength + 1; i < actualKeyCounts.length; i++) {
+        long c = actualKeyCounts[i];
         if (c > 0) {
           currentKeyLength = i;
           keyLimit += c;
@@ -436,14 +440,15 @@ public class StorageReader implements Iterable<Map.Entry<byte[], byte[]>> {
         }
 
         byte[] key = Arrays.copyOf(currentSlotBuffer, currentKeyLength);
-        byte[] value = null;
+        long valueOffset = currentDataOffset + offset;
+        var value = mMapData ? getMMapBytes(valueOffset) : getDiskBytes(valueOffset);
 
-        if (withValue) {
-          long valueOffset = currentDataOffset + offset;
-          value = mMapData ? getMMapBytes(valueOffset) : getDiskBytes(valueOffset);
+        boolean isRemoved = (value.length > 0 && (((int) value[0] & 0xff) == REMOVED_ID));
+        if (isRemoved) {
+          return next();
         }
 
-        entry.set(key, value);
+        entry.set(key, withValue ? value : null);
 
         if (++keyIndex == keyLimit) {
           nextKeyLength();

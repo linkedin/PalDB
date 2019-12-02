@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.*;
 
+import static com.linkedin.paldb.impl.StorageSerialization.*;
 import static com.linkedin.paldb.utils.DataInputOutput.*;
 
 /**
@@ -58,6 +59,7 @@ public class StorageWriter {
   // Number of keys
   private long keyCount;
   private long[] keyCounts;
+  private long[] actualKeyCounts;
   // Number of values
   private long valueCount;
   // Number of collisions
@@ -87,9 +89,12 @@ public class StorageWriter {
     dataLengths = new long[0];
     maxOffsetLengths = new int[0];
     keyCounts = new long[0];
+    actualKeyCounts = new long[0];
     segmentSize = config.getLong(Configuration.MMAP_SEGMENT_SIZE);
     duplicatesEnabled = config.getBoolean(Configuration.ALLOW_DUPLICATES);
-   }
+  }
+
+  private static final byte[] REMOVED_BYTES = new byte[] {REMOVED_ID};
 
   public void put(byte[] key, byte[] value) throws IOException {
     int keyLength = key.length;
@@ -113,6 +118,14 @@ public class StorageWriter {
     // Write offset and record max offset length
     int offsetDataLength = LongPacker.packLong(indexStream, dataLength);
     maxOffsetLengths[keyLength] = Math.max(offsetDataLength, maxOffsetLengths[keyLength]);
+    byte[] val;
+    if (value == null) {
+      val = REMOVED_BYTES;
+      LongPacker.packInt(indexStream, REMOVED_ID);
+    } else {
+      val = value;
+      LongPacker.packInt(indexStream, 0);
+    }
 
     // Write if data is not the same
     if (!sameValue) {
@@ -120,21 +133,22 @@ public class StorageWriter {
       DataOutputStream dataStream = getDataStream(keyLength);
 
       // Write size and value
-      int valueSize = LongPacker.packInt(dataStream, value.length);
-      dataStream.write(value);
+      int valueSize = LongPacker.packInt(dataStream, val.length);
+      dataStream.write(val);
 
       // Update data length
-      dataLengths[keyLength] += valueSize + value.length;
+      dataLengths[keyLength] += valueSize + val.length;
 
       // Update last value
-      lastValues[keyLength] = value;
-      lastValuesLength[keyLength] = valueSize + value.length;
+      lastValues[keyLength] = val;
+      lastValuesLength[keyLength] = valueSize + val.length;
 
       valueCount++;
     }
 
     keyCount++;
     keyCounts[keyLength]++;
+    actualKeyCounts[keyLength]++;
   }
 
   public void close() throws IOException {
@@ -241,6 +255,7 @@ public class StorageWriter {
 
         // Write key count
         dataOutputStream.writeLong(keyCounts[i]);
+        dataOutputStream.writeLong(actualKeyCounts[i]);
 
         // Write slot count
         long slots = Math.round(keyCounts[i] / loadFactor);
@@ -289,15 +304,15 @@ public class StorageWriter {
 
   private File buildIndex(int keyLength, BloomFilter bloomFilter) throws IOException {
     long count = keyCounts[keyLength];
+    long duplicateCount = 0L;
     long numSlots = Math.round(count / loadFactor);
     int offsetLength = maxOffsetLengths[keyLength];
     int slotSize = keyLength + offsetLength;
-
     // Init index
     var indexFile = new File(tempFolder, "index" + keyLength + ".dat");
-    try (RandomAccessFile indexAccessFile = new RandomAccessFile(indexFile, "rw")) {
+    try (var indexAccessFile = new RandomAccessFile(indexFile, "rw")) {
       indexAccessFile.setLength(numSlots * slotSize);
-      try (FileChannel indexChannel = indexAccessFile.getChannel()) {
+      try (var indexChannel = indexAccessFile.getChannel()) {
         var indexBuffers = initIndexBuffers(indexChannel, indexAccessFile.length());
       // Init reading stream
         File tempIndexFile = indexFiles[keyLength];
@@ -313,19 +328,24 @@ public class StorageWriter {
 
             // Read offset
             long offsetData = LongPacker.unpackLong(tempIndexStream);
-
+            int head = LongPacker.unpackInt(tempIndexStream);
+            boolean isRemoved = head == REMOVED_ID;
             // Hash
             long hash = Murmur3.hash(keyBuffer);
             if (bloomFilter != null) {
               bloomFilter.add(keyBuffer);
             }
-
             boolean collision = false;
             for (long probe = 0; probe < count; probe++) {
               long slot = ((hash + probe) % numSlots);
               getFromBuffers(indexBuffers, slot * slotSize, slotBuffer, slotSize, segmentSize);
               long found = LongPacker.unpackLong(slotBuffer, keyLength);
-              if (found == 0) {
+              if (found == 0L) {
+
+                if (isRemoved) {
+                  duplicateCount++;
+                  break;
+                }
                 // The spot is empty use it
                 putIntoBuffers(indexBuffers, slot * slotSize, keyBuffer, keyBuffer.length, segmentSize);
                 int pos = LongPacker.packLong(offsetBuffer, offsetData);
@@ -335,10 +355,13 @@ public class StorageWriter {
                 collision = true;
                 // Check for duplicates
                 if (isKey(slotBuffer, keyBuffer)) {
-                  if (duplicatesEnabled) {
+                  if (isRemoved || duplicatesEnabled) {
                     putIntoBuffers(indexBuffers, slot * slotSize, keyBuffer, keyBuffer.length, segmentSize);
                     int pos = LongPacker.packLong(offsetBuffer, offsetData);
                     putIntoBuffers(indexBuffers, (slot * slotSize) + keyBuffer.length, offsetBuffer, pos, segmentSize);
+                    duplicateCount++;
+                    if (isRemoved) duplicateCount++;
+                    break;
                   } else {
                     throw new DuplicateKeyException(
                             String.format("A duplicate key has been found for key bytes %s", Arrays.toString(keyBuffer)));
@@ -359,7 +382,7 @@ public class StorageWriter {
 
         } finally {
           unmap(indexBuffers);
-           if (tempIndexFile.delete()) {
+          if (tempIndexFile.delete()) {
             log.info("Temporary index file {} has been deleted", tempIndexFile.getName());
           }
         }
@@ -368,6 +391,8 @@ public class StorageWriter {
       Files.deleteIfExists(indexFile.toPath());
       throw e;
     }
+    keyCount -= duplicateCount;
+    actualKeyCounts[keyLength] -= duplicateCount;
     return indexFile;
   }
 
@@ -463,6 +488,7 @@ public class StorageWriter {
       indexStreams = copyOfIndexStreams;
       indexFiles = Arrays.copyOf(indexFiles, keyLength + 1);
       keyCounts = Arrays.copyOf(keyCounts, keyLength + 1);
+      actualKeyCounts = Arrays.copyOf(actualKeyCounts, keyLength + 1);
       maxOffsetLengths = Arrays.copyOf(maxOffsetLengths, keyLength + 1);
       lastValues = Arrays.copyOf(lastValues, keyLength + 1);
       lastValuesLength = Arrays.copyOf(lastValuesLength, keyLength + 1);

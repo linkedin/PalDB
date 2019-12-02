@@ -128,6 +128,20 @@ public final class WriterImpl<K,V> implements StoreWriter<K,V> {
     }
   }
 
+  @Override
+  public void remove(K key) {
+    checkOpen();
+    if (key == null) {
+      throw new NullPointerException();
+    }
+    try {
+      byte[] keyBytes = serialization.serializeKey(key);
+      storage.put(keyBytes, null);
+    } catch (IOException ex) {
+      throw new UncheckedIOException(ex);
+    }
+  }
+
   // UTILITIES
 
   private void checkOpen() {

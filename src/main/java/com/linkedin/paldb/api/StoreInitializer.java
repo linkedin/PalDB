@@ -9,6 +9,8 @@ public interface StoreInitializer<K,V> extends AutoCloseable {
 
     void put(K key, V value);
 
+    void remove(K key);
+
     @Override
     void close();
 }

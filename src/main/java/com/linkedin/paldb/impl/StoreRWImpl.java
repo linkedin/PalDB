@@ -13,6 +13,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.*;
 
+import static java.util.function.Predicate.not;
+
 public class StoreRWImpl<K,V> implements StoreRW<K,V> {
 
     private static final Logger log = LoggerFactory.getLogger(StoreRWImpl.class);
@@ -86,6 +88,11 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
         @Override
         public void put(K key, V value) {
             writer.put(key, value);
+        }
+
+        @Override
+        public void remove(K key) {
+            writer.remove(key);
         }
 
         @Override
@@ -253,9 +260,12 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
                     reader.set(new ReaderImpl<>(config, file));
 
                     entries.forEach((k, v) -> buffer.computeIfPresent(k, (key, oldValue) -> {
-                        if (oldValue.equals(v)) return null;
+                        if (oldValue.equals(v)) {
+                            return null;
+                        }
                         return oldValue;
                     }));
+
                 } finally {
                     rwLock.writeLock().unlock();
                 }
@@ -280,7 +290,11 @@ public class StoreRWImpl<K,V> implements StoreRW<K,V> {
         checkOpen();
         rwLock.readLock().lock();
         try {
-            return reader.get().size() + buffer.size();
+            return Math.max(0L,
+                    reader.get().size() +
+                    buffer.values().stream()
+                            .filter(not(v -> v == REMOVED))
+                            .count());
         } finally {
             rwLock.readLock().unlock();
         }

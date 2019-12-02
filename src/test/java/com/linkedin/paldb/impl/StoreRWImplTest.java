@@ -72,6 +72,62 @@ class StoreRWImplTest {
     }
 
     @Test
+    void should_put_and_remove_on_init(@TempDir Path tempDir) {
+        var file = tempDir.resolve("test.paldb");
+        try (var sut = PalDB.createRW(file.toFile(), PalDBConfigBuilder.<String,String>create().build())) {
+
+            try (var init = sut.init()) {
+                init.remove("any");
+                init.put("any", "value");
+                init.put("other", "value2");
+                init.put("other", "value3");
+                init.remove("other");
+            }
+
+            assertEquals(1, sut.size());
+            sut.put("new", "element");
+            assertEquals(2, sut.size());
+
+            assertEquals("value", sut.get("any"));
+            assertEquals("element", sut.get("new"));
+            assertNull(sut.get("other"));
+
+            sut.remove("any");
+            assertEquals(2, sut.size()); //approximate count before flush
+            sut.flush();
+            assertEquals(1, sut.size());
+            assertNull(sut.get("any"));
+        }
+    }
+
+    @Test
+    void should_clear_from_buffer_removed_after_flush(@TempDir Path tempDir) {
+        var file = tempDir.resolve("test.paldb");
+        try (var sut = PalDB.createRW(file.toFile(), PalDBConfigBuilder.<String,String>create().build())) {
+
+            try (var init = sut.init()) {
+                init.put("any", "value");
+                init.put("other", "value2");
+                init.put("other", "value3");
+            }
+
+            assertEquals(2, sut.size());
+            sut.put("new", "element");
+            assertEquals(3, sut.size());
+
+            sut.remove("any");
+            sut.remove("other");
+
+            sut.flush();
+
+            assertEquals(1, sut.size());
+            assertNull(sut.get("any"));
+            assertNull(sut.get("other"));
+            assertEquals("element", sut.get("new"));
+        }
+    }
+
+    @Test
     void should_put_trigger_compaction_in_background(@TempDir Path tempDir) throws IOException, InterruptedException {
         var file = tempDir.resolve("test.paldb");
         var countDownLatch = new CountDownLatch(1);

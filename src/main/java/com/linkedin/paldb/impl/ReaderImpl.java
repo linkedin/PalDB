@@ -16,6 +16,7 @@ package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
 import com.linkedin.paldb.api.errors.StoreClosed;
+import com.linkedin.paldb.impl.StorageSerialization.RemovedValue;
 import com.linkedin.paldb.utils.DataInputOutput;
 import org.slf4j.*;
 
@@ -100,7 +101,8 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
     try {
       byte[] valueBytes = storage.get(serialization.serializeKey(key));
       if (valueBytes != null) {
-        return serialization.deserializeValue(new DataInputOutput(valueBytes));
+        var value = serialization.deserializeValue(new DataInputOutput(valueBytes));
+        return value == RemovedValue.INSTANCE ? null : value;
       } else {
         return defaultValue;
       }

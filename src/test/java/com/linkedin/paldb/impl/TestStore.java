@@ -209,6 +209,70 @@ class TestStore {
   }
 
   @Test
+  void testPutNullValue() {
+    try (StoreWriter<Integer,String> writer = PalDB.createWriter(storeFile)) {
+      writer.put(1, null);
+    }
+
+    try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile)) {
+      assertEquals(1, reader.size());
+      assertNull(reader.get(1));
+    }
+  }
+
+  @Test
+  void testRemoveAfterPut() {
+    try (StoreWriter<Integer,String> writer = PalDB.createWriter(storeFile)) {
+      writer.put(1, "foo");
+      writer.remove(1);
+    }
+
+    try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile)) {
+      assertEquals(0, reader.size());
+      assertNull(reader.get(1));
+    }
+  }
+
+  @Test
+  void testRemoveArrayAfterPut() {
+    try (StoreWriter<Integer,String[]> writer = PalDB.createWriter(storeFile)) {
+      writer.put(1, new String[] {"foo"});
+      writer.remove(1);
+    }
+
+    try (StoreReader<Integer,String[]> reader = PalDB.createReader(storeFile)) {
+      assertEquals(0, reader.size());
+      assertNull(reader.get(1));
+    }
+  }
+
+  @Test
+  void testRemoveBeforePut() {
+    try (StoreWriter<Integer,String> writer = PalDB.createWriter(storeFile)) {
+      writer.remove(1);
+      writer.put(1, "foo");
+    }
+
+    try (StoreReader<Integer,String> reader = PalDB.createReader(storeFile)) {
+      assertEquals(1, reader.size());
+      assertEquals("foo", reader.get(1));
+    }
+  }
+
+  @Test
+  void testRemoveArrayBeforePut() {
+    try (StoreWriter<Integer,String[]> writer = PalDB.createWriter(storeFile)) {
+      writer.remove(1);
+      writer.put(1, new String[] {"foo"});
+    }
+
+    try (StoreReader<Integer,String[]> reader = PalDB.createReader(storeFile)) {
+      assertEquals(1, reader.size());
+      assertArrayEquals(new String[] {"foo"}, reader.get(1));
+    }
+  }
+
+  @Test
   void testByteMarkOneKey() throws IOException {
     try (FileOutputStream fos = new FileOutputStream(storeFile);
          StoreWriter<Integer,String> writer = PalDB.createWriter(fos, new Configuration<>())) {
@@ -530,6 +594,7 @@ class TestStore {
     try (StoreReader<String,byte[]> reader = PalDB.createReader(storeFile, config)) {
       assertArrayEquals("test".getBytes(), reader.get("foobar"));
       assertArrayEquals("test2".getBytes(), reader.get("any data"));
+      assertEquals(2, reader.size());
     }
   }
 

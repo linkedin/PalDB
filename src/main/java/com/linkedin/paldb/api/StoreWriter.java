@@ -81,4 +81,10 @@ public interface StoreWriter<K,V> extends AutoCloseable {
    * null
    */
   void put(byte[] key, byte[] value);
+
+  /**
+   * Removes key from the store
+   * @param key Key to be removed
+   */
+  void remove(K key);
 }

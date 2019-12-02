@@ -90,9 +90,7 @@ public final class LongPacker {
    * @return the long value
    * @throws IOException if an error occurs with the stream
    */
-  public static long unpackLong(DataInput is)
-      throws IOException {
-
+  public static long unpackLong(DataInput is) throws IOException {
     long result = 0;
     for (int offset = 0; offset < 64; offset += 7) {
       long b = is.readUnsignedByte();

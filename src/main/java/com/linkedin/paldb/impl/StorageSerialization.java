@@ -118,8 +118,14 @@ final class StorageSerialization<K,V> {
 
   // SERIALIZATION
 
-  private static final int NULL_ID = -1;
+  public static class RemovedValue {
+
+    public static final RemovedValue INSTANCE = new RemovedValue();
+
+  }
+
   private static final int NULL = 0;
+  public static final int REMOVED_ID = 1;
   private static final int BOOLEAN_TRUE = 2;
   private static final int BOOLEAN_FALSE = 3;
   private static final int INTEGER_MINUS_1 = 4;
@@ -217,6 +223,8 @@ final class StorageSerialization<K,V> {
 
     if (obj == null) {
       out.write(NULL);
+    } else if (obj == RemovedValue.INSTANCE) {
+      out.write(REMOVED_ID);
     } else if (serializer != null) {
         out.write(compress ? CUSTOM_C : CUSTOM);
         var bytes = serializer.write((T) obj);
@@ -731,6 +739,9 @@ final class StorageSerialization<K,V> {
         break;
       case NULL:
         break;
+      case REMOVED_ID:
+        ret = RemovedValue.INSTANCE;
+        break;
       case BOOLEAN_TRUE:
         ret = Boolean.TRUE;
         break;
@@ -1101,7 +1112,7 @@ final class StorageSerialization<K,V> {
     return ret;
   }
 
-  private static final byte[] EMPTY_BYTES = new byte[0];
+  public static final byte[] EMPTY_BYTES = new byte[0];
 
   private static byte[] deserializeByteArray(DataInput is) throws IOException {
     int size = LongPacker.unpackInt(is);
