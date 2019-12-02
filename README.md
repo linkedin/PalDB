@@ -82,7 +82,7 @@ How to iterate on a store
 ```java
 try (var reader = PalDB.<Integer,String>createReader(new File("store.paldb"))) {
     try (var stream : reader.stream()) {
-      stream.foreEach(entry -> System.out.println(entry.getKey() + ": " + entry.getValue()));
+      stream.forEach(entry -> System.out.println(entry.getKey() + ": " + entry.getValue()));
     }
 }
 ```
