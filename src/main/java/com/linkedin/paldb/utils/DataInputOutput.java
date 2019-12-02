@@ -14,12 +14,9 @@
 
 package com.linkedin.paldb.utils;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.*;
 import java.lang.invoke.*;
+import java.lang.reflect.*;
 import java.nio.*;
 import java.util.Arrays;
 
@@ -131,6 +128,64 @@ public final class DataInputOutput implements DataInput, DataOutput, ObjectInput
 
   public static int remaining(ByteBuffer buffer, int pos) {
     return buffer.limit() - pos;
+  }
+
+  public static void unmap(MappedByteBuffer[] buffers) {
+    for (final var buffer : buffers) {
+      unmap(buffer);
+    }
+  }
+
+  public static void unmap(MappedByteBuffer byteBuffer) {
+    if (byteBuffer==null || !byteBuffer.isDirect()) return;
+    if (UNSAFE_CLASS == null) {
+      throw new UnsupportedOperationException("Unsafe not supported on this platform");
+    }
+    try {
+      CLEANER_METHOD.invoke(UNSAFE, byteBuffer);
+    } catch (IllegalAccessException | InvocationTargetException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static Class<?> resolveUnsafeClass() {
+    try {
+      return Class.forName("sun.misc.Unsafe");
+    } catch(Exception ex) {
+      // jdk.internal.misc.Unsafe doesn't yet have an invokeCleaner() method,
+      // but that method should be added if sun.misc.Unsafe is removed.
+      try {
+        return Class.forName("jdk.internal.misc.Unsafe");
+      } catch (ClassNotFoundException e) {
+        return null;
+      }
+    }
+  }
+
+  private static final Class<?> UNSAFE_CLASS = resolveUnsafeClass();
+  private static final Method CLEANER_METHOD = resolveCleaner();
+  private static final Object UNSAFE = resolveUnsafe();
+
+  private static Object resolveUnsafe() {
+    if (UNSAFE_CLASS == null) throw new UnsupportedOperationException("Unsafe not supported on this platform");
+    try {
+      var theUnsafeField = UNSAFE_CLASS.getDeclaredField("theUnsafe");
+      theUnsafeField.setAccessible(true);
+      return theUnsafeField.get(null);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static Method resolveCleaner() {
+    if (UNSAFE_CLASS == null) throw new UnsupportedOperationException("Unsafe not supported on this platform");
+    try {
+      var clean = UNSAFE_CLASS.getMethod("invokeCleaner", ByteBuffer.class);
+      clean.setAccessible(true);
+      return clean;
+    } catch (NoSuchMethodException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

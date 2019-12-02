@@ -15,10 +15,12 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
-import com.linkedin.paldb.utils.TempUtils;
+import com.linkedin.paldb.api.StoreRW;
+import com.linkedin.paldb.utils.FileUtils;
 import org.slf4j.*;
 
 import java.io.*;
+import java.nio.file.Files;
 
 
 /**
@@ -31,7 +33,7 @@ public final class StoreImpl {
   private StoreImpl() {
   }
 
-  public static <K,V> StoreReader<K,V> createReader(File file, Configuration config) {
+  public static <K,V> StoreReader<K,V> createReader(File file, Configuration<K,V> config) {
     if (file == null || config == null) {
       throw new NullPointerException();
     }
@@ -39,13 +41,13 @@ public final class StoreImpl {
     return new ReaderImpl<>(config, file);
   }
 
-  public static <K,V> StoreReader<K,V> createReader(InputStream stream, Configuration config) {
+  public static <K,V> StoreReader<K,V> createReader(InputStream stream, Configuration<K,V> config) {
     if (stream == null || config == null) {
       throw new NullPointerException();
     }
     log.info("Initialize reader from stream, copying into temp folder");
     try {
-      File file = TempUtils.copyIntoTempFile("paldbtempreader", stream);
+      File file = FileUtils.copyIntoTempFile("paldbtempreader", stream);
       log.info("Copied stream into temp file {}", file.getName());
       return new ReaderImpl<>(config, file);
     } catch (IOException ex) {
@@ -53,7 +55,7 @@ public final class StoreImpl {
     }
   }
 
-  public static <K,V> StoreWriter<K,V> createWriter(File file, Configuration config) {
+  public static <K,V> StoreWriter<K,V> createWriter(File file, Configuration<K,V> config) {
     if (file == null || config == null) {
       throw new NullPointerException();
     }
@@ -64,7 +66,7 @@ public final class StoreImpl {
         if (parent.mkdirs()) {
           log.info("Creating directories for path {}", file.getName());
         } else {
-          throw new RuntimeException(String.format("Couldn't create directory %s", parent));
+          throw new IOException(String.format("Couldn't create directory %s", parent));
         }
       }
       return new WriterImpl<>(config, file);
@@ -73,11 +75,24 @@ public final class StoreImpl {
     }
   }
 
-  public static <K,V> StoreWriter<K,V> createWriter(OutputStream stream, Configuration config) {
+  public static <K,V> StoreWriter<K,V> createWriter(OutputStream stream, Configuration<K,V> config) {
     if (stream == null || config == null) {
       throw new NullPointerException();
     }
     log.info("Initialize writer from stream");
     return new WriterImpl<>(config, stream);
+  }
+
+  public static <V, K> StoreRW<K, V> createRW(File file, Configuration<K,V> config) {
+    if (file == null || config == null) {
+      throw new NullPointerException();
+    }
+    log.info("Initialize RW from file {}", file.getName());
+    try {
+        Files.createDirectories(file.isDirectory() ? file.toPath() : file.toPath().getParent());
+        return new StoreRWImpl<>(config, file);
+    } catch (IOException e) {
+        throw new UncheckedIOException(e);
+    }
   }
 }

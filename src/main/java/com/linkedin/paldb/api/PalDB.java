@@ -53,7 +53,7 @@ public interface PalDB {
    * @param <V> value type
    * @return a store reader
    */
-  static <K,V> StoreReader<K,V> createReader(File file, Configuration config) {
+  static <K,V> StoreReader<K,V> createReader(File file, Configuration<K,V> config) {
     return StoreImpl.createReader(file, config);
   }
 
@@ -69,7 +69,7 @@ public interface PalDB {
    * @param <V> value type
    * @return a store reader
    */
-  static <K,V> StoreReader<K,V> createReader(InputStream stream, Configuration config) {
+  static <K,V> StoreReader<K,V> createReader(InputStream stream, Configuration<K,V> config) {
     return StoreImpl.createReader(stream, config);
   }
 
@@ -98,7 +98,7 @@ public interface PalDB {
    * @param <V> value type
    * @return a store writer
    */
-  static <K,V> StoreWriter<K,V> createWriter(File file, Configuration config) {
+  static <K,V> StoreWriter<K,V> createWriter(File file, Configuration<K,V> config) {
     return StoreImpl.createWriter(file, config);
   }
 
@@ -114,8 +114,37 @@ public interface PalDB {
    * @param <V> value type
    * @return a store writer
    */
-  static <K,V> StoreWriter<K,V> createWriter(OutputStream stream, Configuration config) {
+  static <K,V> StoreWriter<K,V> createWriter(OutputStream stream, Configuration<K,V> config) {
     return StoreImpl.createWriter(stream, config);
+  }
+
+  /**
+     * Creates a store reader-writer with the specified <code>file</code> as destination with a default configuration.
+     * <p>
+     * The parent folder is created if missing.
+     *
+     * @param file location of the output file
+     * @param <K> key type
+     * @param <V> value type
+     * @return a store reader-writer
+     */
+  static <K,V> StoreRW<K,V> createRW(File file) {
+        return StoreImpl.createRW(file, newConfiguration());
+    }
+
+  /**
+     * Creates a store reader-writer with the specified <code>file</code> as destination.
+     * <p>
+     * The parent folder is created if missing.
+     *
+     * @param file location of the output file
+     * @param config configuration
+     * @param <K> key type
+     * @param <V> value type
+     * @return a store reader-writer
+     */
+  static <K,V> StoreRW<K,V> createRW(File file, Configuration<K,V> config) {
+    return StoreImpl.createRW(file, config);
   }
 
   /**
@@ -123,7 +152,7 @@ public interface PalDB {
    *
    * @return new configuration
    */
-  static Configuration newConfiguration() {
-    return new Configuration();
+  static <K,V> Configuration<K,V> newConfiguration() {
+    return new Configuration<>();
   }
 }

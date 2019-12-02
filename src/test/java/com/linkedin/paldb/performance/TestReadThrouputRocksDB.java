@@ -22,6 +22,9 @@ import org.rocksdb.*;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 @Disabled
 @Tag("performance")
@@ -47,12 +50,12 @@ class TestReadThrouputRocksDB {
   }
 
   @Test
-  void testReadThroughput() {
+  void testReadThroughput() throws RocksDBException {
     List<Measure> measures = new ArrayList<>();
 
     int max = 10000000;
     for (int i = 100; i <= max; i *= 10) {
-      Measure m = measure(i, 0, 0, false);
+      Measure m = measure(i, 0, 0, false, false, 1);
 
       measures.add(m);
     }
@@ -60,9 +63,38 @@ class TestReadThrouputRocksDB {
     report("ROCKSDB READ THROUGHPUT (Set int -> boolean)", measures);
   }
 
+  @Test
+  void testReadThroughputMultiThreaded() throws RocksDBException {
+    List<Measure> measures = new ArrayList<>();
+
+    int max = 10000000;
+    for (int i = 100; i <= max; i *= 10) {
+      Measure m = measure(i, 0, 0, false, false, 4);
+
+      measures.add(m);
+    }
+
+    report("ROCKSDB READ THROUGHPUT MULTITHREADED (Set int -> boolean)", measures);
+  }
+
+  @Test
+  void testRandomReadThroughputMultiThreaded() throws RocksDBException {
+    List<Measure> measures = new ArrayList<>();
+
+    int max = 10000000;
+    for (int i = 100; i <= max; i *= 10) {
+      Measure m = measure(i, 0, 0, false, true, 4);
+
+      measures.add(m);
+    }
+
+    report("ROCKSDB RANDOM READ THROUGHPUT MULTITHREADED (Set int -> boolean)", measures);
+  }
+
   // UTILITY
 
-  private Measure measure(int keysCount, int valueLength, double cacheSizeRatio, final boolean frequentReads) {
+  private Measure measure(int keysCount, int valueLength, double cacheSizeRatio, final boolean frequentReads,
+                          boolean randomReads, int noOfThreads) throws RocksDBException {
 
     // Generate keys
     long seed = 4242;
@@ -73,7 +105,7 @@ class TestReadThrouputRocksDB {
     Options options = new Options();
     options.setCreateIfMissing(true);
     options.setAllowMmapWrites(false);
-    options.setAllowMmapReads(true);
+    options.setAllowMmapReads(false);
     options.setCompressionType(CompressionType.NO_COMPRESSION);
     options.setCompactionStyle(CompactionStyle.LEVEL);
     options.setMaxOpenFiles(-1);
@@ -85,7 +117,7 @@ class TestReadThrouputRocksDB {
     fOptions.setWaitForFlush(true);
 
     final BlockBasedTableConfig tableOptions = new BlockBasedTableConfig();
-    tableOptions.setFilterPolicy(new BloomFilter(10, false));
+    //tableOptions.setFilterPolicy(new BloomFilter(10, false));
     options.setTableFormatConfig(tableOptions);
 
     RocksDB db = null;
@@ -115,11 +147,11 @@ class TestReadThrouputRocksDB {
     readOptions.setVerifyChecksums(false);
 
     // Open
-    NanoBench nanoBench = NanoBench.create();
-    try {
+    //NanoBench nanoBench = NanoBench.create();
+
       options = new Options();
       options.setAllowMmapWrites(false);
-      options.setAllowMmapReads(true);
+      options.setAllowMmapReads(false);
       options.setCompressionType(CompressionType.NO_COMPRESSION);
       options.setCompactionStyle(CompactionStyle.LEVEL);
       options.setMaxOpenFiles(-1);
@@ -129,7 +161,41 @@ class TestReadThrouputRocksDB {
       final RocksDB reader = db;
 
       // Measure
-      nanoBench.cpuOnly().warmUps(5).measurements(20)
+
+      var totalCount = new AtomicInteger(0);
+      var findCount = new AtomicInteger(0);
+
+      // Measure
+      NanoBench nanoBench = NanoBench.create();
+      nanoBench.cpuOnly().warmUps(5).measurements(20).measure("Measure %d reads for %d keys with cache", () -> {
+        if (noOfThreads < 2) {
+          try {
+            doWork(randomReads, keys, totalCount, findCount, reader, readOptions);
+          } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+          }
+        } else {
+          var forkJoinPool = new ForkJoinPool(noOfThreads);
+          try {
+            forkJoinPool.submit(() -> IntStream.range(0, noOfThreads).parallel()
+                    .forEach(i -> {
+                      try {
+                        doWork(randomReads, keys, totalCount, findCount, reader, readOptions);
+                      } catch (RocksDBException e) {
+                        throw new RuntimeException(e);
+                      }
+                    })
+            ).join();
+          } finally {
+            forkJoinPool.shutdown();
+          }
+        }
+      });
+
+      // Return measure
+      double rps = READS * noOfThreads * nanoBench.getTps();
+
+/*      nanoBench.cpuOnly().warmUps(5).measurements(20)
           .measure("Measure %d reads for %d keys with cache", () -> {
             Random r = new Random();
             int length = keys.length;
@@ -157,8 +223,27 @@ class TestReadThrouputRocksDB {
     }
 
     // Return measure
-    double rps = READS * nanoBench.getTps();
+    double rps = READS * nanoBench.getTps();*/
     return new Measure(DirectoryUtils.folderSize(TEST_FOLDER), rps, valueLength, 0L, keys.length);
+  }
+
+  private void doWork(boolean randomReads, Integer[] keys, AtomicInteger totalCount, AtomicInteger findCount,
+                      RocksDB reader, ReadOptions readOptions) throws RocksDBException {
+    Random r = new Random(42);
+    int length = keys.length;
+    for (int j = 0; j < READS; j++) {
+      totalCount.incrementAndGet();
+      Integer key;
+      if (randomReads) {
+        key = r.nextInt(Integer.MAX_VALUE);
+      } else {
+        key = keys[r.nextInt(length)];
+      }
+      var value = reader.get(readOptions, key.toString().getBytes());
+      if (value != null) {
+        findCount.incrementAndGet();
+      }
+    }
   }
 
   private void report(String title, List<Measure> measures) {

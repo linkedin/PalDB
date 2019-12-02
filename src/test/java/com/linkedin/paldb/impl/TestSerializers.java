@@ -18,65 +18,65 @@ import com.linkedin.paldb.api.Serializer;
 import org.junit.jupiter.api.*;
 
 import java.awt.*;
-import java.io.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 
 public class TestSerializers {
 
-  private Serializers serializers;
+  private Serializers<Color, Point> serializers;
 
   @BeforeEach
   void setUp() {
-    serializers = new Serializers();
+    serializers = new Serializers<>();
   }
 
   @Test
   void testRegister() {
     ColorSerializer i = new ColorSerializer();
-    serializers.registerSerializer(i);
-    assertSame(i, serializers.getSerializer(Color.class));
+    serializers.registerKeySerializer(i);
+    assertSame(i, serializers.keySerializer());
   }
 
   @Test
   void testRegisterTwice() {
     ColorSerializer i1 = new ColorSerializer();
     ColorSerializer i2 = new ColorSerializer();
-    serializers.registerSerializer(i1);
-    serializers.registerSerializer(i2);
-    assertSame(i1, serializers.getSerializer(Color.class));
+    serializers.registerKeySerializer(i1);
+    serializers.registerKeySerializer(i2);
+    assertSame(i2, serializers.keySerializer());
   }
 
   @Test
   void testRegisterTwo() {
     ColorSerializer i = new ColorSerializer();
     PointSerializer f = new PointSerializer();
-    serializers.registerSerializer(i);
-    serializers.registerSerializer(f);
-    assertSame(i, serializers.getSerializer(Color.class));
-    assertSame(f, serializers.getSerializer(Point.class));
+    serializers.registerKeySerializer(i);
+    serializers.registerValueSerializer(f);
+    assertSame(i, serializers.keySerializer());
+    assertSame(f, serializers.valueSerializer());
   }
 
   @Test
   void testGetSerializer() {
     ColorSerializer i = new ColorSerializer();
-    serializers.registerSerializer(i);
-    assertNull(serializers.getSerializer(Point.class));
-    assertNotNull(serializers.getSerializer(Color.class));
+    serializers.registerKeySerializer(i);
+    assertNull(serializers.valueSerializer());
+    assertNotNull(serializers.keySerializer());
   }
 
   @Test
   void testSerialize() {
-    serializers.registerSerializer(new ColorSerializer());
-    assertNotNull(serializers.getSerializer(Color.class));
+    serializers.registerKeySerializer(new ColorSerializer());
+    assertNotNull(serializers.keySerializer());
   }
 
   @Test
   void testInterfaceType() {
     SerializerWithInterface i = new SerializerWithInterface();
-    serializers.registerSerializer(i);
-    assertSame(i, serializers.getSerializer(AnInterface.class));
+    var serializers = new Serializers<AnInterface, String>();
+    serializers.registerKeySerializer(i);
+    assertSame(i, serializers.keySerializer());
   }
 
   // HELPER
@@ -84,39 +84,27 @@ public class TestSerializers {
   public static class ColorSerializer implements Serializer<Color> {
 
     @Override
-    public Color read(DataInput input) {
+    public byte[] write(Color input) {
+      return new byte[0];
+    }
+
+    @Override
+    public Color read(byte[] bytes) {
       return null;
     }
-
-    @Override
-    public Class<Color> serializedClass() {
-      return Color.class;
-    }
-
-    @Override
-    public void write(DataOutput output, Color input) {
-
-    }
-
   }
 
   public static class PointSerializer implements Serializer<Point> {
 
     @Override
-    public Point read(DataInput input) {
+    public byte[] write(Point input) {
+      return new byte[0];
+    }
+
+    @Override
+    public Point read(byte[] bytes) {
       return null;
     }
-
-    @Override
-    public Class<Point> serializedClass() {
-      return Point.class;
-    }
-
-    @Override
-    public void write(DataOutput output, Point input) {
-
-    }
-
   }
 
   interface AnInterface {
@@ -130,19 +118,13 @@ public class TestSerializers {
   public static class SerializerWithInterface implements Serializer<AnInterface> {
 
     @Override
-    public AnInterface read(DataInput input) {
+    public byte[] write(AnInterface input) {
+      return new byte[0];
+    }
+
+    @Override
+    public AnInterface read(byte[] bytes) {
       return null;
     }
-
-    @Override
-    public Class<AnInterface> serializedClass() {
-      return AnInterface.class;
-    }
-
-    @Override
-    public void write(DataOutput output, AnInterface input) {
-
-    }
-
   }
 }

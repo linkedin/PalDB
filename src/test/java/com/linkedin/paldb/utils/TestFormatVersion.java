@@ -14,10 +14,11 @@
 
 package com.linkedin.paldb.utils;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class TestFormatVersion {
 
   @Test
@@ -38,5 +39,10 @@ class TestFormatVersion {
   @Test
   void testGetLastVersion() {
     assertEquals(FormatVersion.getLatestVersion(), FormatVersion.values()[FormatVersion.values().length - 1]);
+  }
+
+  @Test
+  void should_get_null() {
+    assertNull(FormatVersion.fromBytes(new byte[] {0}));
   }
 }

@@ -35,7 +35,7 @@ public class StorageWriter {
 
   private static final Logger log = LoggerFactory.getLogger(StorageWriter.class);
   // Configuration
-  private final Configuration config;
+  private final Configuration<?,?> config;
   private final double loadFactor;
   // Output
   private final File tempFolder;
@@ -66,7 +66,7 @@ public class StorageWriter {
   private final long segmentSize;
   private final boolean duplicatesEnabled;
 
-  StorageWriter(Configuration configuration, OutputStream stream) {
+  StorageWriter(Configuration<?,?> configuration, OutputStream stream) {
     config = configuration;
     loadFactor = config.getDouble(Configuration.LOAD_FACTOR);
     if (loadFactor <= 0.0 || loadFactor >= 1.0) {
@@ -74,7 +74,7 @@ public class StorageWriter {
     }
 
     // Create temp path folder
-    tempFolder = TempUtils.createTempDir("paldbtempwriter");
+    tempFolder = FileUtils.createTempDir("paldbtempwriter");
     tempFolder.deleteOnExit();
     log.info("Creating temporary folder at {}", tempFolder);
     outputStream = stream instanceof BufferedOutputStream ? stream : new BufferedOutputStream(stream);
@@ -139,7 +139,7 @@ public class StorageWriter {
 
   public void close() throws IOException {
     // Close the data and index streams
-    for (DataOutputStream dos : dataStreams) {
+    for (var dos : dataStreams) {
       if (dos != null) {
         dos.close();
       }
@@ -195,7 +195,6 @@ public class StorageWriter {
       mergeFiles(filesToMerge, outputStream);
     } finally {
       outputStream.close();
-      System.gc(); //need to clear index memory mapped buffer
       cleanup(filesToMerge);
     }
   }
@@ -295,7 +294,7 @@ public class StorageWriter {
     int slotSize = keyLength + offsetLength;
 
     // Init index
-    File indexFile = new File(tempFolder, "index" + keyLength + ".dat");
+    var indexFile = new File(tempFolder, "index" + keyLength + ".dat");
     try (RandomAccessFile indexAccessFile = new RandomAccessFile(indexFile, "rw")) {
       indexAccessFile.setLength(numSlots * slotSize);
       try (FileChannel indexChannel = indexAccessFile.getChannel()) {
@@ -359,15 +358,13 @@ public class StorageWriter {
           log.info("Built index file {} \n{}", indexFile.getName(), msg);
 
         } finally {
-          Arrays.fill(indexBuffers, null);
-          indexBuffers = null;
-          if (tempIndexFile.delete()) {
+          unmap(indexBuffers);
+           if (tempIndexFile.delete()) {
             log.info("Temporary index file {} has been deleted", tempIndexFile.getName());
           }
         }
       }
     } catch (Exception e) {
-      System.gc();
       Files.deleteIfExists(indexFile.toPath());
       throw e;
     }
@@ -424,7 +421,7 @@ public class StorageWriter {
       }
     }
 
-    if (TempUtils.deleteDirectory(tempFolder)) {
+    if (FileUtils.deleteDirectory(tempFolder)) {
       log.info("Deleted temporary folder at {}", tempFolder.getAbsolutePath());
     }
   }
@@ -434,7 +431,10 @@ public class StorageWriter {
       throws IOException {
     // Resize array if necessary
     if (dataStreams.length <= keyLength) {
-      dataStreams = Arrays.copyOf(dataStreams, keyLength + 1);
+      var copyOfDataStreams = Arrays.copyOf(dataStreams, keyLength + 1);
+      Arrays.fill(dataStreams, null);
+      dataStreams = null;
+      dataStreams = copyOfDataStreams;
       dataFiles = Arrays.copyOf(dataFiles, keyLength + 1);
     }
 
@@ -457,7 +457,10 @@ public class StorageWriter {
   private DataOutputStream getIndexStream(int keyLength) throws IOException {
     // Resize array if necessary
     if (indexStreams.length <= keyLength) {
-      indexStreams = Arrays.copyOf(indexStreams, keyLength + 1);
+      var copyOfIndexStreams = Arrays.copyOf(indexStreams, keyLength + 1);
+      Arrays.fill(indexStreams, null);
+      indexStreams = null;
+      indexStreams = copyOfIndexStreams;
       indexFiles = Arrays.copyOf(indexFiles, keyLength + 1);
       keyCounts = Arrays.copyOf(keyCounts, keyLength + 1);
       maxOffsetLengths = Arrays.copyOf(maxOffsetLengths, keyLength + 1);

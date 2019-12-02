@@ -29,7 +29,7 @@ import java.util.stream.IntStream;
 
 @Disabled
 @Tag("performance")
-class TestReadThroughput {
+class TestReadThroughputRW {
 
   private File testFolder = createTempDir();
   private static final int READS = 500000;
@@ -142,29 +142,31 @@ class TestReadThroughput {
     var config = configBuilder
             .build();
 
-    try (StoreWriter<String,String> writer = PalDB.createWriter(storeFile, config)) {
-      for (Integer key : keys) {
-        if (valueLength == 0) {
-          writer.put(key.toString(), Boolean.TRUE.toString());
-        } else {
-          writer.put(key.toString(), RandomStringUtils.randomAlphabetic(valueLength));
+    try (var storeRW = PalDB.createRW(storeFile, config)) {
+
+      try (var init = storeRW.init()) {
+        for (var key : keys) {
+          if (valueLength == 0) {
+            init.put(key.toString(), Boolean.TRUE.toString());
+          } else {
+            init.put(key.toString(), RandomStringUtils.randomAlphabetic(valueLength));
+          }
         }
       }
-    }
 
-    var totalCount = new AtomicInteger(0);
-    var findCount = new AtomicInteger(0);
-    try (StoreReader<String,String> reader = PalDB.createReader(storeFile, config)) {
+      var totalCount = new AtomicInteger(0);
+      var findCount = new AtomicInteger(0);
+
       // Measure
       NanoBench nanoBench = NanoBench.create();
       nanoBench.cpuOnly().warmUps(5).measurements(20).measure("Measure %d reads for %d keys with cache", () -> {
         if (noOfThreads < 2) {
-          doWork(randomReads, keys, totalCount, findCount, reader);
+          doWork(randomReads, keys, totalCount, findCount, storeRW);
         } else {
           var forkJoinPool = new ForkJoinPool(noOfThreads);
           try {
             forkJoinPool.submit(() -> IntStream.range(0, noOfThreads).parallel()
-                            .forEach(i -> doWork(randomReads, keys, totalCount, findCount, reader))
+                    .forEach(i -> doWork(randomReads, keys, totalCount, findCount, storeRW))
             ).join();
           } finally {
             forkJoinPool.shutdown();

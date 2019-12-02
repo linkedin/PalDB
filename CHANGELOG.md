@@ -1,5 +1,11 @@
 Change Log
 ==========
+Version 2.1.0
+--------------------------
+- New StoreRW interface for reading and writing
+- Simplified serializers
+- Configuration is now using generics as well.
+- Small performance improvements
 
 Version 2.0.1
 --------------------------

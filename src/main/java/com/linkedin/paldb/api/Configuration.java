@@ -26,10 +26,6 @@ import java.util.*;
  *   <dd><code>mmap.segment.size</code> - memory map segment size (bytes) [default: 1GB]</dd>
  *   <dd><code>mmap.data.enabled</code> - enable memory mapping for data (boolean) [default: true]</dd>
  *   <dd><code>load.factor</code> - index load factor (double) [default: 0.75]</dd>
- *   <dd><code>cache.enabled</code> - LRU cache enabled (boolean) [default: false]</dd>
- *   <dd><code>cache.bytes</code> - cache limit (bytes) [default: Xmx - 100MB]</dd>
- *   <dd><code>cache.initial.capacity</code> - cache initial capacity (int) [default: 1000]</dd>
- *   <dd><code>cache.load.factor</code> - cache load factor (double) [default: 0.75]</dd>
  *   <dd><code>compression.enabled</code> - enable compression (boolean) [default: false]</dd>
  * </dl>
  * <p>
@@ -37,7 +33,7 @@ import java.util.*;
  * -Dpaldb.mmap.data.enabled=false). All property names should be prefixed
  * with <em>paldb</em>.
  */
-public class Configuration {
+public class Configuration<K,V> implements Iterable<Map.Entry<String,String>> {
 
   // Buffer segment size
   public static final String MMAP_SEGMENT_SIZE = "mmap.segment.size";
@@ -53,13 +49,18 @@ public class Configuration {
   public static final String BLOOM_FILTER_ERROR_FACTOR = "bloom.filter.error.factor";
   //Enable duplicates (keep last key)
   public static final String ALLOW_DUPLICATES = "duplicates.enabled";
+  //Number of elements to hold in write buffer before compaction occurs
+  public static final String WRITE_BUFFER_SIZE = "write.buffer.size";
+  //Enable writer auto flush
+  public static final String WRITE_AUTO_FLUSH_ENABLED = "write.auto.flush.enabled";
 
   // Property map
   private final Map<String, String> properties = new HashMap<>();
   // Read only
   private final boolean readOnly;
   // Serializers
-  private final Serializers serializers;
+  private final Serializers<K,V> serializers;
+  private final List<OnStoreCompacted<K,V>> storeCompactedEventListeners;
 
   /**
    * Default constructor that initializes default values.
@@ -75,9 +76,18 @@ public class Configuration {
     putWithSystemPropertyDefault(BLOOM_FILTER_ENABLED, "false");
     putWithSystemPropertyDefault(BLOOM_FILTER_ERROR_FACTOR, "0.01");
     putWithSystemPropertyDefault(ALLOW_DUPLICATES, "false");
+    putWithSystemPropertyDefault(WRITE_BUFFER_SIZE, "100000");
+    putWithSystemPropertyDefault(WRITE_AUTO_FLUSH_ENABLED, "true");
 
     //Serializers
-    serializers = new Serializers();
+    serializers = new Serializers<>();
+    storeCompactedEventListeners = new ArrayList<>();
+  }
+
+  public Configuration(Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+    this();
+    serializers.registerKeySerializer(keySerializer);
+    serializers.registerValueSerializer(valueSerializer);
   }
 
   /**
@@ -85,10 +95,15 @@ public class Configuration {
    *
    * @param configuration configuration to copy values from
    */
-  Configuration(Configuration configuration) {
-    readOnly = true;
+  Configuration(Configuration<K,V> configuration) {
+    this(configuration, true);
+  }
+
+  Configuration(Configuration<K,V> configuration, boolean readOnly) {
+    this.readOnly = readOnly;
     properties.putAll(configuration.properties);
     serializers = configuration.serializers;
+    storeCompactedEventListeners = configuration.storeCompactedEventListeners;
   }
 
   /**
@@ -142,7 +157,7 @@ public class Configuration {
    * @param value value
    * @return this configuration
    */
-  public Configuration set(String key, String value) {
+  public Configuration<K,V> set(String key, String value) {
     checkReadOnly();
 
     properties.put(key, value);
@@ -384,15 +399,37 @@ public class Configuration {
    * <p>
    * The class for with the serializer is being registered is directly extracted from the class definition.
    *
-   * @param serializer serializer to register
-   * @param <T> serializer type
+   * @param keySerializer serializer to register
    */
-  public <T> void registerSerializer(Serializer<T> serializer) {
-    serializers.registerSerializer(serializer);
+  public void registerKeySerializer(Serializer<K> keySerializer) {
+    serializers.registerKeySerializer(keySerializer);
   }
 
-  public Serializers getSerializers() {
+  /**
+   * Register <code>serializer</code>.
+   * <p>
+   * The class for with the serializer is being registered is directly extracted from the class definition.
+   *
+   * @param valueSerializer serializer to register
+   */
+  public void registerValueSerializer(Serializer<V> valueSerializer) {
+    serializers.registerValueSerializer(valueSerializer);
+  }
+
+  /**
+   * Register listener which will be invoked when store has compacted successfully
+   * @param onStoreCompacted listener
+   */
+  public synchronized void registerOnStoreCompactedListener(OnStoreCompacted<K,V> onStoreCompacted) {
+    storeCompactedEventListeners.add(onStoreCompacted);
+  }
+
+  public Serializers<K,V> getSerializers() {
     return serializers;
+  }
+
+  public List<OnStoreCompacted<K,V>> getStoreCompactedEventListeners() {
+    return storeCompactedEventListeners;
   }
 
   @Override
@@ -404,7 +441,7 @@ public class Configuration {
       return false;
     }
 
-    Configuration that = (Configuration) o;
+    Configuration<K,V> that = (Configuration<K,V>) o;
 
     if (!properties.equals(that.properties)) {
       return false;
@@ -427,5 +464,19 @@ public class Configuration {
       throw new UnsupportedOperationException(
           "The configuration values can't be set once the store reader/writer have been initialized");
     }
+  }
+
+  @Override
+  public String toString() {
+    return "Configuration{" +
+            "properties=" + properties +
+            ", readOnly=" + readOnly +
+            ", serializers=" + serializers +
+            '}';
+  }
+
+  @Override
+  public Iterator<Map.Entry<String, String>> iterator() {
+    return properties.entrySet().iterator();
   }
 }

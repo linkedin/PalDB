@@ -15,20 +15,26 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
+import com.linkedin.paldb.api.errors.StoreClosed;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.*;
+import org.apache.avro.io.*;
 import org.junit.jupiter.api.*;
 
 import java.awt.*;
 import java.io.*;
+import java.lang.invoke.*;
+import java.nio.ByteOrder;
 import java.nio.file.*;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.*;
 
-import static com.linkedin.paldb.utils.TempUtils.deleteDirectory;
+import static com.linkedin.paldb.utils.FileUtils.deleteDirectory;
 import static org.junit.jupiter.api.Assertions.*;
 
-class TestStoreReader {
+public class TestStoreReader {
 
   private Path tempDir;
   private File storeFile;
@@ -46,8 +52,15 @@ class TestStoreReader {
 
   @SafeVarargs
   private <V> StoreReader<Integer, V> readerForMany(V... values) {
-    var configuration = new Configuration();
-    configuration.registerSerializer(new PointSerializer());
+    return readerForMany(null, values);
+  }
+
+  @SafeVarargs
+  private <V> StoreReader<Integer, V> readerForMany(Serializer<V> serializer, V... values) {
+    var configuration = new Configuration<Integer,V>();
+    if (serializer != null) {
+      configuration.registerValueSerializer(serializer);
+    }
     try (StoreWriter<Integer, V> writer = PalDB.createWriter(storeFile, configuration)) {
       for (int i = 0; i < values.length; i++) {
         writer.put(i, values[i]);
@@ -58,6 +71,10 @@ class TestStoreReader {
 
   private <V> StoreReader<Integer, V> readerFor(V value) {
     return readerForMany(value);
+  }
+
+  private <V> StoreReader<Integer, V> readerFor(V value, Serializer<V> serializer) {
+    return readerForMany(serializer, value);
   }
 
   @Test
@@ -78,7 +95,7 @@ class TestStoreReader {
   void testStoreClosed() {
     var reader = readerFor(true);
     reader.close();
-    assertThrows(IllegalStateException.class, () -> reader.get(0));
+    assertThrows(StoreClosed.class, () -> reader.get(0));
   }
 
   @Test
@@ -378,72 +395,55 @@ class TestStoreReader {
 
   @Test
   void testGetArray() {
-    try (var reader = readerFor(new Object[]{"foo"})) {
-      assertArrayEquals(new Object[]{"foo"}, reader.get(0));
-      assertArrayEquals(new Object[]{"foo"}, reader.get(0, new Object[]{"bar"}));
-      assertArrayEquals(new Object[]{"bar"}, reader.get(-1, new Object[]{"bar"}));
+    try (var reader = readerFor(new String[]{"foo"})) {
+      assertArrayEquals(new String[]{"foo"}, reader.get(0));
+      assertArrayEquals(new String[]{"foo"}, reader.get(0, new String[]{"bar"}));
+      assertArrayEquals(new String[]{"bar"}, reader.get(-1, new String[]{"bar"}));
     }
   }
 
   @Test
   void testGetArrayMissing() {
-    try (var reader = readerFor(new Object[]{"foo"})) {
+    try (var reader = readerFor(new String[]{"foo"})) {
       assertNull(reader.get(-1));
     }
   }
 
   @Test
   void testGetPoint() {
-    try (var reader = readerFor(new Point(4, 56))) {
+    try (var reader = readerFor(new Point(4, 56), new PointSerializer())) {
       assertEquals(new Point(4, 56), reader.get(0));
     }
   }
 
   @Test
-  void testIterator() {
+  void testStream() {
     var values = List.of("foo", "bar");
-    try (var reader = readerForMany(values.get(0), values.get(1))) {
-      var iter = reader.iterable();
-      assertNotNull(iter);
-      var itr = iter.iterator();
-      assertNotNull(itr);
+    try (var reader = readerForMany(values.get(0), values.get(1));
+        var stream = reader.stream()) {
 
-      for (int i = 0; i < values.size(); i++) {
-        assertTrue(itr.hasNext());
-        var v = itr.next();
-        assertEquals(v.getValue(), values.get(v.getKey()));
-      }
+      assertNotNull(stream);
+
+      stream.forEach(v -> assertEquals(v.getValue(), values.get(v.getKey())));
     }
   }
 
   @Test
-  void testIterate() {
+  void testStreamKeys() {
     var values = List.of("foo", "bar");
-    try (var reader = readerForMany(values.get(0), values.get(1))) {
-      for (var entry: reader) {
-        var val = values.get(entry.getKey());
-        assertEquals(val, entry.getValue());
-      }
-    }
-  }
-
-  @Test
-  void testKeyIterator() {
-    var values = List.of("foo", "bar");
-    try (var reader = readerForMany(values.get(0), values.get(1))) {
-      var iter = reader.keys();
-      assertNotNull(iter);
-      var itr = iter.iterator();
-      assertNotNull(itr);
+    try (var reader = readerForMany(values.get(0), values.get(1));
+      var keys = reader.streamKeys()) {
+      assertNotNull(keys);
 
       Set<Integer> actual = new HashSet<>();
       Set<Integer> expected = new HashSet<>();
-      for (int i = 0; i < values.size(); i++) {
-        assertTrue(itr.hasNext());
-        Integer k = itr.next();
-        actual.add(k);
-        expected.add(i);
-      }
+
+        var ix = new AtomicInteger(0);
+
+        keys.forEach(k -> {
+          actual.add(k);
+          expected.add(ix.getAndIncrement());
+        });
       assertEquals(expected, actual);
     }
   }
@@ -476,26 +476,65 @@ class TestStoreReader {
     }
   }
 
+  @Test
+  void should_serialize_avro() {
+    var record = new GenericRecordBuilder(GenericAvroSerializer.schema)
+            .set("id", 1234)
+            .set("title", "avro test")
+            .set("size", 1024)
+            .build();
+    try (var reader = readerFor(record, new GenericAvroSerializer())) {
+      assertEquals(record, reader.get(0));
+    }
+  }
+
   // UTILITY
+
+  public static class GenericAvroSerializer implements Serializer<GenericRecord> {
+
+    private static final Schema schema = new Schema.Parser().parse("{\"namespace\": \"net.soundvibe.paldb\",\n" +
+            "  \"type\": \"record\",\n" +
+            "  \"name\": \"AvroTest\",\n" +
+            "  \"fields\": [\n" +
+            "    {\"name\": \"id\", \"type\": \"int\"},\n" +
+            "    {\"name\": \"title\",  \"type\": [\"string\", \"null\"]},\n" +
+            "    {\"name\": \"size\", \"type\": [\"int\", \"null\"]}\n" +
+            "  ]\n" +
+            "}");
+    private static final GenericDatumReader<GenericRecord> reader = new GenericDatumReader<>(schema);
+    private static final GenericDatumWriter<GenericRecord> writer = new GenericDatumWriter<>(schema);
+
+    @Override
+    public byte[] write(GenericRecord input) throws IOException {
+      var byteArrayOutputStream = new ByteArrayOutputStream();
+      var directBinaryEncoder = EncoderFactory.get().directBinaryEncoder(byteArrayOutputStream, null);
+      writer.write(input, directBinaryEncoder);
+      return byteArrayOutputStream.toByteArray();
+    }
+
+    @Override
+    public GenericRecord read(byte[] bytes) throws IOException {
+      return reader.read(null, DecoderFactory.get().binaryDecoder(bytes, null));
+    }
+  }
 
   public static class PointSerializer implements Serializer<Point> {
 
+    private static final VarHandle INT_HANDLE = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
+
     @Override
-    public Point read(DataInput input)
-        throws IOException {
-      return new Point(input.readInt(), input.readInt());
+    public byte[] write(Point input) {
+      var buffer = new byte[8];
+      INT_HANDLE.set(buffer, 0, input.x);
+      INT_HANDLE.set(buffer, 4, input.y);
+      return buffer;
     }
 
     @Override
-    public Class<Point> serializedClass() {
-      return Point.class;
-    }
-
-    @Override
-    public void write(DataOutput output, Point input)
-        throws IOException {
-      output.writeInt(input.x);
-      output.writeInt(input.y);
+    public Point read(byte[] bytes) {
+      int x = (int)INT_HANDLE.get(bytes, 0);
+      int y = (int)INT_HANDLE.get(bytes, 4);
+      return new Point(x, y);
     }
   }
 }

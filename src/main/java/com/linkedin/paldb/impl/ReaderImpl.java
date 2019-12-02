@@ -15,11 +15,13 @@
 package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.api.*;
+import com.linkedin.paldb.api.errors.StoreClosed;
 import com.linkedin.paldb.utils.DataInputOutput;
 import org.slf4j.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.stream.*;
 
 
 /**
@@ -30,15 +32,15 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
   // Logger
   private static final Logger log = LoggerFactory.getLogger(ReaderImpl.class);
   // Configuration
-  private final Configuration config;
+  private final Configuration<K,V> config;
   // Storage
   private final StorageReader storage;
   // Serialization
-  private final StorageSerialization serialization;
+  private final StorageSerialization<K,V> serialization;
   // File
   private final File file;
   // Opened?
-  private boolean opened;
+  private volatile boolean opened;
 
   /**
    * Private constructor.
@@ -46,14 +48,14 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
    * @param config configuration
    * @param file store file
    */
-  ReaderImpl(Configuration config, File file) {
+  ReaderImpl(Configuration<K,V> config, File file) {
     this.config = config;
     this.file = file;
 
     // Open storage
     try {
       log.info("Opening reader storage");
-      serialization = new StorageSerialization(config);
+      serialization = new StorageSerialization<>(config);
       storage = new StorageReader(config, file);
     } catch (IOException ex) {
       throw new UncheckedIOException(ex);
@@ -63,13 +65,12 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
 
   @Override
   public void close() {
-    checkOpen();
+    if (!opened) return;
     try {
-      log.info("Closing reader storage");
       storage.close();
       opened = false;
-    } catch (IOException ex) {
-      throw new UncheckedIOException(ex);
+    } catch (IOException e) {
+      log.error("Error when closing reader storage", e);
     }
   }
 
@@ -80,18 +81,13 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
   }
 
   @Override
-  public Configuration getConfiguration() {
+  public Configuration<K,V> getConfiguration() {
     return config;
   }
 
   @Override
   public File getFile() {
     return file;
-  }
-
-  @Override
-  public V get(K key) {
-    return get(key, null);
   }
 
   @Override
@@ -104,7 +100,7 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
     try {
       byte[] valueBytes = storage.get(serialization.serializeKey(key));
       if (valueBytes != null) {
-        return (V) serialization.deserialize(new DataInputOutput(valueBytes));
+        return serialization.deserializeValue(new DataInputOutput(valueBytes));
       } else {
         return defaultValue;
       }
@@ -114,17 +110,24 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
   }
 
   @Override
+  public Stream<Map.Entry<K, V>> stream() {
+      return StreamSupport.stream(iterable().spliterator(), false);
+  }
+
+  @Override
+  public Stream<K> streamKeys() {
+      return StreamSupport.stream(keys().spliterator(), false);
+  }
+
+  public Iterator<Map.Entry<K, V>> iterator() {
+      return iterable().iterator();
+  }
+
   public Iterable<Map.Entry<K, V>> iterable() {
     checkOpen();
     return new ReaderIterable<>(storage, serialization);
   }
 
-  @Override
-  public Iterator<Map.Entry<K,V>> iterator() {
-      return iterable().iterator();
-  }
-
-  @Override
   public Iterable<K> keys() {
     checkOpen();
     return new ReaderKeyIterable<>(storage, serialization);
@@ -137,7 +140,7 @@ public final class ReaderImpl<K,V> implements StoreReader<K,V> {
    */
   private void checkOpen() {
     if (!opened) {
-      throw new IllegalStateException("The store is closed");
+      throw new StoreClosed("The store is closed");
     }
   }
 }

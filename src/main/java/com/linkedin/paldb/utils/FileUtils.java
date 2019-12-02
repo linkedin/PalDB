@@ -21,14 +21,14 @@ import java.nio.file.Files;
 
 
 /**
- * Temporary files utility class.
+ * Files utility class.
  */
-public final class TempUtils {
+public final class FileUtils {
 
-  private static final Logger log = LoggerFactory.getLogger(TempUtils.class);
+  private static final Logger log = LoggerFactory.getLogger(FileUtils.class);
 
   // Default constructor
-  private TempUtils() {
+  private FileUtils() {
 
   }
 
@@ -58,6 +58,21 @@ public final class TempUtils {
   public static File createTempDir(String prefix) {
     try {
       return Files.createTempDirectory(prefix).toFile();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  /**
+   * Creates a temporary file.
+   *
+   * @param prefix file prefix
+   * @param suffix file suffix
+   * @return temporary file
+   */
+  public static File createTempFile(String prefix, String suffix) {
+    try {
+      return Files.createTempFile(prefix, suffix).toFile();
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }

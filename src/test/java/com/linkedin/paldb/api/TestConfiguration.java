@@ -15,6 +15,7 @@
 package com.linkedin.paldb.api;
 
 
+import com.linkedin.paldb.impl.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -27,7 +28,7 @@ class TestConfiguration {
 
   @Test
   void testConfiguration() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "bar");
     assertEquals("bar", c.get("foo", null));
     assertEquals("foo", c.get("bar", "foo"));
@@ -35,7 +36,7 @@ class TestConfiguration {
 
   @Test
   void testConfigurationCopy() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "bar");
 
     Configuration r = new Configuration(c);
@@ -47,7 +48,7 @@ class TestConfiguration {
 
   @Test
   void testConfigurationReadOnly() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "bar");
 
     assertThrows(UnsupportedOperationException.class, () -> {
@@ -81,7 +82,7 @@ class TestConfiguration {
 
   @Test
   void testGetBoolean() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "true");
     c.set("bar", "false");
 
@@ -96,7 +97,7 @@ class TestConfiguration {
 
   @Test
   void testGetBooleanDefault() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "true");
 
     assertTrue(c.getBoolean("foo", false));
@@ -105,7 +106,7 @@ class TestConfiguration {
 
   @Test
   void testGetDouble() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "1.0");
 
     assertEquals(1.0, c.getDouble("foo"));
@@ -118,7 +119,7 @@ class TestConfiguration {
 
   @Test
   void testGetDoubleDefault() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "1.0");
 
     assertEquals(1.0, c.getDouble("foo", 2.0));
@@ -127,7 +128,7 @@ class TestConfiguration {
 
   @Test
   void testGetFloat() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "1.0");
 
     assertEquals(1f, c.getFloat("foo"));
@@ -140,7 +141,7 @@ class TestConfiguration {
 
   @Test
   void testGetFloatDefault() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "1.0");
 
     assertEquals(1f, c.getFloat("foo", 2f));
@@ -149,7 +150,7 @@ class TestConfiguration {
 
   @Test
   void testGetInt() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "1");
 
     assertEquals(1, c.getInt("foo"));
@@ -162,7 +163,7 @@ class TestConfiguration {
 
   @Test
   void testGetIntDefault() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "1");
 
     assertEquals(1, c.getInt("foo", 2));
@@ -171,7 +172,7 @@ class TestConfiguration {
 
   @Test
   void testGetShort() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "1");
 
     assertEquals((short) 1, c.getShort("foo"));
@@ -184,7 +185,7 @@ class TestConfiguration {
 
   @Test
   void testGetShortDefault() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "1");
 
     assertEquals((short) 1, c.getShort("foo", (short) 2));
@@ -198,7 +199,7 @@ class TestConfiguration {
 
   @Test
   void testGetLong() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "1");
 
     assertEquals(1L, c.getLong("foo"));
@@ -206,7 +207,7 @@ class TestConfiguration {
 
   @Test
   void testGetLongDefault() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "1");
 
     assertEquals(1L, c.getLong("foo", 2L));
@@ -214,9 +215,8 @@ class TestConfiguration {
   }
 
   @Test
-  void testGetClass()
-      throws ClassNotFoundException {
-    Configuration c = new Configuration();
+  void testGetClass() throws ClassNotFoundException {
+    var c = new Configuration<>();
     c.set("foo", Integer.class.getName());
 
     assertEquals(Integer.class, c.getClass("foo"));
@@ -229,7 +229,7 @@ class TestConfiguration {
 
   @Test
   void testGetList() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "foo,bar");
 
     assertEquals(Arrays.asList("foo", "bar"), c.getList("foo"));
@@ -242,10 +242,27 @@ class TestConfiguration {
 
   @Test
   void testGetListDefault() {
-    Configuration c = new Configuration();
+    var c = new Configuration<>();
     c.set("foo", "foo,bar");
 
     assertEquals(Arrays.asList("foo", "bar"), c.getList("foo", singletonList("that")));
     assertEquals(singletonList("that"), c.getList("bar", singletonList("that")));
+  }
+
+  @Test
+  void testListener() {
+    var c = new Configuration<Integer,String>();
+    OnStoreCompacted<Integer,String> listener = (lastEntry, storeFile) -> System.out.println("Compacted");
+    c.registerOnStoreCompactedListener(listener);
+
+    OnStoreCompacted<?, ?> actual = c.getStoreCompactedEventListeners().get(0);
+    assertEquals(listener, actual);
+  }
+
+  @Test
+  void testConstructorWithSerializers() {
+    var c = new Configuration<>(new TestStoreReader.PointSerializer(), new TestStoreReader.GenericAvroSerializer());
+    assertEquals(TestStoreReader.PointSerializer.class, c.getSerializers().keySerializer().getClass());
+    assertEquals(TestStoreReader.GenericAvroSerializer.class, c.getSerializers().valueSerializer().getClass());
   }
 }

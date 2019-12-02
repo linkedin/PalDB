@@ -14,9 +14,13 @@
 
 package com.linkedin.paldb.performance;
 
+import com.linkedin.paldb.api.PalDB;
 import com.linkedin.paldb.performance.utils.NanoBench;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.*;
+import java.nio.file.*;
 import java.util.*;
 
 @Disabled
@@ -37,11 +41,40 @@ class TestMemoryUsageHashMap {
       // Benchmark
       final int cnt = i;
       NanoBench nanoBench = NanoBench.create();
-      nanoBench.memoryOnly().warmUps(2).measurements(10).measure(String.format("Measure memory for %d keys", i), () -> {
+      nanoBench.memoryOnly().warmUps(2).measurements(3).measure(String.format("Measure memory for %d keys", i), () -> {
         Random setRandom = new Random(4532);
         ref = new HashSet<>(cnt);
         while (ref.size() < cnt) {
           ref.add(setRandom.nextInt(Integer.MAX_VALUE));
+        }
+      });
+
+      double bytes = nanoBench.getMemoryBytes() / (1024.0 * 1024.0);
+      System.out.println(i + ";" + bytes);
+    }
+  }
+
+  @Test
+  void testMemoryUsagePalDB(@TempDir Path tempDir) {
+
+    System.out.println("MEMORY USAGE (PalDB int)\n\n");
+    System.out.println("KEYS;MB");
+    int max = 10000000;
+    for (int i = 100; i <= max; i *= 10) {
+
+      // Benchmark
+      final int cnt = i;
+      NanoBench nanoBench = NanoBench.create();
+      nanoBench.memoryOnly().warmUps(2).measurements(3).measure(String.format("Measure memory for %d keys", i), () -> {
+        Random setRandom = new Random(4532);
+        try (var palDB = PalDB.<Integer,Boolean>createRW(Files.createTempFile(tempDir, "test", ".paldb").toFile())) {
+          try (var init = palDB.init()) {
+            for (int j = 0; j < cnt; j++) {
+              init.put(setRandom.nextInt(Integer.MAX_VALUE), Boolean.TRUE);
+            }
+          }
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
         }
       });
 

@@ -26,14 +26,14 @@ import java.math.*;
 /**
  * Internal serialization implementation.
  */
-final class StorageSerialization {
+final class StorageSerialization<K,V> {
 
   //Buffer
   private final DataInputOutput dataInputOutput = new DataInputOutput();
   //Compression
   private final boolean compression;
   //Serializers
-  private Serializers serializers;
+  private final Serializers<K,V> serializers;
 
   /**
    * Default constructor with configuration.
@@ -43,7 +43,7 @@ final class StorageSerialization {
    *
    * @param config configuration
    */
-  StorageSerialization(Configuration config) {
+  StorageSerialization(Configuration<K,V> config) {
     this.compression = config.getBoolean(Configuration.COMPRESSION_ENABLED);
     this.serializers = config.getSerializers();
   }
@@ -52,16 +52,12 @@ final class StorageSerialization {
    * Serializes the key object and returns it as a byte array.
    *
    * @param key key to serialize
-   * @param <K> key type
    * @return key as byte array
    * @throws IOException if an io error occurs
    */
-  <K> byte[] serializeKey(K key) throws IOException {
-    if (key == null) {
-      throw new NullPointerException();
-    }
+  byte[] serializeKey(K key) throws IOException {
     var dataIO = new DataInputOutput();
-    serializeObject(key, dataIO, false);
+    serializeObject(key, dataIO, false, serializers.keySerializer());
     return dataIO.toByteArray();
   }
 
@@ -72,8 +68,8 @@ final class StorageSerialization {
    * @param dataOutput data output
    * @throws IOException if an io error occurs
    */
-  void serializeKey(Object key, DataOutput dataOutput) throws IOException {
-    serializeObject(key, dataOutput, false);
+  void serializeKey(K key, DataOutput dataOutput) throws IOException {
+    serializeObject(key, dataOutput, false, serializers.keySerializer());
   }
 
   /**
@@ -83,9 +79,9 @@ final class StorageSerialization {
    * @return value as byte array
    * @throws IOException if an io error occurs
    */
-  byte[] serializeValue(Object value) throws IOException {
+  byte[] serializeValue(V value) throws IOException {
 
-    serializeObject(value, dataInputOutput.reset(), compression);
+    serializeObject(value, dataInputOutput.reset(), compression, serializers.valueSerializer());
     return dataInputOutput.toByteArray();
   }
 
@@ -96,8 +92,8 @@ final class StorageSerialization {
    * @param dataOutput data output
    * @throws IOException if an io error occurs
    */
-  void serializeValue(Object value, DataOutput dataOutput) throws IOException {
-    serializeObject(value, dataOutput, compression);
+  void serializeValue(V value, DataOutput dataOutput) throws IOException {
+    serializeObject(value, dataOutput, compression, serializers.valueSerializer());
   }
 
   /**
@@ -107,45 +103,8 @@ final class StorageSerialization {
    * @param useCompression use compression
    * @throws IOException if an io error occurs
    */
-  private void serializeObject(Object obj, DataOutput dataOutput, boolean useCompression) throws IOException {
-    //Cast to primitive arrays if necessary
-    if (obj != null && obj.getClass().isArray()) {
-      if (obj instanceof Integer[]) {
-        obj = getPrimitiveArray((Integer[]) obj);
-      } else if (obj instanceof Boolean[]) {
-        obj = getPrimitiveArray((Object[]) obj);
-      } else if (obj instanceof Byte[]) {
-        obj = getPrimitiveArray((Object[]) obj);
-      } else if (obj instanceof Character[]) {
-        obj = getPrimitiveArray((Object[]) obj);
-      } else if (obj instanceof Double[]) {
-        obj = getPrimitiveArray((Object[]) obj);
-      } else if (obj instanceof Float[]) {
-        obj = getPrimitiveArray((Object[]) obj);
-      } else if (obj instanceof Long[]) {
-        obj = getPrimitiveArray((Object[]) obj);
-      } else if (obj instanceof Short[]) {
-        obj = getPrimitiveArray((Object[]) obj);
-      } else if (obj instanceof Integer[][]) {
-        obj = getPrimitiveArray((Object[][]) obj);
-      } else if (obj instanceof Boolean[][]) {
-        obj = getPrimitiveArray((Object[][]) obj);
-      } else if (obj instanceof Byte[][]) {
-        obj = getPrimitiveArray((Object[][]) obj);
-      } else if (obj instanceof Character[][]) {
-        obj = getPrimitiveArray((Object[][]) obj);
-      } else if (obj instanceof Double[][]) {
-        obj = getPrimitiveArray((Object[][]) obj);
-      } else if (obj instanceof Float[][]) {
-        obj = getPrimitiveArray((Object[][]) obj);
-      } else if (obj instanceof Long[][]) {
-        obj = getPrimitiveArray((Object[][]) obj);
-      } else if (obj instanceof Short[][]) {
-        obj = getPrimitiveArray((Object[][]) obj);
-      }
-    }
-
-    serialize(dataOutput, obj, useCompression);
+  private <T> void serializeObject(Object obj, DataOutput dataOutput, boolean useCompression, Serializer<T> serializer) throws IOException {
+    serialize(dataOutput, obj, useCompression, serializer);
   }
 
   /**
@@ -157,81 +116,9 @@ final class StorageSerialization {
     return compression;
   }
 
-  // UTILITIES
-
-  private static Object getPrimitiveArray(Object[][] array) {
-    Class arrayClass = array.getClass().getComponentType().getComponentType();
-    if (!arrayClass.isPrimitive()) {
-      Class primitiveClass = getPrimitiveType(arrayClass);
-
-      int arrayLength = array.length;
-      Object primitiveArray = Array.newInstance(primitiveClass, arrayLength, 0);
-
-      for (int i = 0; i < arrayLength; i++) {
-        Object[] obj = array[i];
-        if (obj != null) {
-          Object innerArray = Array.newInstance(primitiveClass, obj.length);
-          for (int j = 0; j < obj.length; j++) {
-            Object iobj = obj[j];
-            if (iobj != null) {
-              Array.set(innerArray, j, iobj);
-            }
-          }
-          Array.set(primitiveArray, i, innerArray);
-        }
-      }
-
-      return primitiveArray;
-    }
-
-    return null;
-  }
-
-  private static <T> Object getPrimitiveArray(T[] array) {
-    Class arrayClass = array.getClass().getComponentType();
-    if (!arrayClass.isPrimitive()) {
-      Class primitiveClass = getPrimitiveType(arrayClass);
-
-      int arrayLength = array.length;
-      Object primitiveArray = Array.newInstance(primitiveClass, arrayLength);
-
-      for (int i = 0; i < arrayLength; i++) {
-        Object obj = array[i];
-        if (obj != null) {
-          Array.set(primitiveArray, i, obj);
-        }
-      }
-      return primitiveArray;
-    }
-    return array;
-  }
-
-  private static Class getPrimitiveType(Class type) {
-    if (!type.isPrimitive()) {
-      if (type.equals(Boolean.class)) {
-        return boolean.class;
-      } else if (type.equals(Integer.class)) {
-        return int.class;
-      } else if (type.equals(Short.class)) {
-        return short.class;
-      } else if (type.equals(Long.class)) {
-        return long.class;
-      } else if (type.equals(Byte.class)) {
-        return byte.class;
-      } else if (type.equals(Float.class)) {
-        return float.class;
-      } else if (type.equals(Double.class)) {
-        return double.class;
-      } else if (type.equals(Character.class)) {
-        return char.class;
-      }
-    }
-    throw new IllegalArgumentException("The type should be a wrapped primitive");
-  }
-
   // SERIALIZATION
 
-  static final int NULL_ID = -1;
+  private static final int NULL_ID = -1;
   private static final int NULL = 0;
   private static final int BOOLEAN_TRUE = 2;
   private static final int BOOLEAN_FALSE = 3;
@@ -318,29 +205,24 @@ final class StorageSerialization {
   private static final int LONG_LONG_ARRAY = 112;
   private static final int CLASS = 113;
   private static final int CUSTOM = 114;
+  private static final int CUSTOM_C = 115;
   private static final String EMPTY_STRING = "";
 
-  byte[] serialize(Object obj) throws IOException {
-    return serialize(obj, false);
+  private <T> void serialize(final DataOutput out, final Object obj, Serializer<T> serializer) throws IOException {
+    serialize(out, obj, false, serializer);
   }
 
-  byte[] serialize(Object obj, boolean compress) throws IOException {
-    DataInputOutput ba = new DataInputOutput();
-
-    serialize(ba, obj, compress);
-
-    return ba.toByteArray();
-  }
-
-  private void serialize(final DataOutput out, final Object obj) throws IOException {
-    serialize(out, obj, false);
-  }
-
-  private void serialize(final DataOutput out, final Object obj, boolean compress) throws IOException {
-    final Class clazz = obj != null ? obj.getClass() : null;
+  private <T> void serialize(final DataOutput out, final Object obj, boolean compress, Serializer<T> serializer) throws IOException {
+    final Class<?> clazz = obj != null ? obj.getClass() : null;
 
     if (obj == null) {
       out.write(NULL);
+    } else if (serializer != null) {
+        out.write(compress ? CUSTOM_C : CUSTOM);
+        var bytes = serializer.write((T) obj);
+        if (bytes == null)
+          throw new NullPointerException("Serializer [" + serializer.getClass() + "] has written null bytes for value: " + obj);
+      serializeByteArrayHeadless(out, bytes, compress);
     } else if (clazz == Boolean.class) {
       if ((boolean) obj) {
         out.write(BOOLEAN_TRUE);
@@ -349,12 +231,16 @@ final class StorageSerialization {
       }
     } else if (clazz == Integer.class) {
       serializeInt(out, (Integer) obj);
+    } else if (clazz == String.class) {
+      serializeString(out, (String) obj);
+    } else if (obj instanceof byte[]) {
+      serializeByteArray(out, (byte[]) obj, compress);
+    } else if (clazz == Long.class) {
+      serializeLong(out, (Long) obj);
     } else if (clazz == Double.class) {
       serializeDouble(out, (Double) obj);
     } else if (clazz == Float.class) {
       serializeFloat(out, (Float) obj);
-    } else if (clazz == Long.class) {
-      serializeLong(out, (Long) obj);
     } else if (clazz == BigInteger.class) {
       serializeBigInteger(out, (BigInteger) obj);
     } else if (clazz == BigDecimal.class) {
@@ -365,10 +251,8 @@ final class StorageSerialization {
       serializeByte(out, (Byte) obj);
     } else if (clazz == Character.class) {
       serializeChar(out, (Character) obj);
-    } else if (clazz == String.class) {
-      serializeString(out, (String) obj);
     } else if (obj instanceof Class) {
-      serializeClass(out, (Class) obj);
+      serializeClass(out, (Class<?>) obj);
     } else if (obj instanceof int[]) {
       serializeIntArray(out, (int[]) obj, compress);
     } else if (obj instanceof long[]) {
@@ -383,27 +267,16 @@ final class StorageSerialization {
       serializeFloatArray(out, (float[]) obj, compress);
     } else if (obj instanceof char[]) {
       serializeCharArray(out, (char[]) obj, compress);
-    } else if (obj instanceof byte[]) {
-      serializeByteArray(out, (byte[]) obj, compress);
     } else if (obj instanceof String[]) {
       serializeStringArray(out, (String[]) obj);
     } else if (obj instanceof int[][]) {
       serializeIntIntArray(out, (int[][]) obj, compress);
     } else if (obj instanceof long[][]) {
       serializeLongLongArray(out, (long[][]) obj, compress);
+    } else if (obj instanceof Object[]) {
+      serializeObjectArray(out, (Object[]) obj, serializer);
     } else {
-      // Custom
-      var serializer = serializers.getSerializer(obj.getClass());
-      if (serializer != null) {
-        var className = serializer.serializedClass().getName();
-        out.write(CUSTOM);
-        out.writeChars(className);
-        serializer.write(out, obj);
-      } else if (obj instanceof Object[]) {
-        serializeObjectArray(out, (Object[]) obj);
-      } else {
-        throw new UnsupportedTypeException(obj);
-      }
+        throw new MissingSerializer(obj);
     }
   }
 
@@ -575,7 +448,7 @@ final class StorageSerialization {
     LongPacker.packInt(out, val.scale());
   }
 
-  private static void serializeClass(final DataOutput out, final Class val) throws IOException {
+  private static void serializeClass(final DataOutput out, final Class<?> val) throws IOException {
     out.write(CLASS);
     serializeString(out, val.getName());
   }
@@ -589,7 +462,7 @@ final class StorageSerialization {
   }
 
   private static void serializeShortArray(final DataOutput out, final short[] val, boolean compress) throws IOException {
-    if (compress && val.length > 250) {
+    if (compress) {
       out.write(SHORT_ARRAY_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);
@@ -604,7 +477,7 @@ final class StorageSerialization {
   }
 
   private static void serializeDoubleArray(final DataOutput out, final double[] val, boolean compress) throws IOException {
-    if (compress && val.length > 250) {
+    if (compress) {
       out.write(DOUBLE_ARRAY_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);
@@ -619,7 +492,7 @@ final class StorageSerialization {
   }
 
   private static void serializeFloatArray(final DataOutput out, final float[] val, boolean compress) throws IOException {
-    if (compress && val.length > 250) {
+    if (compress) {
       out.write(FLOAT_ARRAY_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);
@@ -634,7 +507,7 @@ final class StorageSerialization {
   }
 
   private static void serializeCharArray(final DataOutput out, final char[] val, boolean compress) throws IOException {
-    if (compress && val.length > 250) {
+    if (compress) {
       out.write(CHAR_ARRAY_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);
@@ -668,7 +541,7 @@ final class StorageSerialization {
       for (int i : val) {
         out.writeShort(i);
       }
-    } else if (compress && val.length > 250) {
+    } else if (compress) {
       out.write(ARRAY_INT_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);
@@ -717,7 +590,7 @@ final class StorageSerialization {
       for (long l : val) {
         out.writeShort((short) l);
       }
-    } else if (compress && val.length > 250) {
+    } else if (compress) {
       out.write(ARRAY_LONG_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);
@@ -752,8 +625,19 @@ final class StorageSerialization {
     }
   }
 
+  private static void serializeByteArrayHeadless(final DataOutput out, final byte[] val, boolean compress) throws IOException {
+    if (compress) {
+      byte[] b = Snappy.compress(val);
+      LongPacker.packInt(out, b.length);
+      out.write(b);
+    } else {
+      LongPacker.packInt(out, val.length);
+      out.write(val);
+    }
+  }
+
   private static void serializeByteArray(final DataOutput out, final byte[] val, boolean compress) throws IOException {
-    if (compress && val.length > 250) {
+    if (compress) {
       out.write(BYTE_ARRAY_C);
       byte[] b = Snappy.compress(val);
       LongPacker.packInt(out, b.length);
@@ -773,294 +657,334 @@ final class StorageSerialization {
     }
   }
 
-  private void serializeObjectArray(final DataOutput out, final Object[] val) throws IOException {
+  private <T> void serializeObjectArray(final DataOutput out, final Object[] val, Serializer<T> serializer) throws IOException {
     out.write(ARRAY_OBJECT);
+
+    if (val instanceof Integer[]) {
+      out.write(ARRAY_INT_I);
+    } else if (val instanceof Boolean[]) {
+      out.write(BOOLEAN_ARRAY);
+    } else if (val instanceof Byte[]) {
+      out.write(BYTE_ARRAY);
+    } else if (val instanceof Character[]) {
+      out.write(CHAR_ARRAY);
+    } else if (val instanceof Double[]) {
+      out.write(DOUBLE_ARRAY);
+    } else if (val instanceof Float[]) {
+      out.write(FLOAT_ARRAY);
+    } else if (val instanceof Long[]) {
+      out.write(ARRAY_LONG_L);
+    } else if (val instanceof Short[]) {
+      out.write(SHORT_ARRAY);
+    } else if (val instanceof Integer[][]) {
+      out.write(INT_INT_ARRAY);
+    } else if (val instanceof Long[][]) {
+      out.write(LONG_LONG_ARRAY);
+    } else {
+      throw new UnsupportedOperationException("Class " + val.getClass().getName() + " isn't supported");
+    }
+
     LongPacker.packInt(out, val.length);
     for (Object o : val) {
-      serialize(out, o);
+      serialize(out, o, serializer);
     }
   }
 
-  Object deserialize(byte[] buf) throws IOException {
+  private <T> T deserialize(byte[] buf, Serializer<T> serializer) throws IOException {
     DataInputOutput bs = new DataInputOutput(buf);
-    Object ret = deserialize(bs);
+    Object ret = deserialize(bs, serializer);
     if (bs.available() != 0) {
       throw new RuntimeException("bytes left: " + bs.available());
     }
 
-    return ret;
+    return (T) ret;
   }
 
-  Object deserialize(DataInput is) throws IOException {
+  K deserializeKey(byte[] buf) throws IOException {
+    return deserialize(buf, serializers.keySerializer());
+  }
+
+  V deserializeValue(byte[] buf) throws IOException {
+    return deserialize(buf, serializers.valueSerializer());
+  }
+
+  K deserializeKey(DataInput is) throws IOException {
+    return deserialize(is, serializers.keySerializer());
+  }
+
+  V deserializeValue(DataInput is) throws IOException {
+    return deserialize(is, serializers.valueSerializer());
+  }
+
+  private <T> T deserialize(DataInput is, Serializer<T> serializer) throws IOException {
     Object ret = null;
 
     final int head = is.readUnsignedByte();
+    switch (head) {
+      case CUSTOM:
+        if (serializer == null) throw new MissingSerializer("Serializer not registered");
+        ret = serializer.read(deserializeByteArray(is));
+        break;
+      case CUSTOM_C:
+        if (serializer == null) throw new MissingSerializer("Serializer not registered");
+        ret = serializer.read(deserializeByteCompressedArray(is));
+        break;
+      case NULL:
+        break;
+      case BOOLEAN_TRUE:
+        ret = Boolean.TRUE;
+        break;
+      case BOOLEAN_FALSE:
+        ret = Boolean.FALSE;
+        break;
+      case INTEGER_MINUS_1:
+        ret = -1;
+        break;
+      case INTEGER_0:
+        ret = 0;
+        break;
+      case INTEGER_1:
+        ret = 1;
+        break;
+      case INTEGER_2:
+        ret = 2;
+        break;
+      case INTEGER_3:
+        ret = 3;
+        break;
+      case INTEGER_4:
+        ret = 4;
+        break;
+      case INTEGER_5:
+        ret = 5;
+        break;
+      case INTEGER_6:
+        ret = 6;
+        break;
+      case INTEGER_7:
+        ret = 7;
+        break;
+      case INTEGER_8:
+        ret = 8;
+        break;
+      case INTEGER_MINUS_MAX:
+        ret = Integer.MIN_VALUE;
+        break;
+      case INTEGER_255:
+        ret = is.readUnsignedByte();
+        break;
+      case INTEGER_PACK_NEG:
+        ret = -LongPacker.unpackInt(is);
+        break;
+      case INTEGER_PACK:
+        ret = LongPacker.unpackInt(is);
+        break;
+      case LONG_MINUS_1:
+        ret = (long) -1;
+        break;
+      case LONG_0:
+        ret = 0L;
+        break;
+      case LONG_1:
+        ret = 1L;
+        break;
+      case LONG_2:
+        ret = 2L;
+        break;
+      case LONG_3:
+        ret = 3L;
+        break;
+      case LONG_4:
+        ret = 4L;
+        break;
+      case LONG_5:
+        ret = 5L;
+        break;
+      case LONG_6:
+        ret = 6L;
+        break;
+      case LONG_7:
+        ret = 7L;
+        break;
+      case LONG_8:
+        ret = 8L;
+        break;
+      case LONG_255:
+        ret = (long) is.readUnsignedByte();
+        break;
+      case LONG_PACK_NEG:
+        ret = -LongPacker.unpackLong(is);
+        break;
+      case LONG_PACK:
+        ret = LongPacker.unpackLong(is);
+        break;
+      case LONG_MINUS_MAX:
+        ret = Long.MIN_VALUE;
+        break;
+      case SHORT_MINUS_1:
+        ret = (short) -1;
+        break;
+      case SHORT_0:
+        ret = (short) 0;
+        break;
+      case SHORT_1:
+        ret = (short) 1;
+        break;
+      case SHORT_255:
+        ret = (short) is.readUnsignedByte();
+        break;
+      case SHORT_FULL:
+        ret = is.readShort();
+        break;
+      case BYTE_MINUS_1:
+        ret = (byte) -1;
+        break;
+      case BYTE_0:
+        ret = (byte) 0;
+        break;
+      case BYTE_1:
+        ret = (byte) 1;
+        break;
+      case BYTE_FULL:
+        ret = is.readByte();
+        break;
+      case SHORT_ARRAY:
+        ret = deserializeShortArray(is);
+        break;
+      case BOOLEAN_ARRAY:
+        ret = deserializeBooleanArray(is);
+        break;
+      case DOUBLE_ARRAY:
+        ret = deserializeDoubleArray(is);
+        break;
+      case FLOAT_ARRAY:
+        ret = deserializeFloatArray(is);
+        break;
+      case CHAR_ARRAY:
+        ret = deserializeCharArray(is);
+        break;
+      case SHORT_ARRAY_C:
+        ret = deserializeShortCompressedArray(is);
+        break;
+      case DOUBLE_ARRAY_C:
+        ret = deserializeDoubleCompressedArray(is);
+        break;
+      case FLOAT_ARRAY_C:
+        ret = deserializeFloatCompressedArray(is);
+        break;
+      case CHAR_ARRAY_C:
+        ret = deserializeCharCompressedArray(is);
+        break;
+      case CHAR:
+        ret = is.readChar();
+        break;
+      case FLOAT_MINUS_1:
+        ret = (float) -1;
+        break;
+      case FLOAT_0:
+        ret = (float) 0;
+        break;
+      case FLOAT_1:
+        ret = 1f;
+        break;
+      case FLOAT_255:
+        ret = (float) is.readUnsignedByte();
+        break;
+      case FLOAT_SHORT:
+        ret = (float) is.readShort();
+        break;
+      case FLOAT_FULL:
+        ret = is.readFloat();
+        break;
+      case DOUBLE_MINUS_1:
+        ret = (double) -1;
+        break;
+      case DOUBLE_0:
+        ret = (double) 0;
+        break;
+      case DOUBLE_1:
+        ret = 1d;
+        break;
+      case DOUBLE_255:
+        ret = (double) is.readUnsignedByte();
+        break;
+      case DOUBLE_SHORT:
+        ret = (double) is.readShort();
+        break;
+      case DOUBLE_FULL:
+        ret = is.readDouble();
+        break;
+      case BIGINTEGER:
+        ret = new BigInteger((byte[]) deserialize(is, serializer));
+        break;
+      case BIGDECIMAL:
+        ret = new BigDecimal(new BigInteger((byte[]) deserialize(is, serializer)), LongPacker.unpackInt(is));
+        break;
+      case STRING:
+        ret = deserializeString(is);
+        break;
+      case STRING_EMPTY:
+        ret = EMPTY_STRING;
+        break;
+      case CLASS:
+        ret = deserializeClass(is);
+        break;
+      case ARRAY_INT_B:
+        ret = deserializeArrayIntB(is);
+        break;
+      case ARRAY_INT_S:
+        ret = deserializeArrayIntS(is);
+        break;
+      case ARRAY_INT_I:
+        ret = deserializeArrayIntI(is);
+        break;
+      case ARRAY_INT_C:
+        ret = deserializeArrayIntCompressed(is);
+        break;
+      case ARRAY_INT_PACKED:
+        ret = deserializeArrayIntPack(is);
+        break;
+      case ARRAY_LONG_B:
+        ret = deserializeArrayLongB(is);
+        break;
+      case ARRAY_LONG_S:
+        ret = deserializeArrayLongS(is);
+        break;
+      case ARRAY_LONG_I:
+        ret = deserializeArrayLongI(is);
+        break;
+      case ARRAY_LONG_L:
+        ret = deserializeArrayLongL(is);
+        break;
+      case ARRAY_LONG_C:
+        ret = deserializeArrayLongCompressed(is);
+        break;
+      case ARRAY_LONG_PACKED:
+        ret = deserializeArrayLongPack(is);
+        break;
+      case BYTE_ARRAY:
+        ret = deserializeByteArray(is);
+        break;
+      case BYTE_ARRAY_C:
+        ret = deserializeByteCompressedArray(is);
+        break;
+      case STRING_ARRAY:
+        ret = deserializeStringArray(is);
+        break;
+      case INT_INT_ARRAY:
+        ret = deserializeIntIntArray(is);
+        break;
+      case LONG_LONG_ARRAY:
+        ret = deserializeLongLongArray(is);
+        break;
+      case ARRAY_OBJECT:
+        ret = deserializeArrayObject(is, serializer);
+        break;
+      case -1:
+        throw new EOFException();
 
-    if (head >= CUSTOM) {
-      var className = is.readUTF();
-      Serializer serializer = serializers.getSerializer(className);
-      if (serializer == null) {
-        throw new MissingSerializer("Serializer not registered: " + className);
-      }
-      ret = serializer.read(is);
-    } else {
-      switch (head) {
-        case NULL:
-          break;
-        case BOOLEAN_TRUE:
-          ret = Boolean.TRUE;
-          break;
-        case BOOLEAN_FALSE:
-          ret = Boolean.FALSE;
-          break;
-        case INTEGER_MINUS_1:
-          ret = -1;
-          break;
-        case INTEGER_0:
-          ret = 0;
-          break;
-        case INTEGER_1:
-          ret = 1;
-          break;
-        case INTEGER_2:
-          ret = 2;
-          break;
-        case INTEGER_3:
-          ret = 3;
-          break;
-        case INTEGER_4:
-          ret = 4;
-          break;
-        case INTEGER_5:
-          ret = 5;
-          break;
-        case INTEGER_6:
-          ret = 6;
-          break;
-        case INTEGER_7:
-          ret = 7;
-          break;
-        case INTEGER_8:
-          ret = 8;
-          break;
-        case INTEGER_MINUS_MAX:
-          ret = Integer.MIN_VALUE;
-          break;
-        case INTEGER_255:
-          ret = is.readUnsignedByte();
-          break;
-        case INTEGER_PACK_NEG:
-          ret = -LongPacker.unpackInt(is);
-          break;
-        case INTEGER_PACK:
-          ret = LongPacker.unpackInt(is);
-          break;
-        case LONG_MINUS_1:
-          ret = (long) -1;
-          break;
-        case LONG_0:
-          ret = 0L;
-          break;
-        case LONG_1:
-          ret = 1L;
-          break;
-        case LONG_2:
-          ret = 2L;
-          break;
-        case LONG_3:
-          ret = 3L;
-          break;
-        case LONG_4:
-          ret = 4L;
-          break;
-        case LONG_5:
-          ret = 5L;
-          break;
-        case LONG_6:
-          ret = 6L;
-          break;
-        case LONG_7:
-          ret = 7L;
-          break;
-        case LONG_8:
-          ret = 8L;
-          break;
-        case LONG_255:
-          ret = (long) is.readUnsignedByte();
-          break;
-        case LONG_PACK_NEG:
-          ret = -LongPacker.unpackLong(is);
-          break;
-        case LONG_PACK:
-          ret = LongPacker.unpackLong(is);
-          break;
-        case LONG_MINUS_MAX:
-          ret = Long.MIN_VALUE;
-          break;
-        case SHORT_MINUS_1:
-          ret = (short) -1;
-          break;
-        case SHORT_0:
-          ret = (short) 0;
-          break;
-        case SHORT_1:
-          ret = (short) 1;
-          break;
-        case SHORT_255:
-          ret = (short) is.readUnsignedByte();
-          break;
-        case SHORT_FULL:
-          ret = is.readShort();
-          break;
-        case BYTE_MINUS_1:
-          ret = (byte) -1;
-          break;
-        case BYTE_0:
-          ret = (byte) 0;
-          break;
-        case BYTE_1:
-          ret = (byte) 1;
-          break;
-        case BYTE_FULL:
-          ret = is.readByte();
-          break;
-        case SHORT_ARRAY:
-          ret = deserializeShortArray(is);
-          break;
-        case BOOLEAN_ARRAY:
-          ret = deserializeBooleanArray(is);
-          break;
-        case DOUBLE_ARRAY:
-          ret = deserializeDoubleArray(is);
-          break;
-        case FLOAT_ARRAY:
-          ret = deserializeFloatArray(is);
-          break;
-        case CHAR_ARRAY:
-          ret = deserializeCharArray(is);
-          break;
-        case SHORT_ARRAY_C:
-          ret = deserializeShortCompressedArray(is);
-          break;
-        case DOUBLE_ARRAY_C:
-          ret = deserializeDoubleCompressedArray(is);
-          break;
-        case FLOAT_ARRAY_C:
-          ret = deserializeFloatCompressedArray(is);
-          break;
-        case CHAR_ARRAY_C:
-          ret = deserializeCharCompressedArray(is);
-          break;
-        case CHAR:
-          ret = is.readChar();
-          break;
-        case FLOAT_MINUS_1:
-          ret = (float) -1;
-          break;
-        case FLOAT_0:
-          ret = (float) 0;
-          break;
-        case FLOAT_1:
-          ret = 1f;
-          break;
-        case FLOAT_255:
-          ret = (float) is.readUnsignedByte();
-          break;
-        case FLOAT_SHORT:
-          ret = (float) is.readShort();
-          break;
-        case FLOAT_FULL:
-          ret = is.readFloat();
-          break;
-        case DOUBLE_MINUS_1:
-          ret = (double) -1;
-          break;
-        case DOUBLE_0:
-          ret = (double) 0;
-          break;
-        case DOUBLE_1:
-          ret = 1d;
-          break;
-        case DOUBLE_255:
-          ret = (double) is.readUnsignedByte();
-          break;
-        case DOUBLE_SHORT:
-          ret = (double) is.readShort();
-          break;
-        case DOUBLE_FULL:
-          ret = is.readDouble();
-          break;
-        case BIGINTEGER:
-          ret = new BigInteger((byte[]) deserialize(is));
-          break;
-        case BIGDECIMAL:
-          ret = new BigDecimal(new BigInteger((byte[]) deserialize(is)), LongPacker.unpackInt(is));
-          break;
-        case STRING:
-          ret = deserializeString(is);
-          break;
-        case STRING_EMPTY:
-          ret = EMPTY_STRING;
-          break;
-        case CLASS:
-          ret = deserializeClass(is);
-          break;
-        case ARRAY_INT_B:
-          ret = deserializeArrayIntB(is);
-          break;
-        case ARRAY_INT_S:
-          ret = deserializeArrayIntS(is);
-          break;
-        case ARRAY_INT_I:
-          ret = deserializeArrayIntI(is);
-          break;
-        case ARRAY_INT_C:
-          ret = deserializeArrayIntCompressed(is);
-          break;
-        case ARRAY_INT_PACKED:
-          ret = deserializeArrayIntPack(is);
-          break;
-        case ARRAY_LONG_B:
-          ret = deserializeArrayLongB(is);
-          break;
-        case ARRAY_LONG_S:
-          ret = deserializeArrayLongS(is);
-          break;
-        case ARRAY_LONG_I:
-          ret = deserializeArrayLongI(is);
-          break;
-        case ARRAY_LONG_L:
-          ret = deserializeArrayLongL(is);
-          break;
-        case ARRAY_LONG_C:
-          ret = deserializeArrayLongCompressed(is);
-          break;
-        case ARRAY_LONG_PACKED:
-          ret = deserializeArrayLongPack(is);
-          break;
-        case BYTE_ARRAY:
-          ret = deserializeByteArray(is);
-          break;
-        case BYTE_ARRAY_C:
-          ret = deserializeByteCompressedArray(is);
-          break;
-        case STRING_ARRAY:
-          ret = deserializeStringArray(is);
-          break;
-        case INT_INT_ARRAY:
-          ret = deserializeIntIntArray(is);
-          break;
-        case LONG_LONG_ARRAY:
-          ret = deserializeLongLongArray(is);
-          break;
-        case ARRAY_OBJECT:
-          ret = deserializeArrayObject(is);
-          break;
-        case -1:
-          throw new EOFException();
-      }
     }
-    return ret;
+    return (T) ret;
   }
 
   private static String deserializeString(DataInput buf)
@@ -1074,7 +998,7 @@ final class StorageSerialization {
     return new String(b);
   }
 
-  private static Class deserializeClass(DataInput is) throws IOException {
+  private static Class<?> deserializeClass(DataInput is) throws IOException {
     is.readByte();
     String className = deserializeString(is);
     try {
@@ -1196,12 +1120,47 @@ final class StorageSerialization {
     return Snappy.uncompress(b);
   }
 
-  private Object[] deserializeArrayObject(DataInput is) throws IOException {
+  private <T> Object[] deserializeArrayObject(DataInput is, Serializer<T> serializer) throws IOException {
+    int head = is.readUnsignedByte();
+    Class<?> ret = null;
+    switch (head) {
+      case ARRAY_INT_I:
+        ret = Integer.class;
+        break;
+      case BOOLEAN_ARRAY:
+        ret = Boolean.class;
+        break;
+      case BYTE_ARRAY:
+        ret = Byte.class;
+        break;
+      case CHAR_ARRAY:
+        ret = Character.class;
+        break;
+      case DOUBLE_ARRAY:
+        ret = Double.class;
+        break;
+      case FLOAT_ARRAY:
+        ret = Float.class;
+        break;
+      case ARRAY_LONG_L:
+        ret = Long.class;
+        break;
+      case SHORT_ARRAY:
+        ret = Short.class;
+        break;
+      case INT_INT_ARRAY:
+        ret = Integer[].class;
+        break;
+      case LONG_LONG_ARRAY:
+        ret = Long[].class;
+        break;
+      default: throw new IllegalStateException("Unsupported class head: " + head);
+    }
     int size = LongPacker.unpackInt(is);
 
-    Object[] s = (Object[]) Array.newInstance(Object.class, size);
+    var s = (Object[]) Array.newInstance(ret, size);
     for (int i = 0; i < size; i++) {
-      s[i] = deserialize(is);
+      s[i] = deserialize(is, serializer);
     }
     return s;
   }

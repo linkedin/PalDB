@@ -16,6 +16,7 @@ package com.linkedin.paldb.impl;
 
 import com.linkedin.paldb.utils.DataInputOutput;
 
+import java.io.*;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -29,7 +30,7 @@ public final class ReaderKeyIterable<K> implements Iterable<K> {
   private Iterable<Map.Entry<byte[], byte[]>> byteIterable;
 
   // Serialization
-  private StorageSerialization serialization;
+  private StorageSerialization<K,?> serialization;
 
   /**
    * Constructor.
@@ -37,7 +38,7 @@ public final class ReaderKeyIterable<K> implements Iterable<K> {
    * @param byteIterable  byte iterator
    * @param serialization serialization
    */
-  ReaderKeyIterable(Iterable<Map.Entry<byte[], byte[]>> byteIterable, StorageSerialization serialization) {
+  ReaderKeyIterable(Iterable<Map.Entry<byte[], byte[]>> byteIterable, StorageSerialization<K,?> serialization) {
     this.byteIterable = byteIterable;
     this.serialization = serialization;
   }
@@ -57,7 +58,7 @@ public final class ReaderKeyIterable<K> implements Iterable<K> {
     // Buffer
     private final DataInputOutput dataInputOutput = new DataInputOutput();
     // Serialization
-    private StorageSerialization serialization;
+    private StorageSerialization<K,?> serialization;
 
     /**
      * Constructor.
@@ -65,7 +66,7 @@ public final class ReaderKeyIterable<K> implements Iterable<K> {
      * @param byteIterator  byte iterator
      * @param serialization serialization
      */
-    ReaderKeyIterator(Iterator<Map.Entry<byte[], byte[]>> byteIterator, StorageSerialization serialization) {
+    ReaderKeyIterator(Iterator<Map.Entry<byte[], byte[]>> byteIterator, StorageSerialization<K,?> serialization) {
       this.byteIterator = byteIterator;
       this.serialization = serialization;
     }
@@ -79,9 +80,9 @@ public final class ReaderKeyIterable<K> implements Iterable<K> {
     public K next() {
       Map.Entry<byte[], byte[]> byteEntry = byteIterator.next();
       try {
-        return (K) serialization.deserialize(dataInputOutput.reset(byteEntry.getKey()));
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
+        return serialization.deserializeKey(dataInputOutput.reset(byteEntry.getKey()));
+      } catch (IOException ex) {
+        throw new UncheckedIOException(ex);
       }
     }
 
